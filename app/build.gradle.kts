@@ -9,7 +9,7 @@ plugins {
 
 android {
     namespace = "com.elykia.octopus"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.elykia.octopus"
