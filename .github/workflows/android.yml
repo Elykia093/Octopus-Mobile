@@ -21,6 +21,12 @@ jobs:
           java-version: 17
           cache: gradle
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform 37
+        run: sdkmanager "platform-tools" "build-tools;37.0.0" "platforms;android-37"
+
       - name: Grant execute permission
         run: chmod +x gradlew
 
