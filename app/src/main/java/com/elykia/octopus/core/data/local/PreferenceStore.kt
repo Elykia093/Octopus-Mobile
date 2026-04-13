@@ -16,7 +16,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 @Singleton
 class PreferenceStore @Inject constructor(
-    @ApplicationContext
+    @param:ApplicationContext
     private val context: Context,
 ) {
     private val store get() = context.dataStore

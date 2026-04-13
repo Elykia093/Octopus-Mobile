@@ -3,7 +3,6 @@ package com.elykia.octopus.core.di
 import com.elykia.octopus.core.data.local.PreferenceStore
 import com.elykia.octopus.core.data.local.SessionManager
 import com.elykia.octopus.core.data.model.ServerConfig
-import com.elykia.octopus.core.data.remote.ApiException
 import com.elykia.octopus.core.data.remote.OctopusApiService
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
@@ -13,6 +12,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -34,11 +34,15 @@ private class BaseUrlInterceptor(
             .scheme(base.scheme)
             .host(base.host)
             .port(base.port)
+            .encodedPath(base.encodedPath.trimEnd('/') + request.url.encodedPath)
             .build()
         return chain.proceed(request.newBuilder().url(newUrl).build())
     }
 
-    private fun normalizeBaseUrl(config: ServerConfig) = (if (config.baseUrl.isBlank()) "http://127.0.0.1:8080" else config.baseUrl).toHttpUrl()
+    private fun normalizeBaseUrl(config: ServerConfig): HttpUrl {
+        val rawBaseUrl = if (config.baseUrl.isBlank()) "http://127.0.0.1:8080" else config.baseUrl
+        return rawBaseUrl.trimEnd('/').plus("/").toHttpUrl()
+    }
 }
 
 private class AuthInterceptor(
@@ -51,9 +55,8 @@ private class AuthInterceptor(
             requestBuilder.header("Authorization", "Bearer $token")
         }
         val response = chain.proceed(requestBuilder.build())
-        if (response.code == 401) {
+        if (response.code == 401 && token.isNotBlank()) {
             sessionManager.clear()
-            throw ApiException(401, "Unauthorized")
         }
         return response
     }

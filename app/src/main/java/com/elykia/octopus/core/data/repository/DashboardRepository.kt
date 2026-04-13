@@ -2,7 +2,6 @@ package com.elykia.octopus.core.data.repository
 
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.common.DispatchersProvider
-import com.elykia.octopus.core.data.model.ApiKeyDashboard
 import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.Group
@@ -66,10 +65,6 @@ class DashboardRepository @Inject constructor(
 
     suspend fun apiKeys(): AppResult<List<ApiKeyItem>> = withContext(dispatchers.io) {
         executor.execute { apiService.apiKeys() }
-    }
-
-    suspend fun apiKeyDashboard(): AppResult<ApiKeyDashboard> = withContext(dispatchers.io) {
-        executor.execute { apiService.apiKeyStats() }
     }
 
     suspend fun latestInfo(): AppResult<LatestInfo> = withContext(dispatchers.io) {

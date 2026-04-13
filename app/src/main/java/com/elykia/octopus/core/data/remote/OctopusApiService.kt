@@ -1,7 +1,6 @@
 package com.elykia.octopus.core.data.remote
 
 import com.elykia.octopus.core.data.model.ApiEnvelope
-import com.elykia.octopus.core.data.model.ApiKeyDashboard
 import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.Group
@@ -17,7 +16,7 @@ import com.elykia.octopus.core.data.model.StatsTotal
 import com.elykia.octopus.core.data.model.UserLoginRequest
 import com.elykia.octopus.core.data.model.UserLoginResponse
 import okhttp3.MultipartBody
-import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -80,9 +79,6 @@ interface OctopusApiService {
     @GET("/api/v1/apikey/list")
     suspend fun apiKeys(): ApiEnvelope<List<ApiKeyItem>>
 
-    @GET("/api/v1/apikey/stats")
-    suspend fun apiKeyStats(): ApiEnvelope<ApiKeyDashboard>
-
     @GET("/api/v1/update")
     suspend fun latestUpdate(): ApiEnvelope<LatestInfo>
 
@@ -96,7 +92,7 @@ interface OctopusApiService {
     suspend fun exportData(
         @Query("include_logs") includeLogs: Boolean,
         @Query("include_stats") includeStats: Boolean,
-    ): Response<RequestBody>
+    ): Response<ResponseBody>
 
     @Multipart
     @POST("/api/v1/setting/import")

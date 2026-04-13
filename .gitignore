@@ -1,4 +1,6 @@
 .gradle/
+.gradle-local/
+.kotlin/
 /build/
 local.properties
 *.iml
@@ -6,3 +8,11 @@ local.properties
 captures/
 .DS_Store
 app/build/
+android-sdk/
+commandlinetools-win.zip
+gradle-9.1.0-bin.zip
+sdk-packages.txt
+install-sdk.cmd
+list-sdk.cmd
+miuix-ui-android-0.9.0.aar
+miuix-ui-metadata.xml

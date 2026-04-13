@@ -3,7 +3,6 @@ package com.elykia.octopus.feature.setting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.common.AppResult
-import com.elykia.octopus.core.data.model.ApiKeyDashboard
 import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.data.model.LatestInfo
 import com.elykia.octopus.core.data.model.SettingItem
@@ -20,7 +19,6 @@ data class SettingUiState(
     val loading: Boolean = true,
     val settings: List<SettingItem> = emptyList(),
     val apiKeys: List<ApiKeyItem> = emptyList(),
-    val apiKeyDashboard: ApiKeyDashboard? = null,
     val latestInfo: LatestInfo? = null,
     val currentVersion: String? = null,
     val error: String? = null,
@@ -43,7 +41,6 @@ class SettingViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(loading = true, error = null)
             val settingsDeferred = async { appRepository.settings() }
             val apiKeysDeferred = async { dashboardRepository.apiKeys() }
-            val dashboardDeferred = async { dashboardRepository.apiKeyDashboard() }
             val latestDeferred = async { dashboardRepository.latestInfo() }
             val versionDeferred = async { dashboardRepository.currentVersion() }
 
@@ -53,7 +50,6 @@ class SettingViewModel @Inject constructor(
                     loading = false,
                     settings = settings.data,
                     apiKeys = (apiKeysDeferred.await() as? AppResult.Success)?.data.orEmpty(),
-                    apiKeyDashboard = (dashboardDeferred.await() as? AppResult.Success)?.data,
                     latestInfo = (latestDeferred.await() as? AppResult.Success)?.data,
                     currentVersion = (versionDeferred.await() as? AppResult.Success)?.data,
                 )

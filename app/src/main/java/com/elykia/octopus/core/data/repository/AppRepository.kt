@@ -85,7 +85,10 @@ class AppRepository @Inject constructor(
             return@withContext AppResult.Success(false)
         }
         sessionManager.update(auth)
-        networkExecutor.execute { apiService.status() }.map { true }
+        when (val result = networkExecutor.execute { apiService.status() }) {
+            is AppResult.Success -> AppResult.Success(true)
+            is AppResult.Error -> result
+        }
     }
 
     suspend fun logout() = withContext(dispatchers.io) {

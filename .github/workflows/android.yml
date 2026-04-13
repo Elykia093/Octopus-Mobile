@@ -14,18 +14,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
           cache: gradle
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Install Android platform 37
-        run: sdkmanager "platform-tools" "build-tools;37.0.0" "platforms;android-37"
+        run: sdkmanager "platform-tools" "build-tools;37.0.0" "platforms;android-37.0"
+
+      - name: Normalize Android 37 platform directory
+        run: |
+          if [ -d "$ANDROID_HOME/platforms/android-37.0" ] && [ ! -d "$ANDROID_HOME/platforms/android-37" ]; then
+            mv "$ANDROID_HOME/platforms/android-37.0" "$ANDROID_HOME/platforms/android-37"
+            sed -i 's/platforms;android-37.0/platforms;android-37/' "$ANDROID_HOME/platforms/android-37/package.xml" || true
+            sed -i 's/<api-level>37.0<\/api-level>/<api-level>37<\/api-level>/' "$ANDROID_HOME/platforms/android-37/package.xml" || true
+            sed -i 's/AndroidVersion.ApiLevel=37.0/AndroidVersion.ApiLevel=37/' "$ANDROID_HOME/platforms/android-37/source.properties" || true
+          fi
 
       - name: Grant execute permission
         run: chmod +x gradlew

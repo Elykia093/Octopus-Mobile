@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,8 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.layout.Row
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
 import com.elykia.octopus.core.designsystem.EmptyPane
@@ -68,22 +71,52 @@ fun OctopusApp(
     val navController = rememberNavController()
     val launchState by appViewModel.launchState.collectAsState()
     val themeMode by appViewModel.themeMode.collectAsState()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+
+    LaunchedEffect(launchState, backStackEntry?.destination?.route) {
+        val currentRoute = backStackEntry?.destination?.route
+        when (launchState) {
+            is LaunchState.NeedServer -> {
+                if (currentRoute != OctopusDestination.Connect.route) {
+                    navController.navigate(OctopusDestination.Connect.route) {
+                        popUpTo(navController.graph.findStartDestination().id)
+                        launchSingleTop = true
+                    }
+                }
+            }
+
+            is LaunchState.NeedLogin -> {
+                if (currentRoute != OctopusDestination.Login.route) {
+                    navController.navigate(OctopusDestination.Login.route) {
+                        popUpTo(navController.graph.findStartDestination().id)
+                        launchSingleTop = true
+                    }
+                }
+            }
+
+            is LaunchState.Ready -> {
+                if (currentRoute != OctopusDestination.Main.route) {
+                    navController.navigate(OctopusDestination.Main.route) {
+                        popUpTo(navController.graph.findStartDestination().id)
+                        launchSingleTop = true
+                    }
+                }
+            }
+
+            LaunchState.Loading -> Unit
+        }
+    }
 
     OctopusTheme(themeMode = themeMode) {
         NavHost(navController = navController, startDestination = OctopusDestination.Launch.route) {
             composable(OctopusDestination.Launch.route) {
-                when (val state = launchState) {
+                when (launchState) {
                     LaunchState.Loading -> LoadingPane(title = "Loading")
                     is LaunchState.NeedServer -> {
                         val viewModel = hiltViewModel<ConnectionViewModel>()
                         ConnectionRoute(
                             viewModel = viewModel,
-                            onSaved = {
-                                appViewModel.onServerConfigured()
-                                navController.navigate(OctopusDestination.Login.route) {
-                                    popUpTo(OctopusDestination.Launch.route) { inclusive = true }
-                                }
-                            },
+                            onSaved = appViewModel::onServerConfigured,
                         )
                     }
 
@@ -91,12 +124,7 @@ fun OctopusApp(
                         val viewModel = hiltViewModel<LoginViewModel>()
                         LoginRoute(
                             viewModel = viewModel,
-                            onLoggedIn = {
-                                appViewModel.onLoggedIn()
-                                navController.navigate(OctopusDestination.Main.route) {
-                                    popUpTo(OctopusDestination.Launch.route) { inclusive = true }
-                                }
-                            },
+                            onLoggedIn = appViewModel::onLoggedIn,
                         )
                     }
 
@@ -110,12 +138,7 @@ fun OctopusApp(
                 val viewModel = hiltViewModel<LoginViewModel>()
                 LoginRoute(
                     viewModel = viewModel,
-                    onLoggedIn = {
-                        appViewModel.onLoggedIn()
-                        navController.navigate(OctopusDestination.Main.route) {
-                            popUpTo(OctopusDestination.Login.route) { inclusive = true }
-                        }
-                    },
+                    onLoggedIn = appViewModel::onLoggedIn,
                 )
             }
 
@@ -123,12 +146,7 @@ fun OctopusApp(
                 val viewModel = hiltViewModel<ConnectionViewModel>()
                 ConnectionRoute(
                     viewModel = viewModel,
-                    onSaved = {
-                        appViewModel.onServerConfigured()
-                        navController.navigate(OctopusDestination.Login.route) {
-                            popUpTo(OctopusDestination.Connect.route) { inclusive = true }
-                        }
-                    },
+                    onSaved = appViewModel::onServerConfigured,
                 )
             }
 
@@ -303,6 +321,7 @@ private fun HomeScreen(
         uiState.error != null -> ErrorPane(message = uiState.error ?: "Error", onRetry = viewModel::refresh)
         uiState.total == null -> EmptyPane(title = "Empty", summary = "No stats available")
         else -> {
+            val total = uiState.total ?: return
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -313,11 +332,11 @@ private fun HomeScreen(
                 item {
                     SectionCard(title = "Overview", summary = "Current Octopus totals") {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(text = "Input tokens: ${uiState.total.inputToken}")
-                            Text(text = "Output tokens: ${uiState.total.outputToken}")
-                            Text(text = "Cost: ${uiState.total.inputCost + uiState.total.outputCost}")
-                            Text(text = "Success: ${uiState.total.requestSuccess}")
-                            Text(text = "Failed: ${uiState.total.requestFailed}")
+                            Text(text = "Input tokens: ${total.inputToken}")
+                            Text(text = "Output tokens: ${total.outputToken}")
+                            Text(text = "Cost: ${total.inputCost + total.outputCost}")
+                            Text(text = "Success: ${total.requestSuccess}")
+                            Text(text = "Failed: ${total.requestFailed}")
                         }
                     }
                 }
@@ -574,9 +593,7 @@ private fun SettingScreen(
                 item {
                     SectionCard(title = "API Keys", summary = "List and basic dashboard") {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            uiState.apiKeyDashboard?.let {
-                                Text(text = "Dashboard: ${it.info.name} cost=${it.stats.inputCost + it.stats.outputCost}")
-                            }
+                            Text(text = "Manage server API keys from this list.")
                             SimpleList(
                                 entries = uiState.apiKeys.map { key ->
                                     key.name to "enabled=${key.enabled} expire=${key.expireAt ?: 0}"
