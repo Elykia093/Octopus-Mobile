@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Octopus</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_channel">Channel</string>
+    <string name="nav_group">Group</string>
+    <string name="nav_model">Model</string>
+    <string name="nav_log">Log</string>
+    <string name="nav_setting">Setting</string>
+    <string name="connect_server">Connect Server</string>
+    <string name="server_url">Server URL</string>
+    <string name="save_and_continue">Save and Continue</string>
+    <string name="login">Login</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="submit">Submit</string>
+    <string name="logout">Logout</string>
+    <string name="empty_state">No data yet</string>
+    <string name="retry">Retry</string>
+    <string name="danger_confirm">Confirm</string>
+    <string name="cancel">Cancel</string>
+    <string name="loading">Loading</string>
+    <string name="welcome_title">Octopus Mobile</string>
+    <string name="welcome_summary">A Xiaomi-style Android manager for your Octopus instance.</string>
+    <string name="token_expire_days">Token days</string>
+    <string name="not_configured">Server is not configured</string>
+    <string name="invalid_url">Please enter a valid URL</string>
+    <string name="request_failed">Request failed</string>
+    <string name="today_stats">Today</string>
+    <string name="latest_version">Latest version</string>
+    <string name="current_version">Current version</string>
+    <string name="clear_logs">Clear logs</string>
+    <string name="account">Account</string>
+    <string name="api_keys">API Keys</string>
+    <string name="language">Language</string>
+    <string name="theme_mode">Theme Mode</string>
+</resources>
