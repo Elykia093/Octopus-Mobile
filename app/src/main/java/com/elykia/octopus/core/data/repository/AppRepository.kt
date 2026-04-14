@@ -12,6 +12,7 @@ import com.elykia.octopus.core.data.model.SettingItem
 import com.elykia.octopus.core.data.model.UserLoginRequest
 import com.elykia.octopus.core.data.remote.NetworkExecutor
 import com.elykia.octopus.core.data.remote.OctopusApiService
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -39,7 +40,8 @@ class AppRepository @Inject constructor(
 
     suspend fun saveServerUrl(rawUrl: String): AppResult<ServerConfig> = withContext(dispatchers.io) {
         val normalized = rawUrl.trim().trimEnd('/')
-        val valid = runCatching { normalized.toUri() }.isSuccess && normalized.startsWith("http")
+        val valid = runCatching { normalized.toUri() }.isSuccess &&
+            normalized.toHttpUrlOrNull()?.scheme in setOf("http", "https")
         if (!valid) {
             return@withContext AppResult.Error("请输入有效的地址。")
         }

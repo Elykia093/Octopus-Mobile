@@ -27,6 +27,8 @@ class NetworkExecutor @Inject constructor() {
             AppResult.Error(exception.message ?: "网络错误。", exception)
         } catch (exception: SerializationException) {
             AppResult.Error(exception.message ?: "数据解析失败。", exception)
+        } catch (exception: Exception) {
+            AppResult.Error(exception.message ?: "发生未知错误。", exception)
         }
     }
 
@@ -42,6 +44,8 @@ class NetworkExecutor @Inject constructor() {
             AppResult.Error(exception.message ?: "网络错误。", exception)
         } catch (exception: SerializationException) {
             AppResult.Error(exception.message ?: "数据解析失败。", exception)
+        } catch (exception: Exception) {
+            AppResult.Error(exception.message ?: "发生未知错误。", exception)
         }
     }
 }

@@ -14,6 +14,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
@@ -41,7 +42,8 @@ private class BaseUrlInterceptor(
 
     private fun normalizeBaseUrl(config: ServerConfig): HttpUrl {
         val rawBaseUrl = if (config.baseUrl.isBlank()) "http://127.0.0.1:8080" else config.baseUrl
-        return rawBaseUrl.trimEnd('/').plus("/").toHttpUrl()
+        return rawBaseUrl.trimEnd('/').plus("/").toHttpUrlOrNull()
+            ?: "http://127.0.0.1:8080/".toHttpUrl()
     }
 }
 
