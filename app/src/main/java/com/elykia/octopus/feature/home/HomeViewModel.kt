@@ -3,7 +3,9 @@ package com.elykia.octopus.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.common.AppResult
+import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.data.model.Channel
+import com.elykia.octopus.core.data.model.StatsApiKeyEntry
 import com.elykia.octopus.core.data.model.StatsDaily
 import com.elykia.octopus.core.data.model.StatsHourly
 import com.elykia.octopus.core.data.model.StatsTotal
@@ -17,10 +19,13 @@ import javax.inject.Inject
 
 data class HomeUiState(
     val loading: Boolean = true,
+    val today: StatsDaily? = null,
     val total: StatsTotal? = null,
     val daily: List<StatsDaily> = emptyList(),
     val hourly: List<StatsHourly> = emptyList(),
     val channels: List<Channel> = emptyList(),
+    val apiKeys: List<ApiKeyItem> = emptyList(),
+    val apiKeyStats: List<StatsApiKeyEntry> = emptyList(),
     val error: String? = null,
 )
 
@@ -38,23 +43,32 @@ class HomeViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(loading = true, error = null)
+            val todayDeferred = async { repository.todayStats() }
             val totalDeferred = async { repository.totalStats() }
             val dailyDeferred = async { repository.dailyStats() }
             val hourlyDeferred = async { repository.hourlyStats() }
             val channelsDeferred = async { repository.channels() }
+            val apiKeysDeferred = async { repository.apiKeys() }
+            val apiKeyStatsDeferred = async { repository.apiKeyStats() }
 
+            val todayResult = todayDeferred.await()
             val totalResult = totalDeferred.await()
             val dailyResult = dailyDeferred.await()
             val hourlyResult = hourlyDeferred.await()
             val channelsResult = channelsDeferred.await()
+            val apiKeysResult = apiKeysDeferred.await()
+            val apiKeyStatsResult = apiKeyStatsDeferred.await()
 
             if (totalResult is AppResult.Success) {
                 _uiState.value = HomeUiState(
                     loading = false,
+                    today = (todayResult as? AppResult.Success)?.data,
                     total = totalResult.data,
                     daily = (dailyResult as? AppResult.Success)?.data.orEmpty(),
                     hourly = (hourlyResult as? AppResult.Success)?.data.orEmpty(),
                     channels = (channelsResult as? AppResult.Success)?.data.orEmpty(),
+                    apiKeys = (apiKeysResult as? AppResult.Success)?.data.orEmpty(),
+                    apiKeyStats = (apiKeyStatsResult as? AppResult.Success)?.data.orEmpty(),
                 )
             } else {
                 _uiState.value = HomeUiState(loading = false, error = (totalResult as AppResult.Error).message)

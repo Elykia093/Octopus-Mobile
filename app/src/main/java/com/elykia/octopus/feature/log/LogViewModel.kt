@@ -14,6 +14,8 @@ import javax.inject.Inject
 data class LogUiState(
     val loading: Boolean = true,
     val logs: List<RelayLog> = emptyList(),
+    val page: Int = 1,
+    val hasMore: Boolean = true,
     val error: String? = null,
 )
 
@@ -29,11 +31,30 @@ class LogViewModel @Inject constructor(
     }
 
     fun refresh() {
+        load(refresh = true)
+    }
+
+    fun loadMore() {
+        if (_uiState.value.loading || !_uiState.value.hasMore) return
+        load(refresh = false)
+    }
+
+    private fun load(refresh: Boolean) {
         viewModelScope.launch {
+            val nextPage = if (refresh) 1 else _uiState.value.page
             _uiState.value = _uiState.value.copy(loading = true, error = null)
-            when (val result = repository.logs()) {
-                is AppResult.Success -> _uiState.value = LogUiState(loading = false, logs = result.data)
-                is AppResult.Error -> _uiState.value = LogUiState(loading = false, error = result.message)
+            when (val result = repository.logs(page = nextPage, pageSize = 20)) {
+                is AppResult.Success -> {
+                    val mergedLogs = if (refresh) result.data else _uiState.value.logs + result.data
+                    _uiState.value = _uiState.value.copy(
+                        loading = false,
+                        logs = mergedLogs,
+                        page = nextPage + 1,
+                        hasMore = result.data.size >= 20,
+                        error = null,
+                    )
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.copy(loading = false, error = result.message)
             }
         }
     }

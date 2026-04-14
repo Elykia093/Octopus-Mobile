@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.elykia.octopus.R
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
+import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
@@ -54,16 +56,22 @@ data class ActionIcon(
     val onClick: () -> Unit,
 )
 
+data class OptionChipItem<T>(
+    val value: T,
+    val label: String,
+)
+
 @Composable
 fun FloatingDockBar(
     items: List<DockItem>,
     selectedKey: String,
     onSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
+    mode: FloatingNavigationBarDisplayMode = FloatingNavigationBarDisplayMode.IconOnly,
 ) {
     FloatingNavigationBar(
         modifier = modifier,
-        mode = FloatingNavigationBarDisplayMode.IconOnly,
+        mode = mode,
         showDivider = true,
         shadowElevation = 10.dp,
         color = MiuixTheme.colorScheme.surfaceContainer,
@@ -286,6 +294,95 @@ fun ToolbarChip(
 }
 
 @Composable
+fun <T> OptionChipGroup(
+    options: List<OptionChipItem<T>>,
+    selectedValue: T,
+    onSelect: (T) -> Unit,
+    columns: Int = 3,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        options.chunked(columns).forEach { rowOptions ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                rowOptions.forEach { option ->
+                    ToolbarChip(
+                        text = option.label,
+                        selected = option.value == selectedValue,
+                        onClick = { onSelect(option.value) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SelectableListCard(
+    title: String,
+    summary: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: ImageVector = AppMiuixIcons.Channel,
+) {
+    AppListCard(onClick = onClick) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .background(MiuixTheme.colorScheme.secondaryContainer, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = MiuixTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(text = title, style = MiuixTheme.textStyles.main, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = summary,
+                    style = MiuixTheme.textStyles.body2,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+            }
+            if (selected) {
+                Icon(
+                    imageVector = AppMiuixIcons.Check,
+                    contentDescription = stringResource(R.string.common_selected),
+                    tint = MiuixTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun InlineEmptyCard(
+    title: String,
+    summary: String,
+) {
+    AppListCard {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(text = title, style = MiuixTheme.textStyles.main, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = summary,
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
+        }
+    }
+}
+
+@Composable
 fun SearchField(
     value: String,
     onValueChange: (String) -> Unit,
@@ -448,6 +545,99 @@ fun MetricCard(
         }
     }
 }
+
+@Composable
+fun StatOverviewCard(
+    title: String,
+    value: String,
+    summary: String,
+    icon: ImageVector,
+    accentColor: Color,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(124.dp),
+        insideMargin = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(imageVector = icon, contentDescription = title, tint = accentColor)
+                Text(
+                    text = title,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    style = MiuixTheme.textStyles.body2,
+                )
+            }
+            Text(
+                text = value,
+                color = accentColor,
+                style = MiuixTheme.textStyles.title1,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = summary,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                style = MiuixTheme.textStyles.body2,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+fun RankBadge(
+    rank: Int,
+    modifier: Modifier = Modifier,
+) {
+    val (background, content) = when (rank) {
+        1 -> Color(0xFFFF9500).copy(alpha = 0.16f) to Color(0xFFFF9500)
+        2 -> Color(0xFF8E8E93).copy(alpha = 0.16f) to Color(0xFF8E8E93)
+        3 -> Color(0xFFAF52DE).copy(alpha = 0.16f) to Color(0xFFAF52DE)
+        else -> MiuixTheme.colorScheme.secondaryContainer to MiuixTheme.colorScheme.onSecondaryContainer
+    }
+    Box(
+        modifier = modifier
+            .size(26.dp)
+            .background(background, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = if (rank <= 3) "★" else rank.toString(),
+            color = content,
+            style = MiuixTheme.textStyles.body2,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+@Composable
+fun ProgressToneBar(
+    progress: Float,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    val clamped = progress.coerceIn(0f, 1f)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(6.dp)
+            .background(MiuixTheme.colorScheme.secondaryContainer, CircleShape),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(clamped)
+                .height(6.dp)
+                .background(color, CircleShape),
+        )
+    }
+}
+
+fun formatPercent(value: Double): String = "${(value * 100).roundToInt()}%"
 
 @Composable
 fun SimpleList(

@@ -3,7 +3,12 @@ package com.elykia.octopus.feature.channel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.common.AppResult
+import com.elykia.octopus.core.data.model.BaseUrl
 import com.elykia.octopus.core.data.model.Channel
+import com.elykia.octopus.core.data.model.ChannelKey
+import com.elykia.octopus.core.data.model.ChannelKeyAddRequest
+import com.elykia.octopus.core.data.model.ChannelFetchModelRequest
+import com.elykia.octopus.core.data.model.ChannelUpdateRequest
 import com.elykia.octopus.core.data.repository.DashboardRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +19,7 @@ import javax.inject.Inject
 data class ChannelUiState(
     val loading: Boolean = true,
     val channels: List<Channel> = emptyList(),
+    val fetchedModels: List<String> = emptyList(),
     val error: String? = null,
 )
 
@@ -32,10 +38,55 @@ class ChannelViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(loading = true, error = null)
             when (val result = repository.channels()) {
-                is AppResult.Success -> _uiState.value = ChannelUiState(loading = false, channels = result.data)
-                is AppResult.Error -> _uiState.value = ChannelUiState(loading = false, error = result.message)
+                is AppResult.Success -> _uiState.value = _uiState.value.copy(loading = false, channels = result.data, error = null)
+                is AppResult.Error -> _uiState.value = _uiState.value.copy(loading = false, error = result.message)
             }
         }
+    }
+
+    fun syncModels() {
+        viewModelScope.launch {
+            repository.syncChannelModels()
+            refresh()
+        }
+    }
+
+    fun fetchModels(channel: Channel) {
+        viewModelScope.launch {
+            val result = repository.fetchChannelModels(channel.toFetchRequest())
+            _uiState.value = when (result) {
+                is AppResult.Success -> _uiState.value.copy(fetchedModels = result.data, error = null)
+                is AppResult.Error -> _uiState.value.copy(error = result.message)
+            }
+        }
+    }
+
+    fun fetchModels(
+        type: Int,
+        baseUrl: String,
+        apiKey: String,
+        proxy: Boolean,
+    ) {
+        viewModelScope.launch {
+            val result = repository.fetchChannelModels(
+                ChannelFetchModelRequest(
+                    type = type,
+                    baseUrls = baseUrl.trim().takeIf { it.isNotEmpty() }?.let { listOf(BaseUrl(url = it)) } ?: emptyList(),
+                    keys = apiKey.trim().takeIf { it.isNotEmpty() }?.let {
+                        listOf(ChannelKeyAddRequest(channelKey = it))
+                    } ?: emptyList(),
+                    proxy = proxy,
+                )
+            )
+            _uiState.value = when (result) {
+                is AppResult.Success -> _uiState.value.copy(fetchedModels = result.data, error = null)
+                is AppResult.Error -> _uiState.value.copy(error = result.message)
+            }
+        }
+    }
+
+    fun clearFetchedModels() {
+        _uiState.value = _uiState.value.copy(fetchedModels = emptyList())
     }
 
     fun delete(id: Int) {
@@ -44,4 +95,116 @@ class ChannelViewModel @Inject constructor(
             refresh()
         }
     }
+
+    fun setEnabled(id: Int, enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setChannelEnabled(id, enabled)
+            refresh()
+        }
+    }
+
+    fun createChannel(
+        name: String,
+        type: Int,
+        enabled: Boolean,
+        baseUrl: String,
+        apiKey: String,
+        model: String,
+        customModel: String,
+        proxy: Boolean,
+        autoSync: Boolean,
+    ) {
+        viewModelScope.launch {
+            repository.createChannel(
+                Channel(
+                    name = name.trim(),
+                    type = type,
+                    enabled = enabled,
+                    baseUrls = baseUrl.trim().takeIf { it.isNotEmpty() }?.let { listOf(BaseUrl(url = it)) } ?: emptyList(),
+                    keys = apiKey.trim().takeIf { it.isNotEmpty() }?.let {
+                        listOf(ChannelKey(channelKey = it, channelId = 0))
+                    } ?: emptyList(),
+                    model = model.trim(),
+                    customModel = customModel.trim(),
+                    proxy = proxy,
+                    autoSync = autoSync,
+                )
+            )
+            refresh()
+        }
+    }
+
+    fun updateChannel(
+        channel: Channel,
+        name: String,
+        type: Int,
+        enabled: Boolean,
+        baseUrl: String,
+        apiKey: String,
+        model: String,
+        customModel: String,
+        proxy: Boolean,
+        autoSync: Boolean,
+    ) {
+        viewModelScope.launch {
+            val existingKey = channel.keys.firstOrNull()
+            val trimmedKey = apiKey.trim()
+            val keysToAdd = if (existingKey == null && trimmedKey.isNotEmpty()) {
+                listOf(ChannelKeyAddRequest(channelKey = trimmedKey, enabled = true))
+            } else {
+                emptyList()
+            }
+            val keysToUpdate = if (existingKey != null && trimmedKey.isNotEmpty()) {
+                listOf(
+                    com.elykia.octopus.core.data.model.ChannelKeyUpdateRequest(
+                        id = existingKey.id,
+                        enabled = true,
+                        channelKey = trimmedKey,
+                        remark = existingKey.remark,
+                    )
+                )
+            } else {
+                emptyList()
+            }
+            val keysToDelete = if (existingKey != null && trimmedKey.isEmpty()) {
+                listOf(existingKey.id)
+            } else {
+                emptyList()
+            }
+
+            repository.updateChannel(
+                ChannelUpdateRequest(
+                    id = channel.id,
+                    name = name.trim(),
+                    type = type,
+                    enabled = enabled,
+                    baseUrls = baseUrl.trim().takeIf { it.isNotEmpty() }?.let { listOf(BaseUrl(url = it)) } ?: emptyList(),
+                    model = model.trim(),
+                    customModel = customModel.trim(),
+                    proxy = proxy,
+                    autoSync = autoSync,
+                    keysToAdd = keysToAdd,
+                    keysToUpdate = keysToUpdate,
+                    keysToDelete = keysToDelete,
+                )
+            )
+            refresh()
+        }
+    }
 }
+
+private fun Channel.toFetchRequest(): ChannelFetchModelRequest = ChannelFetchModelRequest(
+    type = type,
+    baseUrls = baseUrls,
+    keys = keys.filter { it.channelKey.isNotBlank() }.map {
+        ChannelKeyAddRequest(
+            enabled = it.enabled,
+            channelKey = it.channelKey,
+            remark = it.remark,
+        )
+    },
+    proxy = proxy,
+    channelProxy = channelProxy,
+    matchRegex = matchRegex,
+    customHeader = customHeader,
+)

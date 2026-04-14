@@ -2,14 +2,20 @@ package com.elykia.octopus.core.data.remote
 
 import com.elykia.octopus.core.data.model.ApiEnvelope
 import com.elykia.octopus.core.data.model.ApiKeyItem
+import com.elykia.octopus.core.data.model.ApiKeyMutationRequest
 import com.elykia.octopus.core.data.model.Channel
+import com.elykia.octopus.core.data.model.ChannelEnableRequest
+import com.elykia.octopus.core.data.model.ChannelFetchModelRequest
+import com.elykia.octopus.core.data.model.ChannelUpdateRequest
 import com.elykia.octopus.core.data.model.Group
+import com.elykia.octopus.core.data.model.GroupUpdateRequest
 import com.elykia.octopus.core.data.model.ImportResult
 import com.elykia.octopus.core.data.model.LatestInfo
 import com.elykia.octopus.core.data.model.LlmChannel
 import com.elykia.octopus.core.data.model.LlmInfo
 import com.elykia.octopus.core.data.model.RelayLog
 import com.elykia.octopus.core.data.model.SettingItem
+import com.elykia.octopus.core.data.model.StatsApiKeyEntry
 import com.elykia.octopus.core.data.model.StatsDaily
 import com.elykia.octopus.core.data.model.StatsHourly
 import com.elykia.octopus.core.data.model.StatsTotal
@@ -37,17 +43,41 @@ interface OctopusApiService {
     @GET("/api/v1/stats/total")
     suspend fun statsTotal(): ApiEnvelope<StatsTotal>
 
+    @GET("/api/v1/stats/today")
+    suspend fun statsToday(): ApiEnvelope<StatsDaily>
+
     @GET("/api/v1/stats/daily")
     suspend fun statsDaily(): ApiEnvelope<List<StatsDaily>>
 
     @GET("/api/v1/stats/hourly")
     suspend fun statsHourly(): ApiEnvelope<List<StatsHourly>>
 
+    @GET("/api/v1/stats/apikey")
+    suspend fun statsApiKey(): ApiEnvelope<List<StatsApiKeyEntry>>
+
     @GET("/api/v1/channel/list")
     suspend fun channels(): ApiEnvelope<List<Channel>>
 
     @GET("/api/v1/group/list")
     suspend fun groups(): ApiEnvelope<List<Group>>
+
+    @POST("/api/v1/channel/create")
+    suspend fun createChannel(@Body request: Channel): ApiEnvelope<Channel>
+
+    @POST("/api/v1/channel/update")
+    suspend fun updateChannel(@Body request: ChannelUpdateRequest): ApiEnvelope<Channel>
+
+    @POST("/api/v1/channel/fetch-model")
+    suspend fun fetchChannelModels(@Body request: ChannelFetchModelRequest): ApiEnvelope<List<String>>
+
+    @POST("/api/v1/channel/sync")
+    suspend fun syncChannelModels(@Body body: Map<String, String> = emptyMap()): ApiEnvelope<String?>
+
+    @POST("/api/v1/group/create")
+    suspend fun createGroup(@Body request: Group): ApiEnvelope<Group>
+
+    @POST("/api/v1/group/update")
+    suspend fun updateGroup(@Body request: GroupUpdateRequest): ApiEnvelope<Group>
 
     @GET("/api/v1/model/list")
     suspend fun models(): ApiEnvelope<List<LlmInfo>>
@@ -78,6 +108,18 @@ interface OctopusApiService {
 
     @GET("/api/v1/apikey/list")
     suspend fun apiKeys(): ApiEnvelope<List<ApiKeyItem>>
+
+    @POST("/api/v1/apikey/create")
+    suspend fun createApiKey(@Body request: ApiKeyMutationRequest): ApiEnvelope<ApiKeyItem>
+
+    @POST("/api/v1/apikey/update")
+    suspend fun updateApiKey(@Body request: ApiKeyMutationRequest): ApiEnvelope<ApiKeyItem>
+
+    @DELETE("/api/v1/apikey/delete/{id}")
+    suspend fun deleteApiKey(@Path("id") id: Int): ApiEnvelope<String?>
+
+    @POST("/api/v1/channel/enable")
+    suspend fun enableChannel(@Body request: ChannelEnableRequest): ApiEnvelope<String?>
 
     @GET("/api/v1/update")
     suspend fun latestUpdate(): ApiEnvelope<LatestInfo>

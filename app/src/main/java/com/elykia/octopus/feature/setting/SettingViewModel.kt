@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.data.model.ApiKeyItem
+import com.elykia.octopus.core.data.model.ApiKeyMutationRequest
 import com.elykia.octopus.core.data.model.LatestInfo
 import com.elykia.octopus.core.data.model.SettingItem
 import com.elykia.octopus.core.data.repository.AppRepository
@@ -32,6 +33,8 @@ data class SettingUiState(
     val username: String = "",
     val language: String = "system",
     val themeMode: Int = 0,
+    val modelLastUpdateTime: String? = null,
+    val createdApiKey: ApiKeyItem? = null,
     val error: String? = null,
 )
 
@@ -54,6 +57,7 @@ class SettingViewModel @Inject constructor(
             val apiKeysDeferred = async { dashboardRepository.apiKeys() }
             val latestDeferred = async { dashboardRepository.latestInfo() }
             val versionDeferred = async { dashboardRepository.currentVersion() }
+            val modelTimeDeferred = async { dashboardRepository.modelLastUpdateTime() }
             val authDeferred = async { appRepository.currentAuth() }
             val configDeferred = async { appRepository.currentServerConfig() }
 
@@ -68,13 +72,26 @@ class SettingViewModel @Inject constructor(
                     apiKeys = (apiKeysDeferred.await() as? AppResult.Success)?.data.orEmpty(),
                     latestInfo = (latestDeferred.await() as? AppResult.Success)?.data,
                     currentVersion = (versionDeferred.await() as? AppResult.Success)?.data,
+                    modelLastUpdateTime = (modelTimeDeferred.await() as? AppResult.Success)?.data,
                     username = auth.username,
                     language = config.language,
                     themeMode = config.themeMode,
+                    createdApiKey = _uiState.value.createdApiKey,
                 )
             } else {
                 _uiState.value = SettingUiState(loading = false, error = (settings as AppResult.Error).message)
             }
+        }
+    }
+
+    fun refreshLatestInfo() {
+        viewModelScope.launch {
+            val latest = dashboardRepository.latestInfo()
+            val current = dashboardRepository.currentVersion()
+            _uiState.value = _uiState.value.copy(
+                latestInfo = (latest as? AppResult.Success)?.data ?: _uiState.value.latestInfo,
+                currentVersion = (current as? AppResult.Success)?.data ?: _uiState.value.currentVersion,
+            )
         }
     }
 
@@ -95,6 +112,70 @@ class SettingViewModel @Inject constructor(
     fun triggerUpdate() {
         viewModelScope.launch {
             dashboardRepository.triggerUpdate()
+            refresh()
+        }
+    }
+
+    fun refreshModelPrice() {
+        viewModelScope.launch {
+            dashboardRepository.refreshModelPrice()
+            refresh()
+        }
+    }
+
+    fun syncChannelModels() {
+        viewModelScope.launch {
+            dashboardRepository.syncChannelModels()
+            refresh()
+        }
+    }
+
+    fun setApiKeyEnabled(item: ApiKeyItem, enabled: Boolean) {
+        viewModelScope.launch {
+            dashboardRepository.updateApiKey(item.copy(enabled = enabled))
+            refresh()
+        }
+    }
+
+    fun createApiKey(
+        name: String,
+        expireAt: Long,
+        maxCost: Double,
+        supportedModels: String,
+        enabled: Boolean,
+    ) {
+        viewModelScope.launch {
+            when (
+                val result = dashboardRepository.createApiKey(
+                ApiKeyMutationRequest(
+                    name = name,
+                    enabled = enabled,
+                    expireAt = expireAt,
+                    maxCost = maxCost,
+                    supportedModels = supportedModels,
+                )
+            )) {
+                is AppResult.Success -> _uiState.value = _uiState.value.copy(createdApiKey = result.data)
+                is AppResult.Error -> _uiState.value = _uiState.value.copy(error = result.message)
+            }
+            refresh()
+        }
+    }
+
+    fun dismissCreatedApiKey() {
+        _uiState.value = _uiState.value.copy(createdApiKey = null)
+    }
+
+    fun updateApiKey(item: ApiKeyItem) {
+        viewModelScope.launch {
+            dashboardRepository.updateApiKey(item)
+            refresh()
+        }
+    }
+
+    fun deleteApiKey(id: Int) {
+        viewModelScope.launch {
+            dashboardRepository.deleteApiKey(id)
             refresh()
         }
     }
