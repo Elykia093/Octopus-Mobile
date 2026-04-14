@@ -22,7 +22,7 @@ fun OctopusBrandMark(
     size: Dp = 40.dp,
 ) {
     val brandColor = if (MiuixTheme.colorScheme.background.luminance() < 0.5f) {
-        Color(0xFF8FBC8F)
+        Color(0xFFF3F0E7)
     } else {
         OctopusTokens.SeedColor
     }
@@ -33,7 +33,7 @@ fun OctopusBrandMark(
             .aspectRatio(1f),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val stroke = this.size.minDimension * 0.06f
+            val stroke = this.size.minDimension * 0.072f
 
             fun point(x: Float, y: Float) = Offset(this.size.width * x / 100f, this.size.height * y / 100f)
 

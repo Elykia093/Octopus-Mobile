@@ -87,7 +87,7 @@ fun HomeScreen(
                         tint = MiuixTheme.colorScheme.primary,
                     )
                     PageActionButton(
-                        icon = AppMiuixIcons.SwitchMode,
+                        icon = AppMiuixIcons.Toggle,
                         contentDescription = stringResource(R.string.home_toggle_scope),
                         onClick = { showToday = !showToday },
                     )

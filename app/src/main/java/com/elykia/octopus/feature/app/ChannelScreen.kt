@@ -73,7 +73,7 @@ fun ChannelScreen(
                     title = stringResource(R.string.channel_title),
                     actions = {
                         PageActionButton(
-                            icon = AppMiuixIcons.SwitchMode,
+                            icon = AppMiuixIcons.Sync,
                             contentDescription = stringResource(R.string.action_sync),
                             onClick = viewModel::syncModels,
                         )
