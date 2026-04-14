@@ -3,6 +3,7 @@ package com.elykia.octopus.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.common.AppResult
+import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.StatsDaily
 import com.elykia.octopus.core.data.model.StatsHourly
 import com.elykia.octopus.core.data.model.StatsTotal
@@ -19,6 +20,7 @@ data class HomeUiState(
     val total: StatsTotal? = null,
     val daily: List<StatsDaily> = emptyList(),
     val hourly: List<StatsHourly> = emptyList(),
+    val channels: List<Channel> = emptyList(),
     val error: String? = null,
 )
 
@@ -39,10 +41,12 @@ class HomeViewModel @Inject constructor(
             val totalDeferred = async { repository.totalStats() }
             val dailyDeferred = async { repository.dailyStats() }
             val hourlyDeferred = async { repository.hourlyStats() }
+            val channelsDeferred = async { repository.channels() }
 
             val totalResult = totalDeferred.await()
             val dailyResult = dailyDeferred.await()
             val hourlyResult = hourlyDeferred.await()
+            val channelsResult = channelsDeferred.await()
 
             if (totalResult is AppResult.Success) {
                 _uiState.value = HomeUiState(
@@ -50,6 +54,7 @@ class HomeViewModel @Inject constructor(
                     total = totalResult.data,
                     daily = (dailyResult as? AppResult.Success)?.data.orEmpty(),
                     hourly = (hourlyResult as? AppResult.Success)?.data.orEmpty(),
+                    channels = (channelsResult as? AppResult.Success)?.data.orEmpty(),
                 )
             } else {
                 _uiState.value = HomeUiState(loading = false, error = (totalResult as AppResult.Error).message)

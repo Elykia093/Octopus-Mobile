@@ -17,16 +17,16 @@ class NetworkExecutor @Inject constructor() {
             if (data != null) {
                 AppResult.Success(data)
             } else {
-                AppResult.Error(response.message ?: "Empty response")
+                AppResult.Error(response.message ?: "响应为空。")
             }
         } catch (exception: ApiException) {
             AppResult.Error(exception.message, exception)
         } catch (exception: HttpException) {
             AppResult.Error(exception.message(), exception)
         } catch (exception: IOException) {
-            AppResult.Error(exception.message ?: "Network error", exception)
+            AppResult.Error(exception.message ?: "网络错误。", exception)
         } catch (exception: SerializationException) {
-            AppResult.Error(exception.message ?: "Serialization error", exception)
+            AppResult.Error(exception.message ?: "数据解析失败。", exception)
         }
     }
 
@@ -39,9 +39,9 @@ class NetworkExecutor @Inject constructor() {
         } catch (exception: HttpException) {
             AppResult.Error(exception.message(), exception)
         } catch (exception: IOException) {
-            AppResult.Error(exception.message ?: "Network error", exception)
+            AppResult.Error(exception.message ?: "网络错误。", exception)
         } catch (exception: SerializationException) {
-            AppResult.Error(exception.message ?: "Serialization error", exception)
+            AppResult.Error(exception.message ?: "数据解析失败。", exception)
         }
     }
 }

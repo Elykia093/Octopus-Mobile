@@ -41,7 +41,7 @@ class AppRepository @Inject constructor(
         val normalized = rawUrl.trim().trimEnd('/')
         val valid = runCatching { normalized.toUri() }.isSuccess && normalized.startsWith("http")
         if (!valid) {
-            return@withContext AppResult.Error("Please enter a valid URL")
+            return@withContext AppResult.Error("请输入有效的地址。")
         }
         val config = preferenceStore.serverConfig.first().copy(baseUrl = normalized)
         preferenceStore.saveServerConfig(config)

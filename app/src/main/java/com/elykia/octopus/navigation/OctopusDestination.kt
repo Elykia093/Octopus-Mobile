@@ -1,5 +1,10 @@
 package com.elykia.octopus.navigation
 
+import androidx.annotation.StringRes
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.elykia.octopus.R
+import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
+
 sealed class OctopusDestination(val route: String) {
     data object Launch : OctopusDestination("launch")
     data object Connect : OctopusDestination("connect")
@@ -7,11 +12,15 @@ sealed class OctopusDestination(val route: String) {
     data object Main : OctopusDestination("main")
 }
 
-enum class MainTab(val route: String, val title: String) {
-    Home("home", "Home"),
-    Channel("channel", "Channel"),
-    Group("group", "Group"),
-    Model("model", "Model"),
-    Log("log", "Log"),
-    Setting("setting", "Setting"),
+enum class MainTab(
+    val route: String,
+    @StringRes val titleRes: Int,
+    val icon: ImageVector,
+) {
+    Home("home", R.string.nav_home, AppMiuixIcons.Home),
+    Channel("channel", R.string.nav_channel, AppMiuixIcons.Channel),
+    Group("group", R.string.nav_group, AppMiuixIcons.Group),
+    Model("model", R.string.nav_model, AppMiuixIcons.Model),
+    Log("log", R.string.nav_log, AppMiuixIcons.Log),
+    Setting("setting", R.string.nav_setting, AppMiuixIcons.Setting),
 }
