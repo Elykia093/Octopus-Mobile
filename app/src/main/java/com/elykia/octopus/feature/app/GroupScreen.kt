@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -157,6 +159,7 @@ fun GroupScreen(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun GroupRow(
     group: Group,
     expanded: Boolean,
@@ -209,7 +212,10 @@ private fun GroupRow(
                 AppInfoChip(text = stringResource(R.string.group_channel_count, group.items.size), icon = AppMiuixIcons.Group)
             }
             if (group.items.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
                     items.forEach { item ->
                         AppInfoChip(
                             text = item.modelName.ifBlank { stringResource(R.string.group_item_channel_fallback, item.channelId) },
@@ -221,6 +227,7 @@ private fun GroupRow(
                             text = if (expanded) stringResource(R.string.group_collapse) else stringResource(R.string.group_expand_more, group.items.size - 3),
                             color = MiuixTheme.colorScheme.primary,
                             style = MiuixTheme.textStyles.body2,
+                            modifier = Modifier.align(Alignment.CenterVertically),
                         )
                     }
                 }

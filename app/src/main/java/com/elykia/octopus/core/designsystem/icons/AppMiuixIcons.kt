@@ -59,5 +59,6 @@ object AppMiuixIcons {
     val Total = MiuixIcons.VerticalSplit
     val Toggle = MiuixIcons.HorizontalSplit
     val Sync = MiuixIcons.Update
+    val Logout = MiuixIcons.Close
     val Home: ImageVector = MiuixIcons.VerticalSplit
 }

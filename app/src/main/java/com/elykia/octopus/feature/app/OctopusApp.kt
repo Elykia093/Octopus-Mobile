@@ -15,7 +15,6 @@ import com.elykia.octopus.R
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.OctopusTheme
 import com.elykia.octopus.feature.auth.LoginViewModel
-import com.elykia.octopus.feature.connection.ConnectionViewModel
 import com.elykia.octopus.navigation.OctopusDestination
 
 @Composable
@@ -30,16 +29,7 @@ fun OctopusApp(
     LaunchedEffect(launchState, backStackEntry?.destination?.route) {
         val currentRoute = backStackEntry?.destination?.route
         when (launchState) {
-            is LaunchState.NeedServer -> {
-                if (currentRoute != OctopusDestination.Connect.route) {
-                    navController.navigate(OctopusDestination.Connect.route) {
-                        popUpTo(navController.graph.findStartDestination().id)
-                        launchSingleTop = true
-                    }
-                }
-            }
-
-            is LaunchState.NeedLogin -> {
+            is LaunchState.NeedServer, is LaunchState.NeedLogin -> {
                 if (currentRoute != OctopusDestination.Login.route) {
                     navController.navigate(OctopusDestination.Login.route) {
                         popUpTo(navController.graph.findStartDestination().id)
@@ -67,10 +57,12 @@ fun OctopusApp(
                 when (launchState) {
                     LaunchState.Loading -> LoadingPane(title = stringResource(R.string.app_name))
                     is LaunchState.NeedServer -> {
-                        val viewModel = hiltViewModel<ConnectionViewModel>()
-                        ConnectionScreen(
+                        val viewModel = hiltViewModel<LoginViewModel>()
+                        LoginScreen(
                             viewModel = viewModel,
-                            onSaved = appViewModel::onServerConfigured,
+                            showServerField = true,
+                            currentServerUrl = "",
+                            onLoggedIn = appViewModel::onLoggedIn,
                         )
                     }
 
@@ -78,6 +70,8 @@ fun OctopusApp(
                         val viewModel = hiltViewModel<LoginViewModel>()
                         LoginScreen(
                             viewModel = viewModel,
+                            showServerField = false,
+                            currentServerUrl = (launchState as LaunchState.NeedLogin).config.baseUrl,
                             onLoggedIn = appViewModel::onLoggedIn,
                         )
                     }
@@ -88,18 +82,18 @@ fun OctopusApp(
                 }
             }
 
-            composable(OctopusDestination.Connect.route) {
-                val viewModel = hiltViewModel<ConnectionViewModel>()
-                ConnectionScreen(
-                    viewModel = viewModel,
-                    onSaved = appViewModel::onServerConfigured,
-                )
-            }
-
             composable(OctopusDestination.Login.route) {
                 val viewModel = hiltViewModel<LoginViewModel>()
+                val showServer = launchState is LaunchState.NeedServer
+                val serverUrl = when (launchState) {
+                    is LaunchState.NeedServer -> (launchState as LaunchState.NeedServer).config.baseUrl
+                    is LaunchState.NeedLogin -> (launchState as LaunchState.NeedLogin).config.baseUrl
+                    else -> ""
+                }
                 LoginScreen(
                     viewModel = viewModel,
+                    showServerField = showServer,
+                    currentServerUrl = serverUrl,
                     onLoggedIn = appViewModel::onLoggedIn,
                 )
             }

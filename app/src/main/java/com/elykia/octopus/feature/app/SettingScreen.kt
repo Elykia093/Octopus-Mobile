@@ -23,8 +23,10 @@ import com.elykia.octopus.core.designsystem.AppPageScaffold
 import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.PageActionButton
+import com.elykia.octopus.core.designsystem.SectionSpacer
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import com.elykia.octopus.feature.setting.SettingViewModel
+import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -64,25 +66,17 @@ fun SettingScreen(
                 contentPadding = contentPadding,
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // 版本信息卡片
                     VersionCard(
                         currentVersion = uiState.currentVersion ?: stringResource(R.string.common_unknown),
                         latestVersion = uiState.latestInfo?.tagName ?: stringResource(R.string.common_unknown),
                         publishedAt = uiState.latestInfo?.publishedAt,
                     )
+
+                    // 偏好设置区
+                    SectionLabel(title = stringResource(R.string.setting_preferences_title))
                     PreferenceRow(
-                        title = stringResource(R.string.action_check_update),
-                        value = uiState.latestInfo?.tagName ?: stringResource(R.string.common_unknown),
-                        summary = stringResource(R.string.setting_refresh_latest_summary),
-                        onClick = viewModel::refreshLatestInfo,
-                    )
-                    PreferenceRow(
-                        title = stringResource(R.string.action_run_update),
-                        value = stringResource(R.string.setting_action_update),
-                        summary = stringResource(R.string.setting_update_now_summary),
-                        onClick = viewModel::triggerUpdate,
-                    )
-                    PreferenceRow(
-                        title = stringResource(R.string.setting_language_system),
+                        title = stringResource(R.string.setting_language_label),
                         value = languageLabel,
                         onClick = {
                             language = when (language) {
@@ -94,7 +88,7 @@ fun SettingScreen(
                         },
                     )
                     PreferenceRow(
-                        title = stringResource(R.string.setting_appearance_title),
+                        title = stringResource(R.string.setting_theme_label),
                         value = themeLabel,
                         onClick = {
                             themeMode = when (themeMode) {
@@ -105,6 +99,16 @@ fun SettingScreen(
                             viewModel.updateAppearance(language, themeMode)
                         },
                     )
+
+                    SectionSpacer(height = 8)
+
+                    // 操作区
+                    SectionLabel(title = stringResource(R.string.setting_actions_title))
+                    PreferenceRow(
+                        title = stringResource(R.string.action_check_update),
+                        value = uiState.latestInfo?.tagName ?: stringResource(R.string.common_unknown),
+                        onClick = viewModel::refreshLatestInfo,
+                    )
                     PreferenceRow(
                         title = stringResource(R.string.setting_action_refresh_price),
                         value = uiState.modelLastUpdateTime ?: stringResource(R.string.common_unknown),
@@ -112,25 +116,31 @@ fun SettingScreen(
                     )
                     PreferenceRow(
                         title = stringResource(R.string.setting_action_sync_channel),
-                        value = stringResource(R.string.setting_llm_sync_title),
                         onClick = viewModel::syncChannelModels,
                     )
+
+                    SectionSpacer(height = 8)
+
+                    // 服务器设置区
+                    SectionLabel(title = stringResource(R.string.setting_server_title))
                     uiState.sections.forEach { section ->
-                        Text(
-                            text = sectionTitle(section.key),
-                            style = MiuixTheme.textStyles.title3,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            section.items.forEach { item ->
+                        section.items.forEach { item ->
+                            if (item.key == "relay_log_keep_enabled") {
+                                // 布尔值：右侧 Switch
+                                SwitchRow(
+                                    title = settingItemTitle(item.key),
+                                    checked = item.value == "true",
+                                    onCheckedChange = { checked ->
+                                        viewModel.updateSetting(item.key, if (checked) "true" else "false")
+                                    },
+                                )
+                            } else {
+                                // 其他：点击编辑
                                 PreferenceRow(
                                     title = settingItemTitle(item.key),
                                     value = item.value.ifBlank { stringResource(R.string.common_unknown) },
                                     onClick = {
-                                        if (item.key == "relay_log_keep_enabled") {
-                                            val toggled = if (item.value == "true") "false" else "true"
-                                            viewModel.updateSetting(item.key, toggled)
-                                        }
+                                        // TODO: 弹窗编辑（暂不实现，保持简单）
                                     },
                                 )
                             }
@@ -166,28 +176,30 @@ private fun VersionCard(
 }
 
 @Composable
+private fun SectionLabel(title: String) {
+    Text(
+        text = title,
+        style = MiuixTheme.textStyles.title3,
+        fontWeight = FontWeight.SemiBold,
+        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+    )
+}
+
+@Composable
 private fun PreferenceRow(
     title: String,
-    value: String,
-    summary: String? = null,
+    value: String? = null,
     onClick: () -> Unit,
 ) {
     AppListCard(onClick = onClick) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(text = title, style = MiuixTheme.textStyles.main)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(text = title, style = MiuixTheme.textStyles.main)
+            if (value != null) {
                 Text(
                     text = value,
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                )
-            }
-            if (!summary.isNullOrBlank()) {
-                Text(
-                    text = summary,
                     style = MiuixTheme.textStyles.body2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
@@ -197,13 +209,20 @@ private fun PreferenceRow(
 }
 
 @Composable
-private fun sectionTitle(key: String): String = when (key) {
-    "system" -> stringResource(R.string.setting_system_title)
-    "log" -> stringResource(R.string.setting_log_title)
-    "price" -> stringResource(R.string.setting_llm_price_title)
-    "sync" -> stringResource(R.string.setting_llm_sync_title)
-    "circuit" -> stringResource(R.string.setting_circuit_title)
-    else -> key
+private fun SwitchRow(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    AppListCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(text = title, style = MiuixTheme.textStyles.main)
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
+        }
+    }
 }
 
 @Composable

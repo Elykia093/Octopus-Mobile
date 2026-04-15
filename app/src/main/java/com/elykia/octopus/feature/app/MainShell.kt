@@ -45,7 +45,7 @@ fun MainShell(
     ) { padding ->
         PageContainer {
             when (currentTab) {
-                MainTab.Home -> HomeScreen(contentPadding = PaddingValues(start = 16.dp, top = 8.dp + padding.calculateTopPadding(), end = 16.dp, bottom = 110.dp))
+                MainTab.Home -> HomeScreen(contentPadding = PaddingValues(start = 16.dp, top = 8.dp + padding.calculateTopPadding(), end = 16.dp, bottom = 110.dp), onLogout = onLogout)
                 MainTab.Channel -> ChannelScreen(contentPadding = PaddingValues(start = 16.dp, top = 8.dp + padding.calculateTopPadding(), end = 16.dp, bottom = 110.dp))
                 MainTab.Group -> GroupScreen(contentPadding = PaddingValues(start = 16.dp, top = 8.dp + padding.calculateTopPadding(), end = 16.dp, bottom = 110.dp))
                 MainTab.ApiKey -> ApiKeyScreen(contentPadding = PaddingValues(start = 16.dp, top = 8.dp + padding.calculateTopPadding(), end = 16.dp, bottom = 110.dp))

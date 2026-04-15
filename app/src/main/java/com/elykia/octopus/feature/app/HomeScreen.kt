@@ -22,6 +22,7 @@ import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.StatsApiKeyEntry
 import com.elykia.octopus.core.data.model.StatsDaily
+import com.elykia.octopus.core.data.model.StatsTotal
 import com.elykia.octopus.core.designsystem.AppInfoChip
 import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.AppPageScaffold
@@ -32,6 +33,9 @@ import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.RankRow
 import com.elykia.octopus.core.designsystem.SectionCard
 import com.elykia.octopus.core.designsystem.StatOverviewCard
+import com.elykia.octopus.core.designsystem.ToolbarChip
+import com.elykia.octopus.core.designsystem.TrendLineChart
+import com.elykia.octopus.core.designsystem.TrendEntry
 import com.elykia.octopus.core.designsystem.formatCount
 import com.elykia.octopus.core.designsystem.formatDurationMs
 import com.elykia.octopus.core.designsystem.formatMoney
@@ -43,6 +47,7 @@ import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 @Composable
 fun HomeScreen(
     contentPadding: PaddingValues,
+    onLogout: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -55,46 +60,55 @@ fun HomeScreen(
         else -> {
             val total = uiState.total ?: return
             val today = uiState.today
-            val requestCount = if (showToday && today != null) {
-                today.requestSuccess + today.requestFailed
-            } else {
-                total.requestSuccess + total.requestFailed
+
+            val (requestCount, costValue, tokenValue, waitValue, successCount, inputCostVal, inputTokenCount) = when (val s = if (showToday && today != null) today else total) {
+                is StatsTotal -> StatsSnapshot(
+                    requestCount = s.requestSuccess + s.requestFailed,
+                    costValue = s.inputCost + s.outputCost,
+                    tokenValue = s.inputToken + s.outputToken,
+                    waitValue = s.waitTime,
+                    successCount = s.requestSuccess,
+                    inputCost = s.inputCost,
+                    inputToken = s.inputToken,
+                )
+                is StatsDaily -> StatsSnapshot(
+                    requestCount = s.requestSuccess + s.requestFailed,
+                    costValue = s.inputCost + s.outputCost,
+                    tokenValue = s.inputToken + s.outputToken,
+                    waitValue = s.waitTime,
+                    successCount = s.requestSuccess,
+                    inputCost = s.inputCost,
+                    inputToken = s.inputToken,
+                )
+                else -> StatsSnapshot()
             }
-            val costValue = if (showToday && today != null) {
-                today.inputCost + today.outputCost
-            } else {
-                total.inputCost + total.outputCost
-            }
-            val tokenValue = if (showToday && today != null) {
-                today.inputToken + today.outputToken
-            } else {
-                total.inputToken + total.outputToken
-            }
-            val waitValue = if (showToday && today != null) today.waitTime else total.waitTime
-            val successValue = if (showToday && today != null) {
-                if (requestCount == 0L) 0.0 else today.requestSuccess.toDouble() / requestCount.toDouble()
-            } else {
-                val totalRequests = total.requestSuccess + total.requestFailed
-                if (totalRequests == 0L) 0.0 else total.requestSuccess.toDouble() / totalRequests.toDouble()
-            }
+            val successValue = if (requestCount == 0L) 0.0 else successCount.toDouble() / requestCount.toDouble()
 
             AppPageScaffold(
                 title = stringResource(R.string.home_title),
                 actions = {
-                    AppInfoChip(
-                        text = if (showToday) stringResource(R.string.home_scope_today) else stringResource(R.string.home_scope_total),
-                        icon = if (showToday) AppMiuixIcons.Today else AppMiuixIcons.Total,
-                        tint = MiuixTheme.colorScheme.primary,
-                    )
-                    PageActionButton(
-                        icon = AppMiuixIcons.Toggle,
-                        contentDescription = stringResource(R.string.home_toggle_scope),
-                        onClick = { showToday = !showToday },
-                    )
+                    // SegmentedControl: Today / Total
+                    Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+                        ToolbarChip(
+                            text = stringResource(R.string.home_scope_today),
+                            selected = showToday,
+                            onClick = { showToday = true },
+                        )
+                        ToolbarChip(
+                            text = stringResource(R.string.home_scope_total),
+                            selected = !showToday,
+                            onClick = { showToday = false },
+                        )
+                    }
                     PageActionButton(
                         icon = AppMiuixIcons.Refresh,
                         contentDescription = stringResource(R.string.common_refresh),
                         onClick = viewModel::refresh,
+                    )
+                    PageActionButton(
+                        icon = AppMiuixIcons.Logout,
+                        contentDescription = stringResource(R.string.action_logout),
+                        onClick = onLogout,
                     )
                 },
                 contentPadding = contentPadding,
@@ -102,8 +116,11 @@ fun HomeScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     DashboardOverviewSection(
                         requestCount = requestCount,
+                        successCount = successCount,
                         costValue = costValue,
+                        inputCost = inputCostVal,
                         tokenValue = tokenValue,
+                        inputToken = inputTokenCount,
                         waitValue = waitValue,
                         successValue = successValue,
                     )
@@ -122,8 +139,11 @@ fun HomeScreen(
 @Composable
 private fun DashboardOverviewSection(
     requestCount: Long,
+    successCount: Long,
     costValue: Double,
+    inputCost: Double,
     tokenValue: Long,
+    inputToken: Long,
     waitValue: Long,
     successValue: Double,
 ) {
@@ -132,14 +152,14 @@ private fun DashboardOverviewSection(
             StatOverviewCard(
                 title = stringResource(R.string.home_stat_requests),
                 value = formatCount(requestCount),
-                summary = stringResource(R.string.home_stat_requests_summary),
+                summary = stringResource(R.string.home_stat_success_count, formatCount(successCount)),
                 icon = AppMiuixIcons.Request,
                 accentColor = Color(0xFF007AFF),
             )
             StatOverviewCard(
                 title = stringResource(R.string.home_stat_cost),
                 value = formatMoney(costValue),
-                summary = stringResource(R.string.home_stat_cost_summary),
+                summary = stringResource(R.string.home_stat_input_cost, formatMoney(inputCost)),
                 icon = AppMiuixIcons.Cost,
                 accentColor = Color(0xFF34C759),
             )
@@ -148,7 +168,7 @@ private fun DashboardOverviewSection(
             StatOverviewCard(
                 title = stringResource(R.string.home_stat_tokens),
                 value = formatCount(tokenValue),
-                summary = stringResource(R.string.home_stat_tokens_summary),
+                summary = stringResource(R.string.home_stat_input_tokens, formatCount(inputToken)),
                 icon = AppMiuixIcons.Token,
                 accentColor = Color(0xFFFF9500),
             )
@@ -171,37 +191,25 @@ private fun DashboardTrendSection(
         title = stringResource(R.string.home_chart_title),
         summary = stringResource(R.string.home_chart_summary),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (daily.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.home_rank_empty),
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    style = MiuixTheme.textStyles.body2,
-                )
-            } else {
-                val visible = daily.takeLast(7).reversed()
-                val maxRequest = visible.maxOfOrNull { it.requestSuccess + it.requestFailed }?.coerceAtLeast(1L) ?: 1L
-                visible.forEach { item ->
+        if (daily.isEmpty()) {
+            Text(
+                text = stringResource(R.string.home_rank_empty),
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                style = MiuixTheme.textStyles.body2,
+            )
+        } else {
+            val visible = daily.takeLast(7)
+            TrendLineChart(
+                entries = visible.map { item ->
                     val requests = item.requestSuccess + item.requestFailed
                     val cost = item.inputCost + item.outputCost
-                    AppListCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(text = item.date, style = MiuixTheme.textStyles.main, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)
-                                Text(
-                                    text = stringResource(R.string.home_activity_line, formatCount(requests), formatMoney(cost)),
-                                    style = MiuixTheme.textStyles.body2,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                )
-                            }
-                            com.elykia.octopus.core.designsystem.ProgressToneBar(
-                                progress = requests.toFloat() / maxRequest.toFloat(),
-                                color = Color(0xFF007AFF),
-                            )
-                        }
-                    }
-                }
-            }
+                    TrendEntry(
+                        label = item.date.takeLast(5), // MM/dd
+                        requests = requests,
+                        cost = cost,
+                    )
+                },
+            )
         }
     }
 }
@@ -306,4 +314,14 @@ private data class RankContent(
     val subtitle: String,
     val value: String,
     val progress: Float,
+)
+
+private data class StatsSnapshot(
+    val requestCount: Long = 0L,
+    val costValue: Double = 0.0,
+    val tokenValue: Long = 0L,
+    val waitValue: Long = 0L,
+    val successCount: Long = 0L,
+    val inputCost: Double = 0.0,
+    val inputToken: Long = 0L,
 )

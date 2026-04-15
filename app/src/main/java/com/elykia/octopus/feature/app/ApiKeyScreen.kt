@@ -191,26 +191,11 @@ private fun ApiKeyRow(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = if (item.apiKey.length > 18) item.apiKey.take(6) + "..." + item.apiKey.takeLast(4) else item.apiKey,
+                    text = if (item.apiKey.length > 16) item.apiKey.take(16) + "..." else item.apiKey,
                     style = MiuixTheme.textStyles.body2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     fontFamily = FontFamily.Monospace,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AppInfoChip(
-                        text = if (item.enabled) stringResource(R.string.apikey_enabled_summary) else stringResource(R.string.apikey_disabled_summary),
-                        icon = if (item.enabled) AppMiuixIcons.Success else AppMiuixIcons.Close,
-                    )
-                    AppInfoChip(
-                        text = item.maxCost?.let(::formatMoney) ?: stringResource(R.string.common_unknown),
-                        icon = AppMiuixIcons.Cost,
-                    )
-                    AppInfoChip(
-                        text = item.expireAt?.takeIf { it > 0 }?.let { stringResource(R.string.apikey_expire_summary, it.toString()) }
-                            ?: stringResource(R.string.apikey_expire_never),
-                        icon = AppMiuixIcons.Time,
-                    )
-                }
                 item.supportedModels
                     ?.split(',')
                     ?.map { it.trim() }

@@ -202,13 +202,11 @@ private fun ChannelRow(
                     AppTypePill(text = channelTypeName(channel.type), color = channelTypeColor(channel.type))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val enabledKeys = channel.keys.count { it.enabled }
+                    val totalKeys = channel.keys.size
                     AppInfoChip(
-                        text = stringResource(
-                            R.string.channel_item_summary,
-                            channelTypeName(channel.type),
-                            if (channel.enabled) stringResource(R.string.common_enabled) else stringResource(R.string.common_disabled),
-                            channel.keys.size,
-                        )
+                        text = "$enabledKeys/$totalKeys",
+                        icon = AppMiuixIcons.ApiKey,
                     )
                 }
                 channel.stats?.let { stats ->
