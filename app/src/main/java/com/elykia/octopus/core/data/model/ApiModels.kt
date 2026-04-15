@@ -341,11 +341,6 @@ data class ImportResult(
 )
 
 @Serializable
-data class ThemePreference(
-    val mode: Int = 0,
-)
-
-@Serializable
 data class ServerConfig(
     val baseUrl: String = "",
     val language: String = "system",

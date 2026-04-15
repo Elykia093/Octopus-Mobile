@@ -305,6 +305,10 @@
     <string name="setting_circuit_breaker_max_cooldown_label">Max cooldown</string>
     <string name="setting_circuit_breaker_max_cooldown_summary">Value in seconds.</string>
 
+    <string name="setting_edit_title">Edit setting</string>
+    <string name="setting_edit_hint">Enter new value</string>
+    <string name="setting_edit_invalid_number">Please enter a valid number.</string>
+
     <string name="empty_title">No data</string>
     <string name="error_title">Load failed</string>
 

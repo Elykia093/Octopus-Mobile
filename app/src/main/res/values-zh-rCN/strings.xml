@@ -302,6 +302,10 @@
     <string name="apikey_expire_summary">过期时间 %1$s</string>
     <string name="apikey_expire_never">永不过期</string>
 
+    <string name="setting_edit_title">编辑设置</string>
+    <string name="setting_edit_hint">请输入新值</string>
+    <string name="setting_edit_invalid_number">请输入有效的数字。</string>
+
     <string name="apikey_fallback_name">密钥 #%1</string>
     <string name="empty_title">暂无数据</string>
     <string name="error_title">加载失败</string>

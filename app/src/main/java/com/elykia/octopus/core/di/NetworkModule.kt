@@ -9,8 +9,10 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -27,10 +29,20 @@ import javax.inject.Singleton
 private class BaseUrlInterceptor(
     private val preferenceStore: PreferenceStore,
 ) : Interceptor {
+    @Volatile
+    private var cachedConfig: ServerConfig = ServerConfig()
+
+    init {
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            preferenceStore.serverConfig.collect { config ->
+                cachedConfig = config
+            }
+        }
+    }
+
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
-        val config = runBlocking { preferenceStore.serverConfig.first() }
-        val base = normalizeBaseUrl(config)
+        val base = normalizeBaseUrl(cachedConfig)
         val newUrl = request.url.newBuilder()
             .scheme(base.scheme)
             .host(base.host)
