@@ -84,6 +84,9 @@
     <string name="home_stat_tokens">令牌</string>
     <string name="home_stat_tokens_summary">输入与输出令牌总量。</string>
     <string name="home_stat_success_rate">成功率</string>
+    <string name="home_stat_success_count">成功 %1$s</string>
+    <string name="home_stat_input_cost">输入 %1$s</string>
+    <string name="home_stat_input_tokens">输入 %1$s</string>
     <string name="home_stat_wait_summary">平均耗时 %1</string>
     <string name="home_percent_value">%1$.1f%%</string>
     <string name="home_rank_token_title">令牌消耗排行</string>
@@ -219,6 +222,9 @@
     <string name="log_item_summary">%1$s -> %2$s · %3$s · %4$d ms · %5$d 次尝试</string>
 
     <string name="setting_title">设置</string>
+    <string name="setting_preferences_title">偏好设置</string>
+    <string name="setting_actions_title">操作</string>
+    <string name="setting_server_title">服务器设置</string>
     <string name="setting_info_title">版本信息</string>
     <string name="setting_info_summary">当前版本与最新版本信息。</string>
     <string name="setting_info_current">当前版本：%1$s</string>
