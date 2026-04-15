@@ -87,14 +87,14 @@
     <string name="home_stat_success_count">成功 %1$s</string>
     <string name="home_stat_input_cost">输入 %1$s</string>
     <string name="home_stat_input_tokens">输入 %1$s</string>
-    <string name="home_stat_wait_summary">平均耗时 %1</string>
+    <string name="home_stat_wait_summary">平均耗时 %1$s</string>
     <string name="home_percent_value">%1$.1f%%</string>
     <string name="home_rank_token_title">令牌消耗排行</string>
     <string name="home_rank_request_title">请求活跃排行</string>
     <string name="home_rank_apikey_title">API 密钥使用排行</string>
-    <string name="home_rank_channel_tokens_subtitle">总令牌 %1</string>
-    <string name="home_rank_channel_requests_subtitle">总请求 %1</string>
-    <string name="home_rank_apikey_subtitle">总费用 %1</string>
+    <string name="home_rank_channel_tokens_subtitle">总令牌 %1$s</string>
+    <string name="home_rank_channel_requests_subtitle">总请求 %1$s</string>
+    <string name="home_rank_apikey_subtitle">总费用 %1$s</string>
     <string name="home_empty">暂无统计数据。</string>
     <string name="home_activity_line">%1$s 次请求 · %2$s</string>
     <string name="home_chart_line">%1$s · %2$s</string>
@@ -114,8 +114,8 @@
     <string name="channel_sort_name_asc">名称正序</string>
     <string name="channel_sort_name_desc">名称倒序</string>
     <string name="channel_empty">暂无渠道。</string>
-    <string name="channel_stat_success">成功 %1</string>
-    <string name="channel_stat_failed">失败 %1</string>
+    <string name="channel_stat_success">成功 %1$s</string>
+    <string name="channel_stat_failed">失败 %1$s</string>
     <string name="channel_delete_title">删除渠道</string>
     <string name="channel_delete_summary">此操作将删除所选渠道。</string>
     <string name="channel_panel_summary">查看、筛选并管理渠道。</string>
@@ -154,10 +154,10 @@
     <string name="group_sort_name_asc">名称正序</string>
     <string name="group_sort_name_desc">名称倒序</string>
     <string name="group_empty">暂无分组。</string>
-    <string name="group_timeout_summary">超时 %1 秒</string>
-    <string name="group_keep_summary">保持 %1 秒</string>
-    <string name="group_channel_count">渠道 %1 个</string>
-    <string name="group_expand_more">还有 %1 项</string>
+    <string name="group_timeout_summary">超时 %1$s 秒</string>
+    <string name="group_keep_summary">保持 %1$s 秒</string>
+    <string name="group_channel_count">渠道 %1$s 个</string>
+    <string name="group_expand_more">还有 %1$s 项</string>
     <string name="group_collapse">收起</string>
     <string name="group_delete_title">删除分组</string>
     <string name="group_delete_summary">此操作将删除所选分组。</string>
@@ -212,10 +212,10 @@
     <string name="log_card_title">请求日志</string>
     <string name="log_card_summary">近期中转请求记录。</string>
     <string name="log_empty">暂无日志。</string>
-    <string name="log_row_actual_model">实际模型 %1</string>
-    <string name="log_input_token">输入 %1</string>
-    <string name="log_output_token">输出 %1</string>
-    <string name="log_use_time">%1 ms</string>
+    <string name="log_row_actual_model">实际模型 %1$s</string>
+    <string name="log_input_token">输入 %1$s</string>
+    <string name="log_output_token">输出 %1$s</string>
+    <string name="log_use_time">%1$s ms</string>
     <string name="log_clear_title">清空日志</string>
     <string name="log_clear_summary">此操作将清空全部历史日志。</string>
     <string name="log_cost_line">费用 %1$.4f · 耗时 %2$d ms · 尝试 %3$d 次</string>
@@ -306,7 +306,7 @@
     <string name="setting_edit_hint">请输入新值</string>
     <string name="setting_edit_invalid_number">请输入有效的数字。</string>
 
-    <string name="apikey_fallback_name">密钥 #%1</string>
+    <string name="apikey_fallback_name">密钥 #%1$d</string>
     <string name="empty_title">暂无数据</string>
     <string name="error_title">加载失败</string>
 
