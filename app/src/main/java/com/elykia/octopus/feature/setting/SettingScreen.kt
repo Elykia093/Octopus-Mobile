@@ -1,61 +1,191 @@
 package com.elykia.octopus.feature.setting
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun SettingScreen(viewModel: SettingViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsState()
+    val scrollState = rememberScrollState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = "Settings", 
-            style = MiuixTheme.textStyles.title1,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        Text(
-            text = "Connected to: ${uiState.config.baseUrl}",
-            style = MiuixTheme.textStyles.body1,
-            color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-        )
-
-        Button(
-            onClick = viewModel::logout,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                color = MiuixTheme.colorScheme.error,
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = "设置",
+                titleCentered = true
             )
+        }
+    ) { paddingValues ->
+        Box(modifier = Modifier.padding(paddingValues)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 16.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+
+                // Server Config Card
+                Column {
+                    Text(
+                        text = "连接信息",
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        modifier = Modifier.padding(horizontal = 8.dp, bottom = 8.dp)
+                    )
+                    
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MiuixTheme.colorScheme.surface)
+                            .padding(16.dp)
+                    ) {
+                        Column {
+                            SettingItemRow(
+                                icon = AppMiuixIcons.Home,
+                                title = "服务器地址",
+                                subtitle = uiState.config.baseUrl.ifBlank { "未配置" }
+                            )
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MiuixTheme.colorScheme.surfaceContainerHigh))
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            SettingItemRow(
+                                icon = AppMiuixIcons.Group,
+                                title = "身份模式",
+                                subtitle = if (uiState.isApiKeyMode) "API Key 访问" else "管理员模式"
+                            )
+                        }
+                    }
+                }
+
+                // App Info Card
+                Column {
+                    Text(
+                        text = "关于 Octopus",
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        modifier = Modifier.padding(horizontal = 8.dp, bottom = 8.dp)
+                    )
+                    
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MiuixTheme.colorScheme.surface)
+                            .padding(16.dp)
+                    ) {
+                        Column {
+                            SettingItemRow(
+                                icon = AppMiuixIcons.Info,
+                                title = "版本",
+                                subtitle = "v1.0.0 (New Architecture)"
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Actions
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = viewModel::logout,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            color = MiuixTheme.colorScheme.error,
+                        )
+                    ) {
+                        Text(if (uiState.isLoggingOut) "正在注销..." else "退出登录", color = MiuixTheme.colorScheme.onError)
+                    }
+
+                    Button(
+                        onClick = viewModel::resetServerConfig,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            color = MiuixTheme.colorScheme.surfaceContainerHigh,
+                        )
+                    ) {
+                        Text("重置服务器配置", color = MiuixTheme.colorScheme.error)
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingItemRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MiuixTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center
         ) {
-            Text(if (uiState.isLoggingOut) "Logging out..." else "Logout", color = MiuixTheme.colorScheme.onError)
+            Icon(
+                imageVector = icon, 
+                contentDescription = title,
+                tint = MiuixTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
         }
         
-        Button(
-            onClick = viewModel::resetServerConfig,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                color = MiuixTheme.colorScheme.surface,
+        Spacer(modifier = Modifier.size(16.dp))
+        
+        Column {
+            Text(
+                text = title,
+                style = MiuixTheme.textStyles.body1,
+                color = MiuixTheme.colorScheme.onSurface
             )
-        ) {
-            Text("Reset Server Configuration", color = MiuixTheme.colorScheme.error)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+            )
         }
     }
 }

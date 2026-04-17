@@ -17,6 +17,7 @@ import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -26,7 +27,10 @@ fun SetupScreen(viewModel: SetupViewModel = hiltViewModel()) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            // Placeholder for top app bar if needed
+            TopAppBar(
+                title = "服务器配置",
+                titleCentered = true
+            )
         }
     ) { paddingValues ->
         Column(
@@ -38,25 +42,23 @@ fun SetupScreen(viewModel: SetupViewModel = hiltViewModel()) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Connect Server",
+                text = "连接到 Octopus",
                 style = MiuixTheme.textStyles.title1,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             
             Text(
-                text = "Set your Octopus service address",
-                style = MiuixTheme.textStyles.body1,
+                text = "请输入您需要连接的服务器地址",
+                style = MiuixTheme.textStyles.body2,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
 
             TextField(
-                value = uiState.urlInput,
-                onValueChange = viewModel::updateUrlInput,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                singleLine = true,
-                // Removed unrecognised attributes (label and useLabelAsPlaceholder)
+                value = uiState.baseUrl,
+                onValueChange = viewModel::onBaseUrlChange,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
             )
 
             if (uiState.error != null) {
@@ -64,16 +66,16 @@ fun SetupScreen(viewModel: SetupViewModel = hiltViewModel()) {
                     text = uiState.error!!,
                     color = MiuixTheme.colorScheme.error,
                     style = MiuixTheme.textStyles.body2,
-                    modifier = Modifier.padding(bottom = 16.dp).align(Alignment.Start)
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
             }
 
-            // Using Button properly with text inside
             Button(
-                onClick = viewModel::saveConfiguration,
-                modifier = Modifier.fillMaxWidth()
+                onClick = viewModel::testAndSaveConfig,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !uiState.isLoading
             ) {
-                Text(if (uiState.isSaving) "Saving..." else "Save and Continue")
+                Text(if (uiState.isLoading) "连接中..." else "连接")
             }
         }
     }

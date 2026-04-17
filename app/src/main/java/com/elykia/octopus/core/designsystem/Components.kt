@@ -10,6 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.ProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -48,7 +51,8 @@ fun LoadingPane(title: String) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Loading $title...", color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+        ProgressIndicator(modifier = Modifier.padding(bottom = 16.dp))
+        Text(text = "正在加载 $title...", color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
     }
 }
 
@@ -59,9 +63,18 @@ fun ErrorPane(message: String, onRetry: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = message, color = MiuixTheme.colorScheme.error, modifier = Modifier.padding(bottom = 16.dp))
-        top.yukonga.miuix.kmp.basic.Button(onClick = onRetry) {
-            Text("Retry")
+        Text(
+            text = message, 
+            color = MiuixTheme.colorScheme.error, 
+            modifier = Modifier.padding(horizontal = 32.dp, bottom = 24.dp)
+        )
+        Button(
+            onClick = onRetry,
+            colors = ButtonDefaults.buttonColors(
+                color = MiuixTheme.colorScheme.surfaceContainerHigh
+            )
+        ) {
+            Text("重试", color = MiuixTheme.colorScheme.onSurface)
         }
     }
 }
