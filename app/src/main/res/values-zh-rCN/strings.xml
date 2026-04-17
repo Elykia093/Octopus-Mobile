@@ -51,13 +51,27 @@
 
     <string name="login_title">登录</string>
     <string name="login_summary">使用 Octopus 账户登录。</string>
+    <string name="login_mode_user">账号登录</string>
+    <string name="login_mode_apikey">API Key</string>
     <string name="login_label_username">用户名</string>
     <string name="login_placeholder_username">请输入用户名</string>
     <string name="login_label_password">密码</string>
     <string name="login_placeholder_password">请输入密码</string>
+    <string name="login_label_apikey">API 密钥</string>
+    <string name="login_placeholder_apikey">sk-...</string>
     <string name="login_label_expire_days">令牌天数</string>
     <string name="login_submit">登录</string>
     <string name="login_submitting">登录中…</string>
+
+    <string name="dashboard_title">API 密钥总览</string>
+    <string name="dashboard_welcome">你好，%1$s</string>
+    <string name="dashboard_stats_title">用量统计</string>
+    <string name="dashboard_stat_requests">总请求数</string>
+    <string name="dashboard_stat_cost">总消费</string>
+    <string name="dashboard_stat_tokens">消耗令牌</string>
+    <string name="dashboard_stat_wait">平均耗时</string>
+    <string name="dashboard_key_title">密钥详情</string>
+    <string name="dashboard_key_label">完整密钥 (点击复制)</string>
 
     <string name="home_title">主页</string>
     <string name="home_total_title">请求统计</string>

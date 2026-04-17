@@ -51,13 +51,27 @@
 
     <string name="login_title">Login</string>
     <string name="login_summary">Use your Octopus account to sign in.</string>
+    <string name="login_mode_user">User</string>
+    <string name="login_mode_apikey">API Key</string>
     <string name="login_label_username">Username</string>
     <string name="login_placeholder_username">Enter username</string>
     <string name="login_label_password">Password</string>
     <string name="login_placeholder_password">Enter password</string>
+    <string name="login_label_apikey">API Key</string>
+    <string name="login_placeholder_apikey">sk-...</string>
     <string name="login_label_expire_days">Token days</string>
     <string name="login_submit">Login</string>
     <string name="login_submitting">Signing in…</string>
+
+    <string name="dashboard_title">API Key Dashboard</string>
+    <string name="dashboard_welcome">Hello, %1$s</string>
+    <string name="dashboard_stats_title">Usage Stats</string>
+    <string name="dashboard_stat_requests">Requests</string>
+    <string name="dashboard_stat_cost">Cost</string>
+    <string name="dashboard_stat_tokens">Tokens</string>
+    <string name="dashboard_stat_wait">Wait time</string>
+    <string name="dashboard_key_title">Key Details</string>
+    <string name="dashboard_key_label">Full key (Click to copy)</string>
 
     <string name="home_title">Home</string>
     <string name="home_total_title">Request Overview</string>
