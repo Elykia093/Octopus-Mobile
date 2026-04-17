@@ -14,6 +14,8 @@ import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.ProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -22,15 +24,20 @@ fun AppListCard(
     onClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    Box(
+    Card(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MiuixTheme.colorScheme.surface)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        content = content
-    )
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        colors = CardDefaults.cardColors(
+            color = MiuixTheme.colorScheme.surface,
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+            content = content
+        )
+    }
 }
 
 @Composable

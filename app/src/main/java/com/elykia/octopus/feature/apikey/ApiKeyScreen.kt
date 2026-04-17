@@ -21,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.SectionLabel
@@ -30,8 +29,10 @@ import com.elykia.octopus.feature.dashboard.util.formatCurrency
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -86,58 +87,45 @@ fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
                 val expireString = if (key.expireAt == 0L) "永不过期" else timeFormat.format(Date(key.expireAt * 1000L))
                 val isExpired = key.expireAt > 0 && key.expireAt * 1000L < System.currentTimeMillis()
 
-                AppListCard(
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                Card(
+                    modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
                 ) {
                     Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                // 状态指示器
+                        val titleColor = if (isExpired) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.onSurface
+                        
+                        BasicComponent(
+                            title = key.name.ifBlank { "Token #${key.id}" },
+                            titleColor = titleColor,
+                            summary = "模型权限: ${if (key.models.isBlank()) "全部模型" else "部分限制"}",
+                            leftAction = {
                                 Box(
                                     modifier = Modifier
-                                        .size(10.dp)
+                                        .size(12.dp)
                                         .clip(RoundedCornerShape(50))
                                         .background(if (key.status == 1 && !isExpired) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.error)
                                 )
-                                Spacer(modifier = Modifier.size(8.dp))
-                                Text(
-                                    text = key.name.ifBlank { "Token #${key.id}" },
-                                    style = MiuixTheme.textStyles.title4,
-                                    color = if (isExpired) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.onSurface
-                                )
+                            },
+                            rightAction = {
+                                val quotaText = if (key.maxQuota == 0L) "无限额度" else "已用: ${formatCurrency(key.usedQuota.toDouble() / 500000.0)}"
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MiuixTheme.colorScheme.surfaceContainerHigh)
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = quotaText,
+                                        style = MiuixTheme.textStyles.body2,
+                                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                                    )
+                                }
                             }
-
-                            // 额度标签
-                            val quotaText = if (key.maxQuota == 0L) "无限额度" else "已用: ${formatCurrency(key.usedQuota.toDouble() / 500000.0)}"
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MiuixTheme.colorScheme.surfaceContainerHigh)
-                                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = quotaText,
-                                    style = MiuixTheme.textStyles.body2,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.size(12.dp))
+                        )
 
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                            horizontalArrangement = Arrangement.End
                         ) {
-                            Text(
-                                text = "模型权限: ${if (key.models.isBlank()) "全部模型" else "部分限制"}",
-                                style = MiuixTheme.textStyles.body2,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-                            )
                             Text(
                                 text = "过期时间: $expireString",
                                 style = MiuixTheme.textStyles.body2,

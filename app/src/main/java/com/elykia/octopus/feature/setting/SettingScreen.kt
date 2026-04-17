@@ -24,8 +24,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
+import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
@@ -63,28 +65,34 @@ fun SettingScreen(viewModel: SettingViewModel = hiltViewModel()) {
                         modifier = Modifier.padding(horizontal = 8.dp, bottom = 8.dp)
                     )
                     
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MiuixTheme.colorScheme.surface)
-                            .padding(16.dp)
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth()) {
                         Column {
-                            SettingItemRow(
-                                icon = AppMiuixIcons.Home,
+                            BasicComponent(
                                 title = "服务器地址",
-                                subtitle = uiState.config.baseUrl.ifBlank { "未配置" }
+                                summary = uiState.config.baseUrl.ifBlank { "未配置" },
+                                leftAction = {
+                                    Icon(
+                                        imageVector = AppMiuixIcons.Home,
+                                        contentDescription = "服务器地址",
+                                        tint = MiuixTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
                             )
                             
-                            Spacer(modifier = Modifier.height(16.dp))
                             Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MiuixTheme.colorScheme.surfaceContainerHigh))
-                            Spacer(modifier = Modifier.height(16.dp))
 
-                            SettingItemRow(
-                                icon = AppMiuixIcons.Group,
+                            BasicComponent(
                                 title = "身份模式",
-                                subtitle = if (uiState.isApiKeyMode) "API Key 访问" else "管理员模式"
+                                summary = if (uiState.isApiKeyMode) "API Key 访问" else "管理员模式",
+                                leftAction = {
+                                    Icon(
+                                        imageVector = AppMiuixIcons.Group,
+                                        contentDescription = "身份模式",
+                                        tint = MiuixTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
                             )
                         }
                     }
@@ -99,18 +107,19 @@ fun SettingScreen(viewModel: SettingViewModel = hiltViewModel()) {
                         modifier = Modifier.padding(horizontal = 8.dp, bottom = 8.dp)
                     )
                     
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MiuixTheme.colorScheme.surface)
-                            .padding(16.dp)
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth()) {
                         Column {
-                            SettingItemRow(
-                                icon = AppMiuixIcons.Info,
+                            BasicComponent(
                                 title = "版本",
-                                subtitle = "v1.0.0 (New Architecture)"
+                                summary = "v1.0.0 (New Architecture)",
+                                leftAction = {
+                                    Icon(
+                                        imageVector = AppMiuixIcons.Info,
+                                        contentDescription = "版本",
+                                        tint = MiuixTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
                             )
                         }
                     }
@@ -143,49 +152,6 @@ fun SettingScreen(viewModel: SettingViewModel = hiltViewModel()) {
                 
                 Spacer(modifier = Modifier.height(24.dp))
             }
-        }
-    }
-}
-
-@Composable
-private fun SettingItemRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MiuixTheme.colorScheme.surfaceContainerHigh),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon, 
-                contentDescription = title,
-                tint = MiuixTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-        
-        Spacer(modifier = Modifier.size(16.dp))
-        
-        Column {
-            Text(
-                text = title,
-                style = MiuixTheme.textStyles.body1,
-                color = MiuixTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = subtitle,
-                style = MiuixTheme.textStyles.body2,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-            )
         }
     }
 }

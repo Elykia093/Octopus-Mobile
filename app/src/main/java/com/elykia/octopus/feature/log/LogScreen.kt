@@ -21,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.SectionLabel
@@ -29,8 +28,11 @@ import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -82,80 +84,67 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
                 val timeString = timeFormat.format(Date(log.createdAt * 1000L))
                 val isError = log.type == 2 || log.type == 3
 
-                AppListCard(
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                Card(
+                    modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        color = if (isError) MiuixTheme.colorScheme.errorContainer else MiuixTheme.colorScheme.surface
+                    )
                 ) {
                     Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                // 状态指示器
+                        val titleColor = if (isError) MiuixTheme.colorScheme.onErrorContainer else MiuixTheme.colorScheme.onSurface
+
+                        BasicComponent(
+                            title = log.model.ifBlank { "未知模型" },
+                            titleColor = titleColor,
+                            summary = "Token: ${log.prompt_tokens} (入) / ${log.completion_tokens} (出)",
+                            summaryColor = if (isError) MiuixTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f) else MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            leftAction = {
                                 Box(
                                     modifier = Modifier
-                                        .size(10.dp)
+                                        .size(12.dp)
                                         .clip(RoundedCornerShape(50))
-                                        .background(if (!isError) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.error)
+                                        .background(if (!isError) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onErrorContainer)
                                 )
-                                Spacer(modifier = Modifier.size(8.dp))
-                                Text(
-                                    text = log.model.ifBlank { "未知模型" },
-                                    style = MiuixTheme.textStyles.title4,
-                                    color = if (!isError) MiuixTheme.colorScheme.onSurface else MiuixTheme.colorScheme.error
-                                )
+                            },
+                            rightAction = {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (log.use_time > 3000) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.surfaceContainerHigh)
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "${log.use_time} ms",
+                                        style = MiuixTheme.textStyles.body2,
+                                        color = if (log.use_time > 3000) MiuixTheme.colorScheme.onError else MiuixTheme.colorScheme.onSurfaceVariantSummary
+                                    )
+                                }
                             }
-
-                            // 耗时标签
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (log.use_time > 3000) MiuixTheme.colorScheme.errorContainer else MiuixTheme.colorScheme.surfaceContainerHigh)
-                                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "${log.use_time} ms",
-                                    style = MiuixTheme.textStyles.body2,
-                                    color = if (log.use_time > 3000) MiuixTheme.colorScheme.onErrorContainer else MiuixTheme.colorScheme.onSurfaceVariantSummary
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.size(12.dp))
+                        )
 
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "Token: ${log.prompt_tokens} (入) / ${log.completion_tokens} (出)",
+                                text = "用户: ${log.username.ifBlank { "-" }} | 令牌: ${log.token_name.ifBlank { "-" }}",
                                 style = MiuixTheme.textStyles.body2,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                                color = if (isError) MiuixTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f) else MiuixTheme.colorScheme.onSurfaceVariantSummary
                             )
                             Text(
                                 text = timeString,
                                 style = MiuixTheme.textStyles.body2,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-                            )
-                        }
-
-                        if (log.username.isNotBlank() || log.token_name.isNotBlank()) {
-                            Spacer(modifier = Modifier.size(6.dp))
-                            Text(
-                                text = "用户: ${log.username.ifBlank { "-" }} | 令牌: ${log.token_name.ifBlank { "-" }}",
-                                style = MiuixTheme.textStyles.body2,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                                color = if (isError) MiuixTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f) else MiuixTheme.colorScheme.onSurfaceVariantSummary
                             )
                         }
 
                         if (log.content.isNotBlank()) {
-                            Spacer(modifier = Modifier.size(6.dp))
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isError) MiuixTheme.colorScheme.errorContainer else MiuixTheme.colorScheme.surfaceContainerHigh)
+                                    .background(if (isError) MiuixTheme.colorScheme.onErrorContainer.copy(alpha = 0.1f) else MiuixTheme.colorScheme.surfaceContainerHigh)
                                     .padding(8.dp)
                             ) {
                                 Text(
@@ -164,6 +153,8 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
                                     color = if (isError) MiuixTheme.colorScheme.onErrorContainer else MiuixTheme.colorScheme.onSurfaceVariantSummary
                                 )
                             }
+                        } else {
+                            Spacer(modifier = Modifier.size(16.dp))
                         }
                     }
                 }

@@ -21,14 +21,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.SectionLabel
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import com.elykia.octopus.feature.dashboard.util.formatCurrency
+import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -79,50 +80,43 @@ fun ChannelScreen(viewModel: ChannelViewModel = hiltViewModel()) {
             }
 
             items(uiState.items) { channel ->
-                AppListCard(
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                Card(
+                    modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
                 ) {
                     Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(), 
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                // 状态指示器
+                        BasicComponent(
+                            title = channel.name,
+                            summary = "模型: ${if (channel.models.length > 40) channel.models.take(40) + "..." else channel.models}",
+                            leftAction = {
                                 Box(
                                     modifier = Modifier
-                                        .size(10.dp)
+                                        .size(12.dp)
                                         .clip(RoundedCornerShape(50))
                                         .background(if (channel.status == 1) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.error)
                                 )
-                                Spacer(modifier = Modifier.size(8.dp))
-                                Text(text = channel.name, style = MiuixTheme.textStyles.title4)
+                            },
+                            rightAction = {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MiuixTheme.colorScheme.surfaceContainerHigh)
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "权重: ${channel.weight}",
+                                        style = MiuixTheme.textStyles.body2,
+                                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                                    )
+                                }
                             }
-                            
-                            // 权重标签
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MiuixTheme.colorScheme.surfaceContainerHigh)
-                                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "权重: ${channel.weight}",
-                                    style = MiuixTheme.textStyles.body2,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-                                )
-                            }
-                        }
-                        
-                        Spacer(modifier = Modifier.size(12.dp))
-                        
+                        )
+
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "已用额度: ${formatCurrency(channel.usedQuota.toDouble() / 500000.0)}", // 大致的配额转换估算
+                                text = "已用额度: ${formatCurrency(channel.usedQuota.toDouble() / 500000.0)}", 
                                 style = MiuixTheme.textStyles.body2,
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                             )
@@ -132,13 +126,6 @@ fun ChannelScreen(viewModel: ChannelViewModel = hiltViewModel()) {
                                 color = if (channel.responseTime > 2000) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.onSurfaceVariantSummary
                             )
                         }
-
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text(
-                            text = "模型: ${if (channel.models.length > 40) channel.models.take(40) + "..." else channel.models}",
-                            style = MiuixTheme.textStyles.body2,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-                        )
                     }
                 }
             }
