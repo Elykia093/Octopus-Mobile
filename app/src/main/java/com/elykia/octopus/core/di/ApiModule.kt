@@ -1,5 +1,6 @@
 package com.elykia.octopus.core.di
 
+import com.elykia.octopus.core.data.remote.ApiKeyApiService
 import com.elykia.octopus.core.data.remote.ChannelApiService
 import com.elykia.octopus.core.data.remote.OctopusApiService
 import dagger.Module
@@ -23,5 +24,11 @@ object ApiModule {
     @Singleton
     fun provideChannelApiService(retrofit: Retrofit): ChannelApiService {
         return retrofit.create(ChannelApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideApiKeyApiService(retrofit: Retrofit): ApiKeyApiService {
+        return retrofit.create(ApiKeyApiService::class.java)
     }
 }
