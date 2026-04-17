@@ -27,9 +27,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.elykia.octopus.core.data.repository.AppRepository
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
+import com.elykia.octopus.feature.apikey.ApiKeyScreen
 import com.elykia.octopus.feature.auth.LoginScreen
 import com.elykia.octopus.feature.channel.ChannelScreen
 import com.elykia.octopus.feature.connection.SetupScreen
+import com.elykia.octopus.feature.log.LogScreen
 import com.elykia.octopus.feature.setting.SettingScreen
 import com.elykia.octopus.navigation.*
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,13 +42,13 @@ import kotlinx.coroutines.flow.stateIn
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 import javax.inject.Inject
 
 data class AppState(
     val isLoading: Boolean = true,
     val isConfigured: Boolean = false,
     val isLoggedIn: Boolean = false,
+    val isApiKeyMode: Boolean = false,
 )
 
 @HiltViewModel
@@ -60,7 +62,8 @@ class AppViewModel @Inject constructor(
         AppState(
             isLoading = false,
             isConfigured = config.baseUrl.isNotBlank(),
-            isLoggedIn = auth.token.isNotBlank()
+            isLoggedIn = auth.token.isNotBlank(),
+            isApiKeyMode = auth.isApiKeyMode
         )
     }.stateIn(
         scope = viewModelScope,
@@ -106,12 +109,12 @@ fun RootNavGraph(
     ) {
         composable<SetupRoute> { SetupScreen() }
         composable<LoginRoute> { LoginScreen() }
-        composable<MainRoute> { MainScreen() }
+        composable<MainRoute> { MainScreen(appState.isApiKeyMode) }
     }
 }
 
 @Composable
-fun MainScreen() {
+fun MainScreen(isApiKeyMode: Boolean) {
     val bottomNavController = rememberNavController()
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -123,7 +126,7 @@ fun MainScreen() {
     }
 
     Scaffold(
-        // BottomNavigation component omitted as it seems unsupported in current Miuix snapshot 
+        // BottomBar implementation with pure Miuix components later
     ) { paddingValues ->
         NavHost(
             navController = bottomNavController,
@@ -131,8 +134,10 @@ fun MainScreen() {
             modifier = Modifier.padding(paddingValues)
         ) {
             composable<DashboardRoute> { Text("Dashboard Screen (TODO)", modifier = Modifier.fillMaxSize().padding(16.dp)) }
-            composable<ChannelRoute> { ChannelScreen() }
-            composable<LogRoute> { Text("Logs Screen (TODO)", modifier = Modifier.fillMaxSize().padding(16.dp)) }
+            composable<ChannelRoute> { 
+                if (isApiKeyMode) ApiKeyScreen() else ChannelScreen() 
+            }
+            composable<LogRoute> { LogScreen() }
             composable<SettingRoute> { SettingScreen() }
         }
     }
