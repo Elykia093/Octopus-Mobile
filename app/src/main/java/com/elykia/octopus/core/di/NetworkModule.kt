@@ -1,0 +1,139 @@
+package com.elykia.octopus.core.di
+
+import com.elykia.octopus.core.data.local.PreferenceStore
+import com.elykia.octopus.core.data.model.AuthState
+import com.elykia.octopus.core.data.model.ServerConfig
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Response
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import java.util.concurrent.TimeUnit
+import javax.inject.Singleton
+import kotlinx.serialization.json.Json
+
+@Module
+@InstallIn(SingletonComponent::class)
+object NetworkModule {
+
+    @Provides
+    @Singleton
+    fun provideJson(): Json = Json {
+        ignoreUnknownKeys = true
+        coerceInputValues = true
+        encodeDefaults = true
+    }
+
+    @Provides
+    @Singleton
+    fun provideBaseUrlInterceptor(preferenceStore: PreferenceStore): BaseUrlInterceptor {
+        return BaseUrlInterceptor(preferenceStore)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthInterceptor(preferenceStore: PreferenceStore): AuthInterceptor {
+        return AuthInterceptor(preferenceStore)
+    }
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(
+        baseUrlInterceptor: BaseUrlInterceptor,
+        authInterceptor: AuthInterceptor,
+    ): OkHttpClient {
+        val logging = HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
+        return OkHttpClient.Builder()
+            .addInterceptor(baseUrlInterceptor)
+            .addInterceptor(authInterceptor)
+            .addInterceptor(logging)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(okHttpClient: OkHttpClient, json: Json): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://localhost/") 
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+    }
+}
+
+class BaseUrlInterceptor(private val preferenceStore: PreferenceStore) : Interceptor {
+    @Volatile
+    private var cachedConfig = ServerConfig()
+
+    init {
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            preferenceStore.serverConfig.collect { cachedConfig = it }
+        }
+    }
+
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val original = chain.request()
+        val base = cachedConfig.baseUrl
+        if (base.isBlank()) return chain.proceed(original)
+
+        return try {
+            val baseHttpUrl = base.toHttpUrlOrNull() ?: return chain.proceed(original)
+            val newUrl = original.url.newBuilder()
+                .scheme(baseHttpUrl.scheme)
+                .host(baseHttpUrl.host)
+                .port(baseHttpUrl.port)
+                .apply {
+                    val basePathSegments = baseHttpUrl.pathSegments.filter { it.isNotEmpty() }
+                    val originalPathSegments = original.url.pathSegments.filter { it.isNotEmpty() }
+                    
+                    for (i in 0 until original.url.pathSize) {
+                        removePathSegment(0)
+                    }
+                    
+                    basePathSegments.forEach { addPathSegment(it) }
+                    originalPathSegments.forEach { addPathSegment(it) }
+                }
+                .build()
+
+            chain.proceed(original.newBuilder().url(newUrl).build())
+        } catch (e: Exception) {
+            chain.proceed(original)
+        }
+    }
+}
+
+class AuthInterceptor(private val preferenceStore: PreferenceStore) : Interceptor {
+    @Volatile
+    private var cachedAuth = AuthState()
+
+    init {
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            preferenceStore.authState.collect { cachedAuth = it }
+        }
+    }
+
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val original = chain.request()
+        if (cachedAuth.token.isBlank()) return chain.proceed(original)
+
+        val headerValue = if (cachedAuth.isApiKeyMode) "Bearer ${cachedAuth.token}" else cachedAuth.token
+        val request = original.newBuilder()
+            .header("Authorization", headerValue)
+            .build()
+        return chain.proceed(request)
+    }
+}
