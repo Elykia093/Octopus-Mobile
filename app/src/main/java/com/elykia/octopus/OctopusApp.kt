@@ -12,6 +12,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -24,12 +26,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.elykia.octopus.core.data.repository.AppRepository
+import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import com.elykia.octopus.feature.auth.LoginScreen
 import com.elykia.octopus.feature.connection.SetupScreen
 import com.elykia.octopus.feature.setting.SettingScreen
 import com.elykia.octopus.navigation.*
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -90,10 +92,9 @@ fun RootNavGraph(
         else -> MainRoute
     }
 
-    // Force navigation when state changes
     LaunchedEffect(startDest) {
         navController.navigate(startDest) {
-            popUpTo(0) { inclusive = true } // Clear entire backstack
+            popUpTo(0) { inclusive = true }
         }
     }
 
@@ -102,15 +103,9 @@ fun RootNavGraph(
         startDestination = startDest,
         modifier = Modifier.fillMaxSize()
     ) {
-        composable<SetupRoute> {
-            SetupScreen()
-        }
-        composable<LoginRoute> {
-            LoginScreen()
-        }
-        composable<MainRoute> {
-            MainScreen()
-        }
+        composable<SetupRoute> { SetupScreen() }
+        composable<LoginRoute> { LoginScreen() }
+        composable<MainRoute> { MainScreen() }
     }
 }
 
@@ -119,16 +114,16 @@ fun MainScreen() {
     val bottomNavController = rememberNavController()
 
     Scaffold(
-        // We will add BottomBar implementation later
+        // BottomBar implementation with pure Miuix components later
     ) { paddingValues ->
         NavHost(
             navController = bottomNavController,
             startDestination = DashboardRoute,
             modifier = Modifier.padding(paddingValues)
         ) {
-            composable<DashboardRoute> { Text("Dashboard") }
-            composable<ChannelRoute> { Text("Channels") }
-            composable<LogRoute> { Text("Logs") }
+            composable<DashboardRoute> { Text("Dashboard Screen (TODO)", modifier = Modifier.fillMaxSize().padding(16.dp)) }
+            composable<ChannelRoute> { Text("Channel Screen (TODO)", modifier = Modifier.fillMaxSize().padding(16.dp)) }
+            composable<LogRoute> { Text("Logs Screen (TODO)", modifier = Modifier.fillMaxSize().padding(16.dp)) }
             composable<SettingRoute> { SettingScreen() }
         }
     }
