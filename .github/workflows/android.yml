@@ -1,5 +1,8 @@
 name: Android CI/CD
 
+permissions:
+  contents: write
+
 on:
   push:
     branches: [ "main", "master" ]
@@ -25,12 +28,24 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Accept Android SDK licenses
+      run: yes | sdkmanager --licenses
+
+    - name: Install Android SDK packages
+      run: sdkmanager "platform-tools" "platforms;android-37" "build-tools;37.0.0"
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
     # Disabled wrapper validation because it frequently times out connecting to github servers
     # - name: Validate Gradle wrapper
     #   uses: gradle/wrapper-validation-action@v2
+
+    - name: Verify Gradle environment
+      run: ./gradlew --version
 
     - name: Build Debug APK
       run: ./gradlew assembleDebug --no-daemon
@@ -57,6 +72,15 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: gradle
+
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Accept Android SDK licenses
+      run: yes | sdkmanager --licenses
+
+    - name: Install Android SDK packages
+      run: sdkmanager "platform-tools" "platforms;android-37" "build-tools;37.0.0"
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
