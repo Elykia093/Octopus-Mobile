@@ -28,6 +28,7 @@ import androidx.navigation.compose.rememberNavController
 import com.elykia.octopus.core.data.repository.AppRepository
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import com.elykia.octopus.feature.auth.LoginScreen
+import com.elykia.octopus.feature.channel.ChannelScreen
 import com.elykia.octopus.feature.connection.SetupScreen
 import com.elykia.octopus.feature.setting.SettingScreen
 import com.elykia.octopus.navigation.*
@@ -112,9 +113,17 @@ fun RootNavGraph(
 @Composable
 fun MainScreen() {
     val bottomNavController = rememberNavController()
+    val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+
+    val isRouteMatch: (Any) -> Boolean = { route ->
+        currentDestination?.hierarchy?.any { 
+            it.route?.contains(route::class.simpleName ?: "") == true 
+        } == true
+    }
 
     Scaffold(
-        // BottomBar implementation with pure Miuix components later
+        // BottomNavigation component omitted as it seems unsupported in current Miuix snapshot 
     ) { paddingValues ->
         NavHost(
             navController = bottomNavController,
@@ -122,7 +131,7 @@ fun MainScreen() {
             modifier = Modifier.padding(paddingValues)
         ) {
             composable<DashboardRoute> { Text("Dashboard Screen (TODO)", modifier = Modifier.fillMaxSize().padding(16.dp)) }
-            composable<ChannelRoute> { Text("Channel Screen (TODO)", modifier = Modifier.fillMaxSize().padding(16.dp)) }
+            composable<ChannelRoute> { ChannelScreen() }
             composable<LogRoute> { Text("Logs Screen (TODO)", modifier = Modifier.fillMaxSize().padding(16.dp)) }
             composable<SettingRoute> { SettingScreen() }
         }
