@@ -98,8 +98,25 @@ class BaseUrlInterceptor(private val preferenceStore: PreferenceStore) : Interce
                 .port(baseHttpUrl.port)
                 .apply {
                     val basePathSegments = baseHttpUrl.pathSegments.filter { it.isNotEmpty() }
-                    val originalPathSegments = original.url.pathSegments.filter { it.isNotEmpty() }
+                    var originalPathSegments = original.url.pathSegments.filter { it.isNotEmpty() }
                     
+                    // Prevent path duplication if the user provided URL already contains parts of the original path
+                    // e.g. user enters /api/v1/ and original is /api/v1/user/login
+                    if (basePathSegments.isNotEmpty() && originalPathSegments.isNotEmpty()) {
+                        var overlapCount = 0
+                        val maxOverlap = minOf(basePathSegments.size, originalPathSegments.size)
+                        for (i in 1..maxOverlap) {
+                            val baseSuffix = basePathSegments.takeLast(i)
+                            val origPrefix = originalPathSegments.take(i)
+                            if (baseSuffix == origPrefix) {
+                                overlapCount = i
+                            }
+                        }
+                        if (overlapCount > 0) {
+                            originalPathSegments = originalPathSegments.drop(overlapCount)
+                        }
+                    }
+
                     for (i in 0 until original.url.pathSize) {
                         removePathSegment(0)
                     }
