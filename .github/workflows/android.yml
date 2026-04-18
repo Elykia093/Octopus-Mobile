@@ -53,14 +53,17 @@ jobs:
     - name: Verify Gradle environment
       run: ./gradlew --version
 
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug --no-daemon
+    - name: Build Release APK
+      run: ./gradlew assembleRelease --no-daemon
 
-    - name: Upload Debug APK
+    - name: Prepare APK
+      run: find app/build/outputs/apk/release -name "*.apk" -exec cp {} Octopus.apk \;
+
+    - name: Upload Release APK
       uses: actions/upload-artifact@v4
       with:
-        name: Octopus-Mobile-Debug
-        path: app/build/outputs/apk/debug/*.apk
+        name: Octopus
+        path: Octopus.apk
 
   release:
     name: Build Release & Publish
@@ -101,10 +104,13 @@ jobs:
       # Note: For a signed APK, you will need to add signing configuration via secrets
       run: ./gradlew assembleRelease --no-daemon
 
+    - name: Prepare APK
+      run: find app/build/outputs/apk/release -name "*.apk" -exec cp {} Octopus.apk \;
+
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        files: app/build/outputs/apk/release/*.apk
+        files: Octopus.apk
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
