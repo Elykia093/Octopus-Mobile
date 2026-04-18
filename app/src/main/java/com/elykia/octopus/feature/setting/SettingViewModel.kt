@@ -9,12 +9,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class SettingUiState(
     val config: ServerConfig = ServerConfig(),
+    val isApiKeyMode: Boolean = false,
     val isLoggingOut: Boolean = false
 )
 
@@ -29,8 +31,15 @@ class SettingViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            appRepository.serverConfig.collect { currentConfig ->
-                _uiState.update { it.copy(config = currentConfig) }
+            combine(appRepository.serverConfig, appRepository.authState) { currentConfig, authState ->
+                currentConfig to authState
+            }.collect { (currentConfig, authState) ->
+                _uiState.update {
+                    it.copy(
+                        config = currentConfig,
+                        isApiKeyMode = authState?.isApiKeyMode == true
+                    )
+                }
             }
         }
     }
@@ -45,7 +54,6 @@ class SettingViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoggingOut = true) }
             authRepository.logout()
-            // Setting state triggers Global Route Change back to LoginRoute
             _uiState.update { it.copy(isLoggingOut = false) }
         }
     }
@@ -53,7 +61,6 @@ class SettingViewModel @Inject constructor(
     fun resetServerConfig() {
         viewModelScope.launch {
             appRepository.clearConfigAndAuth()
-            // Triggers Global Route Change back to SetupRoute
         }
     }
 }

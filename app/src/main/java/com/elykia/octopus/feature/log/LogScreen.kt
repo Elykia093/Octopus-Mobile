@@ -49,7 +49,6 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
         topBar = {
             TopAppBar(
                 title = "请求日志",
-                titleCentered = true,
                 actions = {
                     IconButton(onClick = { viewModel.loadLogs(isRefresh = true) }) {
                         Icon(imageVector = AppMiuixIcons.Refresh, contentDescription = "刷新")
@@ -75,7 +74,9 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
             item {
                 SectionLabel(
                     title = "共 ${uiState.totalCount} 条日志",
-                    modifier = Modifier.padding(horizontal = 16.dp, top = 8.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 8.dp)
                 )
             }
 
@@ -86,19 +87,16 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
 
                 Card(
                     modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        color = if (isError) MiuixTheme.colorScheme.errorContainer else MiuixTheme.colorScheme.surface
+                    colors = CardDefaults.defaultColors(
+                        color = if (isError) MiuixTheme.colorScheme.errorContainer else MiuixTheme.colorScheme.surface,
+                        contentColor = if (isError) MiuixTheme.colorScheme.onErrorContainer else MiuixTheme.colorScheme.onSurface
                     )
                 ) {
                     Column {
-                        val titleColor = if (isError) MiuixTheme.colorScheme.onErrorContainer else MiuixTheme.colorScheme.onSurface
-
                         BasicComponent(
                             title = log.model.ifBlank { "未知模型" },
-                            titleColor = titleColor,
                             summary = "Token: ${log.prompt_tokens} (入) / ${log.completion_tokens} (出)",
-                            summaryColor = if (isError) MiuixTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f) else MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            leftAction = {
+                            startAction = {
                                 Box(
                                     modifier = Modifier
                                         .size(12.dp)
@@ -106,7 +104,7 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
                                         .background(if (!isError) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onErrorContainer)
                                 )
                             },
-                            rightAction = {
+                            endActions = {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))

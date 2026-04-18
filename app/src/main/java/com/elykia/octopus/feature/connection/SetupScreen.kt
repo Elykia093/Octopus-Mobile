@@ -28,8 +28,7 @@ fun SetupScreen(viewModel: SetupViewModel = hiltViewModel()) {
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = "服务器配置",
-                titleCentered = true
+                title = "服务器配置"
             )
         }
     ) { paddingValues ->
@@ -56,8 +55,8 @@ fun SetupScreen(viewModel: SetupViewModel = hiltViewModel()) {
             )
 
             TextField(
-                value = uiState.baseUrl,
-                onValueChange = viewModel::onBaseUrlChange,
+                value = uiState.urlInput,
+                onValueChange = viewModel::updateUrlInput,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
             )
 
@@ -71,11 +70,11 @@ fun SetupScreen(viewModel: SetupViewModel = hiltViewModel()) {
             }
 
             Button(
-                onClick = viewModel::testAndSaveConfig,
+                onClick = viewModel::saveConfiguration,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isLoading
+                enabled = !uiState.isSaving
             ) {
-                Text(if (uiState.isLoading) "连接中..." else "连接")
+                Text(if (uiState.isSaving) "连接中..." else "连接")
             }
         }
     }

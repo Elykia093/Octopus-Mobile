@@ -35,13 +35,12 @@ object ApiModule {
 
     @Provides
     @Singleton
-    @Provides
-    @Singleton
     fun provideDashboardApiService(retrofit: Retrofit): com.elykia.octopus.core.data.remote.DashboardApiService {
         return retrofit.create(com.elykia.octopus.core.data.remote.DashboardApiService::class.java)
     }
 
-
+    @Provides
+    @Singleton
     fun provideLogApiService(retrofit: Retrofit): LogApiService {
         return retrofit.create(LogApiService::class.java)
     }

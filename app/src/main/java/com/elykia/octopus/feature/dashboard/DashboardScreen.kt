@@ -48,8 +48,7 @@ fun DashboardScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = "大盘",
-                titleCentered = true
+                title = "大盘"
             )
         }
     ) { paddingValues ->

@@ -1,18 +1,15 @@
 package com.elykia.octopus.core.designsystem
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.ProgressIndicator
+import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
@@ -28,15 +25,13 @@ fun AppListCard(
         modifier = modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        colors = CardDefaults.cardColors(
+        cornerRadius = 16.dp,
+        insideMargin = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+        colors = CardDefaults.defaultColors(
             color = MiuixTheme.colorScheme.surface,
-        ),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Box(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-            content = content
         )
+    ) {
+        Box(modifier = Modifier.fillMaxWidth(), content = content)
     }
 }
 
@@ -58,7 +53,7 @@ fun LoadingPane(title: String) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        ProgressIndicator(modifier = Modifier.padding(bottom = 16.dp))
+        InfiniteProgressIndicator(modifier = Modifier.padding(bottom = 16.dp))
         Text(text = "正在加载 $title...", color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
     }
 }
@@ -73,7 +68,9 @@ fun ErrorPane(message: String, onRetry: () -> Unit) {
         Text(
             text = message, 
             color = MiuixTheme.colorScheme.error, 
-            modifier = Modifier.padding(horizontal = 32.dp, bottom = 24.dp)
+            modifier = Modifier
+                .padding(horizontal = 32.dp)
+                .padding(bottom = 24.dp)
         )
         Button(
             onClick = onRetry,

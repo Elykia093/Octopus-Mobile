@@ -1,10 +1,10 @@
 package com.elykia.octopus.navigation
 
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import top.yukonga.miuix.kmp.basic.BottomNavigationBar
-import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
 
 @Composable
@@ -14,22 +14,31 @@ fun AppBottomBar(
     onNavigateToDestination: (TopLevelDestination) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    BottomNavigationBar(
+    NavigationBar(
         modifier = modifier.fillMaxWidth()
     ) {
         destinations.forEach { destination ->
-            val selected = currentDestination(destination.route)
-            NavigationBarItem(
-                selected = selected,
-                onClick = { onNavigateToDestination(destination) },
-                icon = {
-                    Icon(
-                        imageVector = if (selected) destination.selectedIcon else destination.unselectedIcon,
-                        contentDescription = destination.titleTextId
-                    )
-                },
-                label = destination.iconTextId
+            AppBottomBarItem(
+                destination = destination,
+                selected = currentDestination(destination.route),
+                onClick = { onNavigateToDestination(destination) }
             )
         }
     }
+}
+
+@Composable
+private fun RowScope.AppBottomBarItem(
+    destination: TopLevelDestination,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    NavigationBarItem(
+        selected = selected,
+        onClick = onClick,
+        icon = if (selected) destination.selectedIcon else destination.unselectedIcon,
+        label = destination.iconTextId,
+        modifier = Modifier,
+        enabled = true
+    )
 }

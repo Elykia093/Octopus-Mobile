@@ -49,7 +49,6 @@ fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
         topBar = {
             TopAppBar(
                 title = "令牌管理",
-                titleCentered = true,
                 actions = {
                     IconButton(onClick = { viewModel.loadApiKeys(isRefresh = true) }) {
                         Icon(imageVector = AppMiuixIcons.Refresh, contentDescription = "刷新")
@@ -78,7 +77,9 @@ fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
             item {
                 SectionLabel(
                     title = "共 ${uiState.totalCount} 个令牌",
-                    modifier = Modifier.padding(horizontal = 16.dp, top = 8.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 8.dp)
                 )
             }
 
@@ -91,13 +92,10 @@ fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
                     modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
                 ) {
                     Column {
-                        val titleColor = if (isExpired) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.onSurface
-                        
                         BasicComponent(
                             title = key.name.ifBlank { "Token #${key.id}" },
-                            titleColor = titleColor,
                             summary = "模型权限: ${if (key.models.isBlank()) "全部模型" else "部分限制"}",
-                            leftAction = {
+                            startAction = {
                                 Box(
                                     modifier = Modifier
                                         .size(12.dp)
@@ -105,7 +103,7 @@ fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
                                         .background(if (key.status == 1 && !isExpired) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.error)
                                 )
                             },
-                            rightAction = {
+                            endActions = {
                                 val quotaText = if (key.maxQuota == 0L) "无限额度" else "已用: ${formatCurrency(key.usedQuota.toDouble() / 500000.0)}"
                                 Box(
                                     modifier = Modifier

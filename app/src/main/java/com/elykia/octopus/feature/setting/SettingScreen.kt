@@ -42,8 +42,7 @@ fun SettingScreen(viewModel: SettingViewModel = hiltViewModel()) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = "设置",
-                titleCentered = true
+                title = "设置"
             )
         }
     ) { paddingValues ->
@@ -62,7 +61,9 @@ fun SettingScreen(viewModel: SettingViewModel = hiltViewModel()) {
                         text = "连接信息",
                         style = MiuixTheme.textStyles.body2,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        modifier = Modifier.padding(horizontal = 8.dp, bottom = 8.dp)
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp)
+                            .padding(bottom = 8.dp)
                     )
                     
                     Card(modifier = Modifier.fillMaxWidth()) {
@@ -70,7 +71,7 @@ fun SettingScreen(viewModel: SettingViewModel = hiltViewModel()) {
                             BasicComponent(
                                 title = "服务器地址",
                                 summary = uiState.config.baseUrl.ifBlank { "未配置" },
-                                leftAction = {
+                                startAction = {
                                     Icon(
                                         imageVector = AppMiuixIcons.Home,
                                         contentDescription = "服务器地址",
@@ -85,7 +86,7 @@ fun SettingScreen(viewModel: SettingViewModel = hiltViewModel()) {
                             BasicComponent(
                                 title = "身份模式",
                                 summary = if (uiState.isApiKeyMode) "API Key 访问" else "管理员模式",
-                                leftAction = {
+                                startAction = {
                                     Icon(
                                         imageVector = AppMiuixIcons.Group,
                                         contentDescription = "身份模式",
@@ -104,7 +105,9 @@ fun SettingScreen(viewModel: SettingViewModel = hiltViewModel()) {
                         text = "关于 Octopus",
                         style = MiuixTheme.textStyles.body2,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        modifier = Modifier.padding(horizontal = 8.dp, bottom = 8.dp)
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp)
+                            .padding(bottom = 8.dp)
                     )
                     
                     Card(modifier = Modifier.fillMaxWidth()) {
@@ -112,7 +115,7 @@ fun SettingScreen(viewModel: SettingViewModel = hiltViewModel()) {
                             BasicComponent(
                                 title = "版本",
                                 summary = "v1.0.0 (New Architecture)",
-                                leftAction = {
+                                startAction = {
                                     Icon(
                                         imageVector = AppMiuixIcons.Info,
                                         contentDescription = "版本",

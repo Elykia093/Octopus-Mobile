@@ -25,13 +25,13 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsState()
+    val isApiKeyMode = uiState.mode == LoginMode.API_KEY
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = "登录",
-                titleCentered = true
+                title = "登录"
             )
         }
     ) { paddingValues ->
@@ -63,42 +63,42 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Button(
-                    onClick = { viewModel.toggleMode(false) },
+                    onClick = { viewModel.updateMode(LoginMode.ADMIN) },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        color = if (!uiState.isApiKeyMode) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.surfaceContainerHigh
+                        color = if (!isApiKeyMode) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.surfaceContainerHigh
                     )
                 ) {
                     Text(
                         "管理员登录", 
-                        color = if (!uiState.isApiKeyMode) MiuixTheme.colorScheme.onPrimary else MiuixTheme.colorScheme.onSurface
+                        color = if (!isApiKeyMode) MiuixTheme.colorScheme.onPrimary else MiuixTheme.colorScheme.onSurface
                     )
                 }
                 
                 Button(
-                    onClick = { viewModel.toggleMode(true) },
+                    onClick = { viewModel.updateMode(LoginMode.API_KEY) },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        color = if (uiState.isApiKeyMode) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.surfaceContainerHigh
+                        color = if (isApiKeyMode) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.surfaceContainerHigh
                     )
                 ) {
                     Text(
                         "API Key 访问",
-                        color = if (uiState.isApiKeyMode) MiuixTheme.colorScheme.onPrimary else MiuixTheme.colorScheme.onSurface
+                        color = if (isApiKeyMode) MiuixTheme.colorScheme.onPrimary else MiuixTheme.colorScheme.onSurface
                     )
                 }
             }
 
-            if (uiState.isApiKeyMode) {
+            if (isApiKeyMode) {
                 TextField(
                     value = uiState.apiKey,
-                    onValueChange = viewModel::onApiKeyChange,
+                    onValueChange = viewModel::updateApiKey,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
                 )
             } else {
                 TextField(
                     value = uiState.username,
-                    onValueChange = viewModel::onUsernameChange,
+                    onValueChange = viewModel::updateUsername,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                 )
                 
@@ -106,7 +106,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 // but we will use the standard setup or just pass the parameter if it supports it.
                 TextField(
                     value = uiState.password,
-                    onValueChange = viewModel::onPasswordChange,
+                    onValueChange = viewModel::updatePassword,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
                 )
             }
@@ -121,11 +121,11 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
             }
 
             Button(
-                onClick = viewModel::login,
+                onClick = viewModel::submit,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isLoading
+                enabled = !uiState.isSubmitting
             ) {
-                Text(if (uiState.isLoading) "登录中..." else "登录")
+                Text(if (uiState.isSubmitting) "登录中..." else "登录")
             }
         }
     }

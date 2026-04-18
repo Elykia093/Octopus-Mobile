@@ -46,7 +46,6 @@ fun ChannelScreen(viewModel: ChannelViewModel = hiltViewModel()) {
         topBar = {
             TopAppBar(
                 title = "渠道",
-                titleCentered = true,
                 actions = {
                     IconButton(onClick = { viewModel.loadChannels(isRefresh = true) }) {
                         Icon(imageVector = AppMiuixIcons.Refresh, contentDescription = "刷新")
@@ -75,7 +74,9 @@ fun ChannelScreen(viewModel: ChannelViewModel = hiltViewModel()) {
             item {
                 SectionLabel(
                     title = "共 ${uiState.totalCount} 个渠道", 
-                    modifier = Modifier.padding(horizontal = 16.dp, top = 8.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 8.dp)
                 )
             }
 
@@ -87,7 +88,7 @@ fun ChannelScreen(viewModel: ChannelViewModel = hiltViewModel()) {
                         BasicComponent(
                             title = channel.name,
                             summary = "模型: ${if (channel.models.length > 40) channel.models.take(40) + "..." else channel.models}",
-                            leftAction = {
+                            startAction = {
                                 Box(
                                     modifier = Modifier
                                         .size(12.dp)
@@ -95,7 +96,7 @@ fun ChannelScreen(viewModel: ChannelViewModel = hiltViewModel()) {
                                         .background(if (channel.status == 1) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.error)
                                 )
                             },
-                            rightAction = {
+                            endActions = {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
