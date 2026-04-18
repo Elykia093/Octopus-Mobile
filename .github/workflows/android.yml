@@ -1,5 +1,9 @@
 name: Android CI
 
+env:
+  ANDROID_HOME: /usr/local/lib/android/sdk
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
 on:
   push:
     branches: [ main, master ]
@@ -21,26 +25,17 @@ jobs:
           java-version: 21
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android platform 37
-        run: sdkmanager "platform-tools" "build-tools;37.0.0" "platforms;android-37.0"
-
-      - name: Normalize Android 37 platform directory
+      - name: Verify Android SDK
         run: |
-          if [ -d "$ANDROID_HOME/platforms/android-37.0" ] && [ ! -d "$ANDROID_HOME/platforms/android-37" ]; then
-            mv "$ANDROID_HOME/platforms/android-37.0" "$ANDROID_HOME/platforms/android-37"
-            sed -i 's/platforms;android-37.0/platforms;android-37/' "$ANDROID_HOME/platforms/android-37/package.xml" || true
-            sed -i 's/<api-level>37.0<\/api-level>/<api-level>37<\/api-level>/' "$ANDROID_HOME/platforms/android-37/package.xml" || true
-            sed -i 's/AndroidVersion.ApiLevel=37.0/AndroidVersion.ApiLevel=37/' "$ANDROID_HOME/platforms/android-37/source.properties" || true
-          fi
+          test -d "$ANDROID_SDK_ROOT/platforms/android-37"
+          test -d "$ANDROID_SDK_ROOT/build-tools/37.0.0"
+          test -f "$ANDROID_SDK_ROOT/platforms/android-37/android.jar"
 
       - name: Grant execute permission
         run: chmod +x gradlew
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
