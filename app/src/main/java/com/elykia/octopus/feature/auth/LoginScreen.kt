@@ -90,20 +90,33 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
             }
 
             if (isApiKeyMode) {
+                Text(
+                    text = "API Key",
+                    style = MiuixTheme.textStyles.body2,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp, start = 4.dp)
+                )
                 TextField(
                     value = uiState.apiKey,
                     onValueChange = viewModel::updateApiKey,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
                 )
             } else {
+                Text(
+                    text = "用户名",
+                    style = MiuixTheme.textStyles.body2,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp, start = 4.dp)
+                )
                 TextField(
                     value = uiState.username,
                     onValueChange = viewModel::updateUsername,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                 )
                 
-                // Note: Miuix TextField might not have VisualTransformation out of the box in the snapshot version, 
-                // but we will use the standard setup or just pass the parameter if it supports it.
+                Text(
+                    text = "密码",
+                    style = MiuixTheme.textStyles.body2,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp, start = 4.dp)
+                )
                 TextField(
                     value = uiState.password,
                     onValueChange = viewModel::updatePassword,
