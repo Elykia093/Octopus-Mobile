@@ -48,13 +48,13 @@ fun DashboardScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = "Dashboard"
+                title = "首页"
             )
         }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
             if (uiState.isLoading) {
-                LoadingPane("Dashboard 数据")
+                LoadingPane("首页数据")
             } else if (uiState.error != null) {
                 ErrorPane(
                     message = "加载失败: ${uiState.error}",
