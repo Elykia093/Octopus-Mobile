@@ -54,18 +54,18 @@ class DashboardViewModel @Inject constructor(
                 // Determine auth mode to fetch correct dashboard
                 val isApiKeyMode = appRepository.authState.firstOrNull()?.isApiKeyMode ?: false
 
-                val statsDeferred = async { 
-                    if (isApiKeyMode) dashboardApi.getApiKeyDashboardStats() 
-                    else dashboardApi.getDashboardStats() 
+                val statsResponse = if (isApiKeyMode) {
+                    dashboardApi.getApiKeyDashboardStats()
+                } else {
+                    dashboardApi.getDashboardStats()
                 }
                 
-                // Only admin usually fetches rankings, skip for API Key mode or wrap in try/catch safely
-                val rankingsDeferred = async { 
-                    if (!isApiKeyMode) dashboardApi.getDashboardRankings() else null
+                // Only admin usually fetches rankings
+                val rankingsResponse = if (!isApiKeyMode) {
+                    dashboardApi.getDashboardRankings()
+                } else {
+                    null
                 }
-
-                val statsResponse = statsDeferred.await()
-                val rankingsResponse = rankingsDeferred.await()
 
                 if (statsResponse.success) {
                     _uiState.update {
