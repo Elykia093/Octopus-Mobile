@@ -5,9 +5,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class LogItem(
-    val id: Long,
-    val type: Int,
-    @SerialName("created_at") val createdAt: Long,
+    val id: Long = 0L,
+    val type: Int = 0,
+    @SerialName("created_at") val createdAt: Long = 0L,
     val content: String = "",
     val model: String = "",
     val prompt_tokens: Int = 0,
@@ -20,6 +20,6 @@ data class LogItem(
 
 @Serializable
 data class LogPageResponse(
-    val list: List<LogItem>,
-    val total: Long
+    val list: List<LogItem> = emptyList(),
+    val total: Long = 0L
 )

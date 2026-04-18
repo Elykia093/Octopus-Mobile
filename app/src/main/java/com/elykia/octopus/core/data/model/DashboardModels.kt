@@ -27,10 +27,10 @@ data class StatsTotal(
 
 @Serializable
 data class TrendEntry(
-    val title: String,
-    @SerialName("request_count") val requestCount: Long,
-    @SerialName("cost_value") val costValue: Double,
-    @SerialName("token_value") val tokenValue: Long,
+    val title: String = "",
+    @SerialName("request_count") val requestCount: Long = 0L,
+    @SerialName("cost_value") val costValue: Double = 0.0,
+    @SerialName("token_value") val tokenValue: Long = 0L,
 )
 
 @Serializable
@@ -43,7 +43,7 @@ data class DashboardData(
 
 @Serializable
 data class RankItem(
-    val title: String,
+    val title: String = "",
     val value: Long = 0L,
     @SerialName("sub_value") val subValue: Double = 0.0,
 )

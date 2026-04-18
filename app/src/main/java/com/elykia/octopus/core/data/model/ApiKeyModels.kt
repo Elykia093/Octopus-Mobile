@@ -5,8 +5,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ApiKeyItem(
-    val id: Long,
-    val name: String,
+    val id: Long = 0L,
+    val name: String = "",
     val status: Int = 1, // 1 = enabled, 2 = disabled
     @SerialName("expire_at") val expireAt: Long = 0,
     @SerialName("created_at") val createdAt: Long = 0,
@@ -17,6 +17,6 @@ data class ApiKeyItem(
 
 @Serializable
 data class ApiKeyPageResponse(
-    val list: List<ApiKeyItem>,
-    val total: Long
+    val list: List<ApiKeyItem> = emptyList(),
+    val total: Long = 0L
 )
