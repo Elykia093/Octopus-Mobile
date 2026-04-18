@@ -10,13 +10,13 @@ import retrofit2.http.POST
 interface OctopusApiService {
 
     // Auth endpoints
-    @POST("api/user/login")
+    @POST("api/v1/user/login")
     suspend fun loginUser(@Body request: LoginRequest): ApiResponse<LoginResponse>
 
-    @GET("api/apikey/login")
+    @GET("api/v1/apikey/login")
     suspend fun loginApiKey(): ApiResponse<LoginResponse> // Token is sent via AuthInterceptor
 
     // Example dashboard endpoint to verify auth
-    @GET("api/user/stats")
+    @GET("api/v1/user/stats")
     suspend fun getUserStats(): ApiResponse<String> // Placeholder for actual Dashboard stats model
 }

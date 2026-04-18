@@ -7,13 +7,13 @@ import retrofit2.http.GET
 
 interface DashboardApiService {
 
-    @GET("api/user/stats")
+    @GET("api/v1/user/stats")
     suspend fun getDashboardStats(): ApiResponse<DashboardData>
 
-    @GET("api/user/ranking")
+    @GET("api/v1/user/ranking")
     suspend fun getDashboardRankings(): ApiResponse<DashboardRankings>
 
-    // For API key mode
-    @GET("api/apikey/stats")
+    // 假设未来如果需要 API Key 自己的 Dashboard
+    @GET("api/v1/apikey/stats")
     suspend fun getApiKeyDashboardStats(): ApiResponse<DashboardData>
 }
