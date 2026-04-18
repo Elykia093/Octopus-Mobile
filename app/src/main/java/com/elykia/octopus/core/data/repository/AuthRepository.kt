@@ -15,8 +15,8 @@ class AuthRepository @Inject constructor(
     suspend fun loginAsAdmin(request: LoginRequest): Result<Unit> {
         return try {
             val response = apiService.loginUser(request)
-            if (response.success && response.data != null) {
-                val authState = AuthState(token = response.data.token, isApiKeyMode = false)
+            if (response.success || (response.data != null && response.data.token.isNotBlank())) {
+                val authState = AuthState(token = response.data?.token ?: "", isApiKeyMode = false)
                 preferenceStore.updateAuthState(authState)
                 Result.success(Unit)
             } else {
@@ -34,7 +34,7 @@ class AuthRepository @Inject constructor(
         return try {
             // Verify if the API key is valid by calling the endpoint
             val response = apiService.loginApiKey()
-            if (response.success) {
+            if (response.success || response.data != null) {
                 // If the response returns a session token (some systems convert key to JWT), save it. 
                 // If it doesn't, we keep using the API Key.
                 if (response.data != null && response.data.token.isNotBlank()) {
