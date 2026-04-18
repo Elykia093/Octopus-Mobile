@@ -7,7 +7,7 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface ApiKeyApiService {
-    @GET("api/v1/apikey/")
+    @GET("api/apikey/")
     suspend fun getApiKeys(
         @Query("p") page: Int,
         @Query("page_size") pageSize: Int = 20,

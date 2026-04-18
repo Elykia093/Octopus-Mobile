@@ -7,13 +7,13 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface ChannelApiService {
-    @GET("api/v1/channel/")
+    @GET("api/channel/")
     suspend fun getChannels(
         @Query("p") page: Int,
         @Query("page_size") pageSize: Int = 20,
     ): ApiResponse<ChannelPageResponse>
 
     // Temporary method signatures for future CRUD operations
-    // @POST("api/v1/channel/")
+    // @POST("api/channel/")
     // suspend fun addChannel(@Body channel: Channel): ApiResponse<Unit>
 }
