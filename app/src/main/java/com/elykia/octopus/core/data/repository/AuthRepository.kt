@@ -24,7 +24,7 @@ class AuthRepository @Inject constructor(
             }
         } catch (e: retrofit2.HttpException) {
             val url = e.response()?.raw()?.request?.url?.toString() ?: "Unknown URL"
-            Result.failure(Exception("HTTP ${e.code()} Not Found\nRequest URL: $url"))
+            Result.failure(Exception("HTTP ${e.code()} Error\nRequest URL: $url"))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -52,7 +52,7 @@ class AuthRepository @Inject constructor(
         } catch (e: retrofit2.HttpException) {
             preferenceStore.clearAuthState()
             val url = e.response()?.raw()?.request?.url?.toString() ?: "Unknown URL"
-            Result.failure(Exception("HTTP ${e.code()} Not Found\nRequest URL: $url"))
+            Result.failure(Exception("HTTP ${e.code()} Error\nRequest URL: $url"))
         } catch (e: Exception) {
             preferenceStore.clearAuthState()
             Result.failure(e)

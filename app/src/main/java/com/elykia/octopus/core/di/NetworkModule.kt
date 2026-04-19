@@ -147,7 +147,11 @@ class AuthInterceptor(private val preferenceStore: PreferenceStore) : Intercepto
         val original = chain.request()
         if (cachedAuth.token.isBlank()) return chain.proceed(original)
 
-        val headerValue = if (cachedAuth.isApiKeyMode) "Bearer ${cachedAuth.token}" else cachedAuth.token
+        val headerValue = if (cachedAuth.token.startsWith("Bearer ", ignoreCase = true)) {
+            cachedAuth.token
+        } else {
+            "Bearer ${cachedAuth.token}"
+        }
         val request = original.newBuilder()
             .header("Authorization", headerValue)
             .build()
