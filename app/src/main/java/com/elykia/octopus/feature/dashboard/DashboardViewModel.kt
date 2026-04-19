@@ -57,12 +57,38 @@ class DashboardViewModel @Inject constructor(
                 val statsResponse = if (isApiKeyMode) {
                     dashboardApi.getApiKeyDashboardStats()
                 } else {
-                    dashboardApi.getDashboardStats()
+                    // Fetch 4 separate endpoints for Admin dashboard
+                    val today = dashboardApi.getStatsToday()
+                    val total = dashboardApi.getStatsTotal()
+                    val dailyTrend = dashboardApi.getStatsDailyTrend()
+                    val hourlyTrend = dashboardApi.getStatsHourlyTrend()
+
+                    // Combine into DashboardData
+                    if (today.success && total.success && dailyTrend.success && hourlyTrend.success) {
+                        com.elykia.octopus.core.data.model.ApiResponse(
+                            success = true,
+                            data = DashboardData(
+                                daily = today.data ?: com.elykia.octopus.core.data.model.StatsDaily(),
+                                total = total.data ?: com.elykia.octopus.core.data.model.StatsTotal(),
+                                trendHourly = hourlyTrend.data ?: emptyList(),
+                                trendDaily = dailyTrend.data ?: emptyList()
+                            )
+                        )
+                    } else {
+                        com.elykia.octopus.core.data.model.ApiResponse(
+                            success = false,
+                            message = today.message.ifBlank { total.message.ifBlank { dailyTrend.message.ifBlank { hourlyTrend.message } } }
+                        )
+                    }
                 }
                 
                 // Only admin usually fetches rankings
                 val rankingsResponse = if (!isApiKeyMode) {
-                    dashboardApi.getDashboardRankings()
+                    try {
+                        dashboardApi.getDashboardRankings()
+                    } catch (e: Exception) {
+                        null
+                    }
                 } else {
                     null
                 }

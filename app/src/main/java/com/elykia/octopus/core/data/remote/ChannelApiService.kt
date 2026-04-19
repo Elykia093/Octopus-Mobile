@@ -7,7 +7,7 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface ChannelApiService {
-    @GET("api/v1/channel/")
+    @GET("api/v1/channel/list")
     suspend fun getChannels(
         @Query("p") page: Int,
         @Query("page_size") pageSize: Int = 20,
