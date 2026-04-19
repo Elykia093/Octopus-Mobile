@@ -14,7 +14,7 @@ data class ApiResponse<T>(
 data class LoginRequest(
     val username: String,
     val password: String? = null, // Only for admin login
-    val expireDays: Int? = null, // Optional for admin token generation
+    val expire: Int? = null, // Optional for admin token generation
 )
 
 @Serializable

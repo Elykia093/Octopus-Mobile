@@ -56,7 +56,7 @@ class LoginViewModel @Inject constructor(
                     LoginRequest(
                         username = state.username.trim(), 
                         password = state.password.trim(), 
-                        expireDays = days
+                        expire = days
                     )
                 )
             } else {
