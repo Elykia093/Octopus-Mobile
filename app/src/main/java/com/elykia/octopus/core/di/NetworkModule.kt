@@ -10,7 +10,9 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
 import okhttp3.JavaNetCookieJar
@@ -145,27 +147,28 @@ class BaseUrlInterceptor(private val preferenceStore: PreferenceStore) : Interce
 }
 
 class AuthInterceptor(private val preferenceStore: PreferenceStore) : Interceptor {
-    @Volatile
-    private var cachedAuth = AuthState()
-
-    init {
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            preferenceStore.authState.collect { cachedAuth = it }
-        }
-    }
-
     override fun intercept(chain: Interceptor.Chain): Response {
         val original = chain.request()
-        if (cachedAuth.token.isBlank()) return chain.proceed(original)
 
-        val headerValue = if (cachedAuth.token.startsWith("Bearer ", ignoreCase = true)) {
-            cachedAuth.token
+        // 直接同步读取最新的 auth state，避免竞态条件
+        val authState = try {
+            kotlinx.coroutines.runBlocking {
+                preferenceStore.authState.first()
+            }
+        } catch (e: Exception) {
+            AuthState()
+        }
+
+        if (authState.token.isBlank()) return chain.proceed(original)
+
+        val headerValue = if (authState.token.startsWith("Bearer ", ignoreCase = true)) {
+            authState.token
         } else {
-            "Bearer ${cachedAuth.token}"
+            "Bearer ${authState.token}"
         }
         val request = original.newBuilder()
             .header("Authorization", headerValue)
             .build()
         return chain.proceed(request)
     }
-}
+}}
