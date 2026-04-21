@@ -140,7 +140,7 @@ class BaseUrlInterceptor(private val preferenceStore: PreferenceStore) : Interce
     private fun normalizeBaseUrl(rawBaseUrl: String): String {
         if (rawBaseUrl.isBlank()) return ""
         val trimmed = rawBaseUrl.trim().trimEnd('/')
-        return if (trimmed.endsWith("/api", ignoreCase = true)) trimmed else "$trimmed/api"
+        return if (trimmed.endsWith("/api/v1", ignoreCase = true)) trimmed else "$trimmed/api/v1"
     }
 }
 

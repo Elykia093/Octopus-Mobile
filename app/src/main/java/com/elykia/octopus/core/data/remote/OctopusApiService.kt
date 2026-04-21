@@ -9,12 +9,6 @@ import retrofit2.http.POST
 
 interface OctopusApiService {
 
-    @POST("api/user/login")
+    @POST("user/login")
     suspend fun loginUser(@Body request: LoginRequest): ApiResponse<UserProfile>
-
-    @GET("api/user/token")
-    suspend fun generateAccessToken(): ApiResponse<String>
-
-    @GET("api/user/self")
-    suspend fun getSelf(): ApiResponse<UserProfile>
 }

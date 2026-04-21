@@ -25,10 +25,7 @@ import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.SectionLabel
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
-import com.elykia.octopus.feature.dashboard.util.formatCurrency
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -87,13 +84,13 @@ fun ChannelScreen(viewModel: ChannelViewModel = hiltViewModel()) {
                     Column {
                         BasicComponent(
                             title = channel.name,
-                            summary = "模型: ${if (channel.models.length > 40) channel.models.take(40) + "..." else channel.models}",
+                            summary = "模型: ${if (channel.model.length > 40) channel.model.take(40) + "..." else channel.model}",
                             startAction = {
                                 Box(
                                     modifier = Modifier
                                         .size(12.dp)
                                         .clip(RoundedCornerShape(50))
-                                        .background(if (channel.status == 1) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.error)
+                                        .background(if (channel.enabled) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.error)
                                 )
                             },
                             endActions = {
@@ -104,7 +101,7 @@ fun ChannelScreen(viewModel: ChannelViewModel = hiltViewModel()) {
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
-                                        text = "权重: ${channel.weight}",
+                                        text = "类型: ${channel.type}",
                                         style = MiuixTheme.textStyles.body2,
                                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                                     )
@@ -117,40 +114,28 @@ fun ChannelScreen(viewModel: ChannelViewModel = hiltViewModel()) {
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "已用额度: ${formatCurrency(channel.usedQuota.toDouble() / 500000.0)}", 
+                                text = "密钥: ${channel.keys.size} 个",
                                 style = MiuixTheme.textStyles.body2,
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                             )
                             Text(
-                                text = "响应: ${channel.responseTime}ms",
+                                text = if (channel.enabled) "已启用" else "已禁用",
                                 style = MiuixTheme.textStyles.body2,
-                                color = if (channel.responseTime > 2000) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.onSurfaceVariantSummary
+                                color = if (channel.enabled) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.error
                             )
                         }
                     }
                 }
             }
 
-            if (uiState.isLoading && uiState.items.isNotEmpty()) {
+            if (uiState.isLoading) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                         Text("加载中...", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                     }
                 }
-            } else if (uiState.hasMore) {
-                item {
-                    Button(
-                        onClick = { viewModel.loadChannels() }, 
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            color = MiuixTheme.colorScheme.surfaceContainerHigh
-                        )
-                    ) {
-                        Text("加载更多", color = MiuixTheme.colorScheme.onSurface)
-                    }
-                }
             }
-            
+
             item {
                 Spacer(modifier = Modifier.size(24.dp))
             }

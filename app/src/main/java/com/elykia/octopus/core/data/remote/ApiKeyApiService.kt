@@ -6,9 +6,6 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface ApiKeyApiService {
-    @GET("api/token/")
-    suspend fun getApiKeys(
-        @Query("p") page: Int,
-        @Query("order") order: String = "id",
-    ): ApiResponse<List<ApiKeyItem>>
+    @GET("apikey/list")
+    suspend fun getApiKeys(): ApiResponse<List<ApiKeyItem>>
 }

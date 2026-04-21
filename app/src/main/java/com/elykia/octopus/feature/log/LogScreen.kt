@@ -82,8 +82,8 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
 
             items(uiState.items) { log ->
                 val timeFormat = SimpleDateFormat("MM-dd HH:mm:ss", Locale.getDefault())
-                val timeString = timeFormat.format(Date(log.createdAt * 1000L))
-                val isError = log.type == 2 || log.type == 3
+                val timeString = timeFormat.format(Date(log.time * 1000L))
+                val isError = log.hasError
 
                 Card(
                     modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
@@ -94,8 +94,8 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
                 ) {
                     Column {
                         BasicComponent(
-                            title = log.modelName.ifBlank { "未知模型" },
-                            summary = "Token: ${log.promptTokens} (入) / ${log.completionTokens} (出)",
+                            title = log.requestModelName.ifBlank { "未知模型" },
+                            summary = "Token: ${log.inputTokens} (入) / ${log.outputTokens} (出)",
                             startAction = {
                                 Box(
                                     modifier = Modifier
@@ -108,13 +108,13 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(if (log.elapsedTime > 3000) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.surfaceContainerHigh)
+                                        .background(if (log.useTime > 3000) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.surfaceContainerHigh)
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
-                                        text = "${log.elapsedTime} ms",
+                                        text = "${log.useTime} ms",
                                         style = MiuixTheme.textStyles.body2,
-                                        color = if (log.elapsedTime > 3000) MiuixTheme.colorScheme.onError else MiuixTheme.colorScheme.onSurfaceVariantSummary
+                                        color = if (log.useTime > 3000) MiuixTheme.colorScheme.onError else MiuixTheme.colorScheme.onSurfaceVariantSummary
                                     )
                                 }
                             }
@@ -125,7 +125,7 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "用户: ${log.username.ifBlank { "-" }} | 令牌: ${log.tokenName.ifBlank { "-" }}",
+                                text = "渠道: ${log.channelName.ifBlank { "-" }} | 令牌: ${log.requestApiKeyName.ifBlank { "-" }}",
                                 style = MiuixTheme.textStyles.body2,
                                 color = if (isError) MiuixTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f) else MiuixTheme.colorScheme.onSurfaceVariantSummary
                             )
@@ -136,7 +136,7 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
                             )
                         }
 
-                        if (log.content.isNotBlank()) {
+                        if (log.error.isNotBlank()) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -146,7 +146,7 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
                                     .padding(8.dp)
                             ) {
                                 Text(
-                                    text = log.content,
+                                    text = log.error,
                                     style = MiuixTheme.textStyles.body2,
                                     color = if (isError) MiuixTheme.colorScheme.onErrorContainer else MiuixTheme.colorScheme.onSurfaceVariantSummary
                                 )

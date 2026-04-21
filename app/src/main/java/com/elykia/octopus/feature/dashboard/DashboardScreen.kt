@@ -26,8 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elykia.octopus.core.data.model.StatsDaily
-import com.elykia.octopus.core.data.model.StatsTotal
-import com.elykia.octopus.core.data.model.TrendEntry
+import com.elykia.octopus.core.data.model.StatsMetrics
 import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.feature.dashboard.util.formatCurrency
@@ -75,9 +74,9 @@ private fun DashboardContent(
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
-    val today = state.dailyStats
+    val today = state.todayStats
     val total = state.totalStats
-    val trendData = state.trendDaily
+    val dailyTrend = state.dailyStats
 
     Column(
         modifier = modifier
@@ -91,7 +90,7 @@ private fun DashboardContent(
         SectionTitle(title = "累计概览")
         TotalStatsGrid(stats = total)
 
-        if (trendData.isNotEmpty()) {
+        if (dailyTrend.isNotEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -108,7 +107,7 @@ private fun DashboardContent(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     TrendChart(
-                        stats = trendData,
+                        stats = dailyTrend,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)
@@ -121,12 +120,12 @@ private fun DashboardContent(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = trendData.first().title,
+                            text = dailyTrend.first().date,
                             style = MiuixTheme.textStyles.body2,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                         )
                         Text(
-                            text = trendData.last().title,
+                            text = dailyTrend.last().date,
                             style = MiuixTheme.textStyles.body2,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                         )
@@ -148,19 +147,19 @@ private fun SectionTitle(title: String) {
 }
 
 @Composable
-private fun StatsGrid(stats: StatsDaily) {
+private fun StatsGrid(stats: StatsMetrics) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         SummaryCard(
             title = "请求数",
-            value = formatNumber(stats.requestCount.toDouble()),
+            value = formatNumber(stats.totalRequests.toDouble()),
             modifier = Modifier.weight(1f)
         )
         SummaryCard(
             title = "消耗",
-            value = formatCurrency(stats.costValue),
+            value = formatCurrency(stats.totalCost),
             modifier = Modifier.weight(1f)
         )
     }
@@ -171,31 +170,31 @@ private fun StatsGrid(stats: StatsDaily) {
     ) {
         SummaryCard(
             title = "Token 数",
-            value = formatNumber(stats.tokenValue.toDouble()),
+            value = formatNumber(stats.totalTokens.toDouble()),
             modifier = Modifier.weight(1f)
         )
         SummaryCard(
-            title = "输入消耗",
-            value = formatCurrency(stats.inputCost),
+            title = "成功率",
+            value = "${(stats.successRate * 100).toInt()}%",
             modifier = Modifier.weight(1f)
         )
     }
 }
 
 @Composable
-private fun TotalStatsGrid(stats: StatsTotal) {
+private fun TotalStatsGrid(stats: StatsMetrics) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         SummaryCard(
             title = "总请求数",
-            value = formatNumber(stats.requestCount.toDouble()),
+            value = formatNumber(stats.totalRequests.toDouble()),
             modifier = Modifier.weight(1f)
         )
         SummaryCard(
             title = "总消耗",
-            value = formatCurrency(stats.costValue),
+            value = formatCurrency(stats.totalCost),
             modifier = Modifier.weight(1f)
         )
     }
@@ -206,7 +205,7 @@ private fun TotalStatsGrid(stats: StatsTotal) {
     ) {
         SummaryCard(
             title = "总 Token",
-            value = formatNumber(stats.tokenValue.toDouble()),
+            value = formatNumber(stats.totalTokens.toDouble()),
             modifier = Modifier.weight(1f)
         )
         SummaryCard(
@@ -250,7 +249,7 @@ private fun SummaryCard(
 
 @Composable
 private fun TrendChart(
-    stats: List<TrendEntry>,
+    stats: List<StatsDaily>,
     modifier: Modifier = Modifier,
 ) {
     val primaryColor = MiuixTheme.colorScheme.primary
@@ -262,8 +261,8 @@ private fun TrendChart(
 
         if (stats.size < 2) return@Canvas
 
-        val maxRequest = stats.maxOfOrNull { it.requestCount }?.takeIf { it > 0 } ?: 1L
-        val maxCost = stats.maxOfOrNull { it.costValue }?.takeIf { it > 0.0 } ?: 1.0
+        val maxRequest = stats.maxOfOrNull { it.totalRequests }?.takeIf { it > 0 } ?: 1L
+        val maxCost = stats.maxOfOrNull { it.totalCost }?.takeIf { it > 0.0 } ?: 1.0
         val stepX = width / (stats.size - 1)
 
         val requestPath = Path()
@@ -271,8 +270,8 @@ private fun TrendChart(
 
         stats.forEachIndexed { index, stat ->
             val x = index * stepX
-            val requestY = height * 0.9f - (stat.requestCount.toFloat() / maxRequest.toFloat() * height * 0.8f)
-            val costY = height * 0.9f - ((stat.costValue / maxCost).toFloat() * height * 0.8f)
+            val requestY = height * 0.9f - (stat.totalRequests.toFloat() / maxRequest.toFloat() * height * 0.8f)
+            val costY = height * 0.9f - ((stat.totalCost / maxCost).toFloat() * height * 0.8f)
 
             if (index == 0) {
                 requestPath.moveTo(x, requestY)

@@ -19,10 +19,9 @@ class AuthRepository @Inject constructor(
             if (!response.success) {
                 Result.failure(Exception(response.message.ifBlank { "登录失败" }))
             } else {
-                val tokenResponse = apiService.generateAccessToken()
-                val token = tokenResponse.data.orEmpty()
+                val token = response.data?.token.orEmpty()
                 if (token.isBlank()) {
-                    Result.failure(Exception(tokenResponse.message.ifBlank { "未获取到访问令牌" }))
+                    Result.failure(Exception("未获取到访问令牌"))
                 } else {
                     preferenceStore.updateAuthState(
                         AuthState(
@@ -45,24 +44,7 @@ class AuthRepository @Inject constructor(
     suspend fun loginWithApiKey(apiKey: String): Result<Unit> {
         return try {
             preferenceStore.updateAuthState(AuthState(token = apiKey, isApiKeyMode = true))
-            val response = apiService.getSelf()
-            if (response.success && response.data != null) {
-                preferenceStore.updateAuthState(
-                    AuthState(
-                        token = apiKey,
-                        isApiKeyMode = true,
-                        role = response.data.role,
-                    )
-                )
-                Result.success(Unit)
-            } else {
-                preferenceStore.clearAuthState()
-                Result.failure(Exception(response.message.ifBlank { "API Key 校验失败" }))
-            }
-        } catch (e: HttpException) {
-            preferenceStore.clearAuthState()
-            val url = e.response()?.raw()?.request?.url?.toString() ?: "Unknown URL"
-            Result.failure(Exception("HTTP ${e.code()} Error\nRequest URL: $url"))
+            Result.success(Unit)
         } catch (e: Exception) {
             preferenceStore.clearAuthState()
             Result.failure(e)

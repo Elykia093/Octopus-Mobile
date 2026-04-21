@@ -17,8 +17,6 @@ data class ApiKeyUiState(
     val isRefreshing: Boolean = false,
     val error: String? = null,
     val items: List<ApiKeyItem> = emptyList(),
-    val currentPage: Int = 0,
-    val hasMore: Boolean = true,
 )
 
 @HiltViewModel
@@ -34,11 +32,6 @@ class ApiKeyViewModel @Inject constructor(
     }
 
     fun loadApiKeys(isRefresh: Boolean = false) {
-        val state = _uiState.value
-        if (!isRefresh && !state.hasMore) return
-
-        val nextPage = if (isRefresh) 0 else state.currentPage + 1
-
         viewModelScope.launch {
             if (isRefresh) {
                 _uiState.update { it.copy(isRefreshing = true, error = null) }
@@ -47,14 +40,11 @@ class ApiKeyViewModel @Inject constructor(
             }
 
             try {
-                val response = apiKeyApi.getApiKeys(page = nextPage)
+                val response = apiKeyApi.getApiKeys()
                 if (response.success && response.data != null) {
-                    val pageItems = response.data
                     _uiState.update {
                         it.copy(
-                            items = if (isRefresh) pageItems else it.items + pageItems,
-                            currentPage = nextPage,
-                            hasMore = pageItems.isNotEmpty(),
+                            items = response.data,
                             isLoading = false,
                             isRefreshing = false
                         )

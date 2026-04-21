@@ -6,7 +6,7 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface ChannelApiService {
-    @GET("api/channel/")
+    @GET("channel/list")
     suspend fun getChannels(
         @Query("p") page: Int,
     ): ApiResponse<List<Channel>>

@@ -6,14 +6,18 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class LogItem(
     val id: Long = 0L,
-    val type: Int = 0,
-    @SerialName("created_at") val createdAt: Long = 0L,
-    val content: String = "",
-    @SerialName("model_name") val modelName: String = "",
-    @SerialName("prompt_tokens") val promptTokens: Int = 0,
-    @SerialName("completion_tokens") val completionTokens: Int = 0,
-    @SerialName("elapsed_time") val elapsedTime: Long = 0L,
-    @SerialName("channel") val channelId: Int = 0,
-    @SerialName("token_name") val tokenName: String = "",
-    val username: String = "",
-)
+    val time: Long = 0L,
+    @SerialName("request_model_name") val requestModelName: String = "",
+    @SerialName("request_api_key_name") val requestApiKeyName: String = "",
+    val channel: Int = 0,
+    @SerialName("channel_name") val channelName: String = "",
+    @SerialName("actual_model_name") val actualModelName: String = "",
+    @SerialName("input_tokens") val inputTokens: Int = 0,
+    @SerialName("output_tokens") val outputTokens: Int = 0,
+    val ftut: Int = 0,
+    @SerialName("use_time") val useTime: Int = 0,
+    val cost: Double = 0.0,
+    val error: String = "",
+) {
+    val hasError: Boolean get() = error.isNotEmpty()
+}

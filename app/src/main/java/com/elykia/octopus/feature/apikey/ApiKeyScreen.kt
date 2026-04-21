@@ -30,8 +30,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -85,9 +83,8 @@ fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
 
             items(uiState.items) { key ->
                 val timeFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                val expireString = if (key.expiredTime <= 0L) "永不过期" else timeFormat.format(Date(key.expiredTime * 1000L))
-                val isExpired = key.expiredTime > 0 && key.expiredTime * 1000L < System.currentTimeMillis()
-                val models = key.models.orEmpty()
+                val expireString = if (key.expireAt <= 0L) "永不过期" else timeFormat.format(Date(key.expireAt * 1000L))
+                val isExpired = key.expireAt > 0 && key.expireAt * 1000L < System.currentTimeMillis()
 
                 Card(
                     modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
@@ -95,17 +92,17 @@ fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
                     Column {
                         BasicComponent(
                             title = key.name.ifBlank { "Token #${key.id}" },
-                            summary = "模型权限: ${if (models.isBlank()) "全部模型" else "部分限制"}",
+                            summary = "模型权限: ${if (key.supportedModels.isBlank()) "全部模型" else "部分限制"}",
                             startAction = {
                                 Box(
                                     modifier = Modifier
                                         .size(12.dp)
                                         .clip(RoundedCornerShape(50))
-                                        .background(if (key.status == 1 && !isExpired) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.error)
+                                        .background(if (key.enabled && !isExpired) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.error)
                                 )
                             },
                             endActions = {
-                                val quotaText = if (key.unlimitedQuota) "无限额度" else "剩余额度: ${formatCurrency(key.remainQuota.toDouble() / 500000.0)}"
+                                val costText = if (key.maxCost <= 0) "无限额度" else "最大消耗: ${formatCurrency(key.maxCost)}"
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
@@ -113,7 +110,7 @@ fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
-                                        text = quotaText,
+                                        text = costText,
                                         style = MiuixTheme.textStyles.body2,
                                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                                     )
@@ -135,22 +132,10 @@ fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
                 }
             }
 
-            if (uiState.isLoading && uiState.items.isNotEmpty()) {
+            if (uiState.isLoading) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                         Text("加载中...", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-                    }
-                }
-            } else if (uiState.hasMore) {
-                item {
-                    Button(
-                        onClick = { viewModel.loadApiKeys() },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            color = MiuixTheme.colorScheme.surfaceContainerHigh
-                        )
-                    ) {
-                        Text("加载更多", color = MiuixTheme.colorScheme.onSurface)
                     }
                 }
             }

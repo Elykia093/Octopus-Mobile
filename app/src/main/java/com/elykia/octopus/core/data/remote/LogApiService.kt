@@ -6,13 +6,9 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface LogApiService {
-    @GET("api/log/")
-    suspend fun getAdminLogs(
-        @Query("p") page: Int,
-    ): ApiResponse<List<LogItem>>
-
-    @GET("api/log/self/")
-    suspend fun getUserLogs(
-        @Query("p") page: Int,
+    @GET("log/list")
+    suspend fun getLogs(
+        @Query("page") page: Int,
+        @Query("page_size") pageSize: Int = 20,
     ): ApiResponse<List<LogItem>>
 }
