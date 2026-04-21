@@ -73,7 +73,7 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
         ) {
             item {
                 SectionLabel(
-                    title = "共 ${uiState.totalCount} 条日志",
+                    title = "已加载 ${uiState.items.size} 条日志",
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .padding(top = 8.dp)
@@ -94,8 +94,8 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
                 ) {
                     Column {
                         BasicComponent(
-                            title = log.model.ifBlank { "未知模型" },
-                            summary = "Token: ${log.prompt_tokens} (入) / ${log.completion_tokens} (出)",
+                            title = log.modelName.ifBlank { "未知模型" },
+                            summary = "Token: ${log.promptTokens} (入) / ${log.completionTokens} (出)",
                             startAction = {
                                 Box(
                                     modifier = Modifier
@@ -108,13 +108,13 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(if (log.use_time > 3000) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.surfaceContainerHigh)
+                                        .background(if (log.elapsedTime > 3000) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.surfaceContainerHigh)
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
-                                        text = "${log.use_time} ms",
+                                        text = "${log.elapsedTime} ms",
                                         style = MiuixTheme.textStyles.body2,
-                                        color = if (log.use_time > 3000) MiuixTheme.colorScheme.onError else MiuixTheme.colorScheme.onSurfaceVariantSummary
+                                        color = if (log.elapsedTime > 3000) MiuixTheme.colorScheme.onError else MiuixTheme.colorScheme.onSurfaceVariantSummary
                                     )
                                 }
                             }
@@ -125,7 +125,7 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "用户: ${log.username.ifBlank { "-" }} | 令牌: ${log.token_name.ifBlank { "-" }}",
+                                text = "用户: ${log.username.ifBlank { "-" }} | 令牌: ${log.tokenName.ifBlank { "-" }}",
                                 style = MiuixTheme.textStyles.body2,
                                 color = if (isError) MiuixTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f) else MiuixTheme.colorScheme.onSurfaceVariantSummary
                             )
@@ -164,7 +164,7 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
                         Text("加载中...", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                     }
                 }
-            } else if (uiState.items.size < uiState.totalCount) {
+            } else if (uiState.hasMore) {
                 item {
                     Button(
                         onClick = { viewModel.loadLogs() },

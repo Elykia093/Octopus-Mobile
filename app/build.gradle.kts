@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
+    implementation(libs.okhttp.urlconnection)
 
     implementation(libs.compose.material.icons.extended)
 

@@ -13,12 +13,15 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
+import okhttp3.JavaNetCookieJar
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import java.net.CookieManager
+import java.net.CookiePolicy
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
@@ -54,9 +57,13 @@ object NetworkModule {
         authInterceptor: AuthInterceptor,
     ): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
+        val cookieManager = CookieManager().apply {
+            setCookiePolicy(CookiePolicy.ACCEPT_ALL)
+        }
         return OkHttpClient.Builder()
             .addInterceptor(baseUrlInterceptor)
             .addInterceptor(authInterceptor)
+            .cookieJar(JavaNetCookieJar(cookieManager))
             .addInterceptor(logging)
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
@@ -87,7 +94,7 @@ class BaseUrlInterceptor(private val preferenceStore: PreferenceStore) : Interce
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val original = chain.request()
-        val base = cachedConfig.baseUrl
+        val base = normalizeBaseUrl(cachedConfig.baseUrl)
         if (base.isBlank()) return chain.proceed(original)
 
         return try {
@@ -100,8 +107,6 @@ class BaseUrlInterceptor(private val preferenceStore: PreferenceStore) : Interce
                     val basePathSegments = baseHttpUrl.pathSegments.filter { it.isNotEmpty() }
                     var originalPathSegments = original.url.pathSegments.filter { it.isNotEmpty() }
                     
-                    // Prevent path duplication if the user provided URL already contains parts of the original path
-                    // e.g. user enters /api/v1/ and original is /api/v1/user/login
                     if (basePathSegments.isNotEmpty() && originalPathSegments.isNotEmpty()) {
                         var overlapCount = 0
                         val maxOverlap = minOf(basePathSegments.size, originalPathSegments.size)
@@ -130,6 +135,12 @@ class BaseUrlInterceptor(private val preferenceStore: PreferenceStore) : Interce
         } catch (e: Exception) {
             chain.proceed(original)
         }
+    }
+
+    private fun normalizeBaseUrl(rawBaseUrl: String): String {
+        if (rawBaseUrl.isBlank()) return ""
+        val trimmed = rawBaseUrl.trim().trimEnd('/')
+        return if (trimmed.endsWith("/api", ignoreCase = true)) trimmed else "$trimmed/api"
     }
 }
 

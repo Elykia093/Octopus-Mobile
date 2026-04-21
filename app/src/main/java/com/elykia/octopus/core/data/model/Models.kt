@@ -13,4 +13,5 @@ data class ServerConfig(
 data class AuthState(
     val token: String = "",
     val isApiKeyMode: Boolean = false,
+    val role: Int = 0,
 )

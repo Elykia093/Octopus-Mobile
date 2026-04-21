@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,8 +18,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
@@ -128,8 +125,6 @@ fun SettingScreen(viewModel: SettingViewModel = hiltViewModel()) {
                     }
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
-
                 // Actions
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(
@@ -152,7 +147,7 @@ fun SettingScreen(viewModel: SettingViewModel = hiltViewModel()) {
                         Text("重置服务器配置", color = MiuixTheme.colorScheme.error)
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }

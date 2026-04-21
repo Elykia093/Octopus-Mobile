@@ -37,7 +37,7 @@ class SettingViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         config = currentConfig,
-                        isApiKeyMode = authState?.isApiKeyMode == true
+                        isApiKeyMode = authState.isApiKeyMode
                     )
                 }
             }

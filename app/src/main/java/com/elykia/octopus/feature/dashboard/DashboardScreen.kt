@@ -25,13 +25,13 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elykia.octopus.core.data.model.StatsDaily
+import com.elykia.octopus.core.data.model.StatsTotal
 import com.elykia.octopus.core.data.model.TrendEntry
 import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.feature.dashboard.util.formatCurrency
 import com.elykia.octopus.feature.dashboard.util.formatNumber
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
@@ -40,7 +40,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 fun DashboardScreen(
     modifier: Modifier = Modifier,
-    viewModel: DashboardViewModel = hiltViewModel()
+    viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -53,18 +53,15 @@ fun DashboardScreen(
         }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
-            if (uiState.isLoading) {
-                LoadingPane("首页数据")
-            } else if (uiState.error != null) {
-                ErrorPane(
+            when {
+                uiState.isLoading -> LoadingPane("首页数据")
+                uiState.error != null -> ErrorPane(
                     message = "加载失败: ${uiState.error}",
                     onRetry = { viewModel.loadData(isRefresh = true) }
                 )
-            } else {
-                DashboardContent(
+
+                else -> DashboardContent(
                     state = uiState,
-                    onToggleScope = { viewModel.toggleScope() },
-                    onToggleTrend = { viewModel.toggleTrend() },
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -75,12 +72,12 @@ fun DashboardScreen(
 @Composable
 private fun DashboardContent(
     state: DashboardUiState,
-    onToggleScope: () -> Unit,
-    onToggleTrend: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
-    val stats = state.stats
+    val today = state.dailyStats
+    val total = state.totalStats
+    val trendData = state.trendDaily
 
     Column(
         modifier = modifier
@@ -88,120 +85,51 @@ private fun DashboardContent(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        if (stats != null) {
-            // Scope Toggle
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        SectionTitle(title = "今日概览")
+        StatsGrid(stats = today)
+
+        SectionTitle(title = "累计概览")
+        TotalStatsGrid(stats = total)
+
+        if (trendData.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MiuixTheme.colorScheme.surface)
             ) {
-                Text(
-                    text = if (state.showToday) "今日数据" else "累计数据",
-                    style = MiuixTheme.textStyles.title4,
-                    fontWeight = FontWeight.Bold
-                )
-                Button(onClick = onToggleScope) {
-                    Text(if (state.showToday) "切换为累计" else "切换为今日")
-                }
-            }
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "近期开销趋势",
+                        style = MiuixTheme.textStyles.title4,
+                        fontWeight = FontWeight.Bold
+                    )
 
-            // Summary Cards
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                SummaryCard(
-                    title = "请求数",
-                    value = formatNumber(
-                        (if (state.showToday) stats.daily.requestCount else stats.total.requestCount).toDouble()
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-                SummaryCard(
-                    title = "消耗",
-                    value = formatCurrency(
-                        if (state.showToday) stats.daily.costValue else stats.total.costValue
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-            }
+                    Spacer(modifier = Modifier.height(20.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                SummaryCard(
-                    title = "Token 数",
-                    value = formatNumber(
-                        (if (state.showToday) stats.daily.tokenValue else stats.total.tokenValue).toDouble()
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-                SummaryCard(
-                    title = "输入消耗",
-                    value = formatCurrency(
-                        if (state.showToday) stats.daily.inputCost else stats.total.inputCost
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-            }
+                    TrendChart(
+                        stats = trendData,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                    )
 
-            Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-            // Trend Chart
-            val trendData = if (state.showHourlyTrend) stats.trendHourly else stats.trendDaily
-            if (trendData.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MiuixTheme.colorScheme.surface)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = if (state.showHourlyTrend) "24小时趋势" else "14天趋势",
-                                style = MiuixTheme.textStyles.title4,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Button(
-                                onClick = onToggleTrend,
-                                colors = ButtonDefaults.buttonColors(
-                                    color = MiuixTheme.colorScheme.surfaceContainerHigh
-                                )
-                            ) {
-                                Text(if (state.showHourlyTrend) "切换按天" else "切换按小时", color = MiuixTheme.colorScheme.onSurface)
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        TrendChart(
-                            stats = trendData,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = trendData.first().title,
+                            style = MiuixTheme.textStyles.body2,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                         )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = trendData.first().title,
-                                style = MiuixTheme.textStyles.body2,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-                            )
-                            Text(
-                                text = trendData.last().title,
-                                style = MiuixTheme.textStyles.body2,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-                            )
-                        }
+                        Text(
+                            text = trendData.last().title,
+                            style = MiuixTheme.textStyles.body2,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                        )
                     }
                 }
             }
@@ -210,10 +138,90 @@ private fun DashboardContent(
 }
 
 @Composable
+private fun SectionTitle(title: String) {
+    Text(
+        text = title,
+        style = MiuixTheme.textStyles.title4,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(horizontal = 4.dp)
+    )
+}
+
+@Composable
+private fun StatsGrid(stats: StatsDaily) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        SummaryCard(
+            title = "请求数",
+            value = formatNumber(stats.requestCount.toDouble()),
+            modifier = Modifier.weight(1f)
+        )
+        SummaryCard(
+            title = "消耗",
+            value = formatCurrency(stats.costValue),
+            modifier = Modifier.weight(1f)
+        )
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        SummaryCard(
+            title = "Token 数",
+            value = formatNumber(stats.tokenValue.toDouble()),
+            modifier = Modifier.weight(1f)
+        )
+        SummaryCard(
+            title = "输入消耗",
+            value = formatCurrency(stats.inputCost),
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun TotalStatsGrid(stats: StatsTotal) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        SummaryCard(
+            title = "总请求数",
+            value = formatNumber(stats.requestCount.toDouble()),
+            modifier = Modifier.weight(1f)
+        )
+        SummaryCard(
+            title = "总消耗",
+            value = formatCurrency(stats.costValue),
+            modifier = Modifier.weight(1f)
+        )
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        SummaryCard(
+            title = "总 Token",
+            value = formatNumber(stats.tokenValue.toDouble()),
+            modifier = Modifier.weight(1f)
+        )
+        SummaryCard(
+            title = "输入 Token",
+            value = formatNumber(stats.inputToken.toDouble()),
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
 private fun SummaryCard(
     title: String,
     value: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Box(
         modifier = modifier
@@ -243,7 +251,7 @@ private fun SummaryCard(
 @Composable
 private fun TrendChart(
     stats: List<TrendEntry>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val primaryColor = MiuixTheme.colorScheme.primary
     val secondaryColor = MiuixTheme.colorScheme.error
@@ -256,7 +264,6 @@ private fun TrendChart(
 
         val maxRequest = stats.maxOfOrNull { it.requestCount }?.takeIf { it > 0 } ?: 1L
         val maxCost = stats.maxOfOrNull { it.costValue }?.takeIf { it > 0.0 } ?: 1.0
-
         val stepX = width / (stats.size - 1)
 
         val requestPath = Path()
@@ -264,7 +271,6 @@ private fun TrendChart(
 
         stats.forEachIndexed { index, stat ->
             val x = index * stepX
-
             val requestY = height * 0.9f - (stat.requestCount.toFloat() / maxRequest.toFloat() * height * 0.8f)
             val costY = height * 0.9f - ((stat.costValue / maxCost).toFloat() * height * 0.8f)
 

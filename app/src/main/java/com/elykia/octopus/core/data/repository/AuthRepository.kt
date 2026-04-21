@@ -4,6 +4,7 @@ import com.elykia.octopus.core.data.local.PreferenceStore
 import com.elykia.octopus.core.data.model.AuthState
 import com.elykia.octopus.core.data.model.LoginRequest
 import com.elykia.octopus.core.data.remote.OctopusApiService
+import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -15,14 +16,25 @@ class AuthRepository @Inject constructor(
     suspend fun loginAsAdmin(request: LoginRequest): Result<Unit> {
         return try {
             val response = apiService.loginUser(request)
-            if (response.success || (response.data != null && response.data.token.isNotBlank())) {
-                val authState = AuthState(token = response.data?.token ?: "", isApiKeyMode = false)
-                preferenceStore.updateAuthState(authState)
-                Result.success(Unit)
+            if (!response.success) {
+                Result.failure(Exception(response.message.ifBlank { "登录失败" }))
             } else {
-                Result.failure(Exception(response.message.ifBlank { "Login failed" }))
+                val tokenResponse = apiService.generateAccessToken()
+                val token = tokenResponse.data.orEmpty()
+                if (token.isBlank()) {
+                    Result.failure(Exception(tokenResponse.message.ifBlank { "未获取到访问令牌" }))
+                } else {
+                    preferenceStore.updateAuthState(
+                        AuthState(
+                            token = token,
+                            isApiKeyMode = false,
+                            role = response.data?.role ?: 0,
+                        )
+                    )
+                    Result.success(Unit)
+                }
             }
-        } catch (e: retrofit2.HttpException) {
+        } catch (e: HttpException) {
             val url = e.response()?.raw()?.request?.url?.toString() ?: "Unknown URL"
             Result.failure(Exception("HTTP ${e.code()} Error\nRequest URL: $url"))
         } catch (e: Exception) {
@@ -31,25 +43,23 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun loginWithApiKey(apiKey: String): Result<Unit> {
-        // Temporarily save the API key into PreferenceStore so the interceptor uses it
-        preferenceStore.updateAuthState(AuthState(token = apiKey, isApiKeyMode = true))
-        
         return try {
-            // Verify if the API key is valid by calling the endpoint
-            val response = apiService.loginApiKey()
-            if (response.success || response.data != null) {
-                // If the response returns a session token (some systems convert key to JWT), save it. 
-                // If it doesn't, we keep using the API Key.
-                if (response.data != null && response.data.token.isNotBlank()) {
-                    preferenceStore.updateAuthState(AuthState(token = response.data.token, isApiKeyMode = true))
-                }
+            preferenceStore.updateAuthState(AuthState(token = apiKey, isApiKeyMode = true))
+            val response = apiService.getSelf()
+            if (response.success && response.data != null) {
+                preferenceStore.updateAuthState(
+                    AuthState(
+                        token = apiKey,
+                        isApiKeyMode = true,
+                        role = response.data.role,
+                    )
+                )
                 Result.success(Unit)
             } else {
-                // Revert auth state if verification fails
                 preferenceStore.clearAuthState()
-                Result.failure(Exception(response.message.ifBlank { "API Key validation failed" }))
+                Result.failure(Exception(response.message.ifBlank { "API Key 校验失败" }))
             }
-        } catch (e: retrofit2.HttpException) {
+        } catch (e: HttpException) {
             preferenceStore.clearAuthState()
             val url = e.response()?.raw()?.request?.url?.toString() ?: "Unknown URL"
             Result.failure(Exception("HTTP ${e.code()} Error\nRequest URL: $url"))

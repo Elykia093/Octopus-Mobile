@@ -15,6 +15,16 @@ data class StatsDaily(
 )
 
 @Serializable
+data class DashboardEntry(
+    @SerialName("day") val day: String = "",
+    @SerialName("model_name") val modelName: String = "",
+    @SerialName("request_count") val requestCount: Int = 0,
+    val quota: Long = 0L,
+    @SerialName("prompt_tokens") val promptTokens: Int = 0,
+    @SerialName("completion_tokens") val completionTokens: Int = 0,
+)
+
+@Serializable
 data class StatsTotal(
     @SerialName("request_count") val requestCount: Long = 0L,
     @SerialName("cost_value") val costValue: Double = 0.0,

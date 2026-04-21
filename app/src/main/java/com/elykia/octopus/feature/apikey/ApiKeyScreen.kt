@@ -76,7 +76,7 @@ fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
         ) {
             item {
                 SectionLabel(
-                    title = "共 ${uiState.totalCount} 个令牌",
+                    title = "已加载 ${uiState.items.size} 个令牌",
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .padding(top = 8.dp)
@@ -85,8 +85,9 @@ fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
 
             items(uiState.items) { key ->
                 val timeFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                val expireString = if (key.expireAt == 0L) "永不过期" else timeFormat.format(Date(key.expireAt * 1000L))
-                val isExpired = key.expireAt > 0 && key.expireAt * 1000L < System.currentTimeMillis()
+                val expireString = if (key.expiredTime <= 0L) "永不过期" else timeFormat.format(Date(key.expiredTime * 1000L))
+                val isExpired = key.expiredTime > 0 && key.expiredTime * 1000L < System.currentTimeMillis()
+                val models = key.models.orEmpty()
 
                 Card(
                     modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
@@ -94,7 +95,7 @@ fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
                     Column {
                         BasicComponent(
                             title = key.name.ifBlank { "Token #${key.id}" },
-                            summary = "模型权限: ${if (key.models.isBlank()) "全部模型" else "部分限制"}",
+                            summary = "模型权限: ${if (models.isBlank()) "全部模型" else "部分限制"}",
                             startAction = {
                                 Box(
                                     modifier = Modifier
@@ -104,7 +105,7 @@ fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
                                 )
                             },
                             endActions = {
-                                val quotaText = if (key.maxQuota == 0L) "无限额度" else "已用: ${formatCurrency(key.usedQuota.toDouble() / 500000.0)}"
+                                val quotaText = if (key.unlimitedQuota) "无限额度" else "剩余额度: ${formatCurrency(key.remainQuota.toDouble() / 500000.0)}"
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
@@ -140,7 +141,7 @@ fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
                         Text("加载中...", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                     }
                 }
-            } else if (uiState.items.size < uiState.totalCount) {
+            } else if (uiState.hasMore) {
                 item {
                     Button(
                         onClick = { viewModel.loadApiKeys() },

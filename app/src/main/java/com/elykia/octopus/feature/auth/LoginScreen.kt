@@ -138,34 +138,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !uiState.isSubmitting
             ) {
-                Text(if (uiState.isSubmitting) "..." else "Login")
-            }
-
-            val context = androidx.compose.ui.platform.LocalContext.current
-            top.yukonga.miuix.kmp.basic.TextButton(
-                onClick = {
-                    try {
-                        val process = Runtime.getRuntime().exec("logcat -d -t 1500 -v threadtime")
-                        val reader = java.io.BufferedReader(java.io.InputStreamReader(process.inputStream))
-                        val log = java.lang.StringBuilder()
-                        var line: String?
-                        while (reader.readLine().also { line = it } != null) {
-                            log.append(line).append("\n")
-                        }
-                        
-                        val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(android.content.Intent.EXTRA_SUBJECT, "Octopus Logs")
-                            putExtra(android.content.Intent.EXTRA_TEXT, log.toString())
-                        }
-                        context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Logs"))
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                },
-                modifier = Modifier.padding(top = 16.dp)
-            ) {
-                Text("Export Logs", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.primary)
+                Text(if (uiState.isSubmitting) "登录中..." else "登录")
             }
         }
     }

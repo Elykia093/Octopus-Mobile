@@ -7,16 +7,12 @@ import kotlinx.serialization.Serializable
 data class ApiKeyItem(
     val id: Long = 0L,
     val name: String = "",
-    val status: Int = 1, // 1 = enabled, 2 = disabled
-    @SerialName("expire_at") val expireAt: Long = 0,
-    @SerialName("created_at") val createdAt: Long = 0,
-    val models: String = "",
-    @SerialName("max_quota") val maxQuota: Long = 0,
-    @SerialName("used_quota") val usedQuota: Long = 0,
-)
-
-@Serializable
-data class ApiKeyPageResponse(
-    val list: List<ApiKeyItem> = emptyList(),
-    val total: Long = 0L
+    val status: Int = 1,
+    @SerialName("created_time") val createdTime: Long = 0L,
+    @SerialName("accessed_time") val accessedTime: Long = 0L,
+    @SerialName("expired_time") val expiredTime: Long = -1L,
+    @SerialName("remain_quota") val remainQuota: Long = 0L,
+    @SerialName("used_quota") val usedQuota: Long = 0L,
+    @SerialName("unlimited_quota") val unlimitedQuota: Boolean = false,
+    val models: String? = null,
 )

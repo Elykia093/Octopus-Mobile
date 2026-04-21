@@ -10,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -109,10 +108,10 @@ fun MainScreen(isApiKeyMode: Boolean) {
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
+    val currentRoute = currentDestination?.route.orEmpty()
+
     val isRouteMatch: (Any) -> Boolean = { route ->
-        currentDestination?.hierarchy?.any { 
-            it.route?.contains(route::class.simpleName ?: "") == true 
-        } == true
+        currentRoute.contains(route::class.simpleName.orEmpty())
     }
 
     val destinations = listOf(

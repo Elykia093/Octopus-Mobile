@@ -9,17 +9,11 @@ data class LogItem(
     val type: Int = 0,
     @SerialName("created_at") val createdAt: Long = 0L,
     val content: String = "",
-    val model: String = "",
-    val prompt_tokens: Int = 0,
-    val completion_tokens: Int = 0,
-    val use_time: Int = 0,
-    val channel_id: Int = 0,
-    val token_name: String = "",
+    @SerialName("model_name") val modelName: String = "",
+    @SerialName("prompt_tokens") val promptTokens: Int = 0,
+    @SerialName("completion_tokens") val completionTokens: Int = 0,
+    @SerialName("elapsed_time") val elapsedTime: Long = 0L,
+    @SerialName("channel") val channelId: Int = 0,
+    @SerialName("token_name") val tokenName: String = "",
     val username: String = "",
-)
-
-@Serializable
-data class LogPageResponse(
-    val list: List<LogItem> = emptyList(),
-    val total: Long = 0L
 )

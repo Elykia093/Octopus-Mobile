@@ -73,7 +73,7 @@ fun ChannelScreen(viewModel: ChannelViewModel = hiltViewModel()) {
         ) {
             item {
                 SectionLabel(
-                    title = "共 ${uiState.totalCount} 个渠道", 
+                    title = "已加载 ${uiState.items.size} 个渠道", 
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .padding(top = 8.dp)
@@ -137,7 +137,7 @@ fun ChannelScreen(viewModel: ChannelViewModel = hiltViewModel()) {
                         Text("加载中...", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                     }
                 }
-            } else if (uiState.items.size < uiState.totalCount) {
+            } else if (uiState.hasMore) {
                 item {
                     Button(
                         onClick = { viewModel.loadChannels() }, 
