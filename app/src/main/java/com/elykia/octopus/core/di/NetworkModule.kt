@@ -171,4 +171,4 @@ class AuthInterceptor(private val preferenceStore: PreferenceStore) : Intercepto
             .build()
         return chain.proceed(request)
     }
-}}
+}
