@@ -27,7 +27,7 @@ class AuthRepository @Inject constructor(
                         AuthState(
                             token = token,
                             isApiKeyMode = false,
-                            role = response.data?.role ?: 0,
+                            role = 0,
                         )
                     )
                     Result.success(Unit)
