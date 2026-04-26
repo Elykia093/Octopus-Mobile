@@ -2,18 +2,13 @@ package com.elykia.octopus.core.di
 
 import com.elykia.octopus.core.data.local.PreferenceStore
 import com.elykia.octopus.core.data.model.AuthState
-import com.elykia.octopus.core.data.model.ServerConfig
+import com.elykia.octopus.core.data.remote.ServerUrlResolver
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
 import okhttp3.JavaNetCookieJar
 import okhttp3.MediaType.Companion.toMediaType
@@ -85,64 +80,13 @@ object NetworkModule {
 }
 
 class BaseUrlInterceptor(private val preferenceStore: PreferenceStore) : Interceptor {
-    @Volatile
-    private var cachedConfig = ServerConfig()
-
-    init {
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            preferenceStore.serverConfig.collect { cachedConfig = it }
-        }
-    }
-
     override fun intercept(chain: Interceptor.Chain): Response {
         val original = chain.request()
-        val base = normalizeBaseUrl(cachedConfig.baseUrl)
-        if (base.isBlank()) return chain.proceed(original)
+        val config = runBlocking { preferenceStore.serverConfig.first() }
+        val baseUrl = ServerUrlResolver.normalize(config.baseUrl) ?: return chain.proceed(original)
+        val newUrl = ServerUrlResolver.merge(baseUrl, original.url)
 
-        return try {
-            val baseHttpUrl = base.toHttpUrlOrNull() ?: return chain.proceed(original)
-            val newUrl = original.url.newBuilder()
-                .scheme(baseHttpUrl.scheme)
-                .host(baseHttpUrl.host)
-                .port(baseHttpUrl.port)
-                .apply {
-                    val basePathSegments = baseHttpUrl.pathSegments.filter { it.isNotEmpty() }
-                    var originalPathSegments = original.url.pathSegments.filter { it.isNotEmpty() }
-                    
-                    if (basePathSegments.isNotEmpty() && originalPathSegments.isNotEmpty()) {
-                        var overlapCount = 0
-                        val maxOverlap = minOf(basePathSegments.size, originalPathSegments.size)
-                        for (i in 1..maxOverlap) {
-                            val baseSuffix = basePathSegments.takeLast(i)
-                            val origPrefix = originalPathSegments.take(i)
-                            if (baseSuffix == origPrefix) {
-                                overlapCount = i
-                            }
-                        }
-                        if (overlapCount > 0) {
-                            originalPathSegments = originalPathSegments.drop(overlapCount)
-                        }
-                    }
-
-                    for (i in 0 until original.url.pathSize) {
-                        removePathSegment(0)
-                    }
-                    
-                    basePathSegments.forEach { addPathSegment(it) }
-                    originalPathSegments.forEach { addPathSegment(it) }
-                }
-                .build()
-
-            chain.proceed(original.newBuilder().url(newUrl).build())
-        } catch (e: Exception) {
-            chain.proceed(original)
-        }
-    }
-
-    private fun normalizeBaseUrl(rawBaseUrl: String): String {
-        if (rawBaseUrl.isBlank()) return ""
-        val trimmed = rawBaseUrl.trim().trimEnd('/')
-        return if (trimmed.endsWith("/api/v1", ignoreCase = true)) trimmed else "$trimmed/api/v1"
+        return chain.proceed(original.newBuilder().url(newUrl).build())
     }
 }
 

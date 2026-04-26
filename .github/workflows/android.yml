@@ -16,6 +16,7 @@ jobs:
   build:
     name: Build & Test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
     - name: Checkout repository
@@ -28,19 +29,29 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
+    - name: Set up Gradle
+      uses: gradle/actions/setup-gradle@v4
+
     - name: Set up Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Install Android platform 37
-      run: sdkmanager "platform-tools" "build-tools;37.0.0" "platforms;android-37.0"
+    - name: Accept Android SDK licenses
+      shell: bash
+      run: yes | sdkmanager --licenses > /dev/null || true
+
+    - name: Install Android SDK packages
+      shell: bash
+      run: sdkmanager --install "platform-tools" "build-tools;37.0.0" "platforms;android-37.0"
 
     - name: Normalize Android 37 platform directory
+      shell: bash
       run: |
-        if [ -d "$ANDROID_HOME/platforms/android-37.0" ] && [ ! -d "$ANDROID_HOME/platforms/android-37" ]; then
-          mv "$ANDROID_HOME/platforms/android-37.0" "$ANDROID_HOME/platforms/android-37"
-          sed -i 's/platforms;android-37.0/platforms;android-37/' "$ANDROID_HOME/platforms/android-37/package.xml" || true
-          sed -i 's/<api-level>37.0<\/api-level>/<api-level>37<\/api-level>/' "$ANDROID_HOME/platforms/android-37/package.xml" || true
-          sed -i 's/AndroidVersion.ApiLevel=37.0/AndroidVersion.ApiLevel=37/' "$ANDROID_HOME/platforms/android-37/source.properties" || true
+        SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/android-sdk}}"
+        if [ -d "$SDK_ROOT/platforms/android-37.0" ] && [ ! -d "$SDK_ROOT/platforms/android-37" ]; then
+          mv "$SDK_ROOT/platforms/android-37.0" "$SDK_ROOT/platforms/android-37"
+          sed -i 's/platforms;android-37.0/platforms;android-37/' "$SDK_ROOT/platforms/android-37/package.xml" || true
+          sed -i 's/<api-level>37.0<\/api-level>/<api-level>37<\/api-level>/' "$SDK_ROOT/platforms/android-37/package.xml" || true
+          sed -i 's/AndroidVersion.ApiLevel=37.0/AndroidVersion.ApiLevel=37/' "$SDK_ROOT/platforms/android-37/source.properties" || true
         fi
 
     - name: Grant execute permission for gradlew
@@ -53,8 +64,8 @@ jobs:
     - name: Verify Gradle environment
       run: ./gradlew --version
 
-    - name: Build Release APK
-      run: ./gradlew assembleRelease --no-daemon
+    - name: Build and test
+      run: ./gradlew testDebugUnitTest assembleDebug assembleRelease --stacktrace --no-daemon
 
     - name: Prepare APK
       run: find app/build/outputs/apk/release -name "*.apk" -exec cp {} Octopus.apk \;

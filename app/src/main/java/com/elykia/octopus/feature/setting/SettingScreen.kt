@@ -30,7 +30,6 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.io.BufferedReader
@@ -146,6 +145,25 @@ fun SettingScreen(viewModel: SettingViewModel = hiltViewModel()) {
                         BasicComponent(
                             title = "导出日志",
                             summary = "导出应用本地日志用于排查问题",
+                            onClick = {
+                                try {
+                                    val process = Runtime.getRuntime().exec("logcat -d -t 1500 -v threadtime")
+                                    val reader = BufferedReader(InputStreamReader(process.inputStream))
+                                    val log = StringBuilder()
+                                    var line: String?
+                                    while (reader.readLine().also { line = it } != null) {
+                                        log.append(line).append("\n")
+                                    }
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_SUBJECT, "Octopus Logs")
+                                        putExtra(Intent.EXTRA_TEXT, log.toString())
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "分享日志"))
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            },
                             startAction = {
                                 Icon(
                                     imageVector = AppMiuixIcons.Info,
@@ -153,31 +171,6 @@ fun SettingScreen(viewModel: SettingViewModel = hiltViewModel()) {
                                     tint = MiuixTheme.colorScheme.primary,
                                     modifier = Modifier.size(24.dp)
                                 )
-                            },
-                            endActions = {
-                                TextButton(
-                                    onClick = {
-                                        try {
-                                            val process = Runtime.getRuntime().exec("logcat -d -t 1500 -v threadtime")
-                                            val reader = BufferedReader(InputStreamReader(process.inputStream))
-                                            val log = StringBuilder()
-                                            var line: String?
-                                            while (reader.readLine().also { line = it } != null) {
-                                                log.append(line).append("\n")
-                                            }
-                                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                                type = "text/plain"
-                                                putExtra(Intent.EXTRA_SUBJECT, "Octopus Logs")
-                                                putExtra(Intent.EXTRA_TEXT, log.toString())
-                                            }
-                                            context.startActivity(Intent.createChooser(shareIntent, "分享日志"))
-                                        } catch (e: Exception) {
-                                            e.printStackTrace()
-                                        }
-                                    }
-                                ) {
-                                    Text("导出", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.primary)
-                                }
                             }
                         )
                     }

@@ -5,10 +5,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ApiResponse<T>(
+    val code: Int? = null,
     val success: Boolean = false,
     val message: String = "",
     val data: T? = null
-)
+) {
+    val isSuccessful: Boolean
+        get() = success || code in 200..299
+}
 
 @Serializable
 data class LoginRequest(

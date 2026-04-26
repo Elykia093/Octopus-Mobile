@@ -3,8 +3,8 @@ package com.elykia.octopus.core.data.repository
 import com.elykia.octopus.core.data.local.PreferenceStore
 import com.elykia.octopus.core.data.model.AuthState
 import com.elykia.octopus.core.data.model.LoginRequest
+import com.elykia.octopus.core.data.remote.toUserMessage
 import com.elykia.octopus.core.data.remote.OctopusApiService
-import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,7 +16,7 @@ class AuthRepository @Inject constructor(
     suspend fun loginAsAdmin(request: LoginRequest): Result<Unit> {
         return try {
             val response = apiService.loginUser(request)
-            if (!response.success) {
+            if (!response.isSuccessful) {
                 Result.failure(Exception(response.message.ifBlank { "登录失败" }))
             } else {
                 val token = response.data?.token.orEmpty()
@@ -33,11 +33,8 @@ class AuthRepository @Inject constructor(
                     Result.success(Unit)
                 }
             }
-        } catch (e: HttpException) {
-            val url = e.response()?.raw()?.request?.url?.toString() ?: "Unknown URL"
-            Result.failure(Exception("HTTP ${e.code()} Error\nRequest URL: $url"))
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(e.toUserMessage("登录失败"), e))
         }
     }
 

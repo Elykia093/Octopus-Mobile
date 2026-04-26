@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.data.remote.ApiKeyApiService
+import com.elykia.octopus.core.data.remote.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,7 +42,7 @@ class ApiKeyViewModel @Inject constructor(
 
             try {
                 val response = apiKeyApi.getApiKeys()
-                if (response.success && response.data != null) {
+                if (response.isSuccessful && response.data != null) {
                     _uiState.update {
                         it.copy(
                             items = response.data,
@@ -53,7 +54,7 @@ class ApiKeyViewModel @Inject constructor(
                     _uiState.update { it.copy(error = response.message, isLoading = false, isRefreshing = false) }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message ?: "Network error", isLoading = false, isRefreshing = false) }
+                _uiState.update { it.copy(error = e.toUserMessage(), isLoading = false, isRefreshing = false) }
             }
         }
     }

@@ -6,6 +6,7 @@ import com.elykia.octopus.core.data.model.StatsDaily
 import com.elykia.octopus.core.data.model.StatsMetrics
 import com.elykia.octopus.core.data.model.StatsHourly
 import com.elykia.octopus.core.data.remote.DashboardApiService
+import com.elykia.octopus.core.data.remote.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -51,7 +52,7 @@ class DashboardViewModel @Inject constructor(
                 val dailyResponse = dashboardApi.getDailyStats()
                 val hourlyResponse = dashboardApi.getHourlyStats()
 
-                if (todayResponse.success && totalResponse.success) {
+                if (todayResponse.isSuccessful && totalResponse.isSuccessful) {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -77,7 +78,7 @@ class DashboardViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         isRefreshing = false,
-                        error = e.message ?: "加载仪表盘失败",
+                        error = e.toUserMessage("加载仪表盘失败"),
                     )
                 }
             }

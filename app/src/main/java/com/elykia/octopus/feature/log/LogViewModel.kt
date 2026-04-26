@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.data.model.LogItem
 import com.elykia.octopus.core.data.remote.LogApiService
+import com.elykia.octopus.core.data.remote.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,7 +49,7 @@ class LogViewModel @Inject constructor(
 
             try {
                 val response = logApi.getLogs(page = nextPage, pageSize = 20)
-                if (response.success && response.data != null) {
+                if (response.isSuccessful && response.data != null) {
                     val pageItems = response.data
                     _uiState.update {
                         it.copy(
@@ -63,7 +64,7 @@ class LogViewModel @Inject constructor(
                     _uiState.update { it.copy(error = response.message, isLoading = false, isRefreshing = false) }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message ?: "Network error", isLoading = false, isRefreshing = false) }
+                _uiState.update { it.copy(error = e.toUserMessage(), isLoading = false, isRefreshing = false) }
             }
         }
     }
