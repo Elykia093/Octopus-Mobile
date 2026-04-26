@@ -6,7 +6,7 @@
 > **Status**: in_progress
 > **Started**: 2026-04-13
 
-> **Latest Update**: 2026-04-13 本地 `assembleDebug` 与 `assembleRelease` 已通过，当前进入功能补完阶段。
+> **Latest Update**: 2026-04-26 继续修复网络层，补强动态服务地址读取、HTTP 错误消息解析与空响应泛型处理，`testDebugUnitTest assembleDebug assembleRelease` 已通过。
 
 ## Goal
 Build the first Android native management app in `D:\Website\Octopus-Mobile` with Kotlin, Compose and miuix, targeting the current local `D:\Website\octopus` API.
@@ -17,6 +17,6 @@ Build the first Android native management app in `D:\Website\Octopus-Mobile` wit
 |------|--------|--------|
 | API validation | done | `user/login`, `user/status`, main tabs, CRUD handlers confirmed |
 | Android bootstrap | done | `miuix`、Gradle 9.1.0、AGP 8.9.1、Kotlin 2.3.20、Hilt 2.58 编译链已打通 |
-| Core infrastructure | done | Theme、auth、storage、networking 已连通，并修复 base path / 401 / 明文 HTTP 场景 |
+| Core infrastructure | done | Theme、auth、storage、networking 已连通，并补强动态 base path / 401 / HTTP 错误消息 / 响应 code 判定 / 空响应泛型处理 |
 | Feature screens | in_progress | Home、Channel、Group、Model、Log、Setting 已可进入，后续补完交互深度 |
-| Verification | in_progress | 本地 `assembleDebug`、`assembleRelease` 已通过，待补更多测试与 GitHub Action 实跑 |
+| Verification | done | 本地 `testDebugUnitTest`、`assembleDebug`、`assembleRelease` 已通过，`gradlew.bat -version` 在未配置 `JAVA_HOME` 时可自动探测 JDK，GitHub Actions 已补齐 release 构建与产物上传 |

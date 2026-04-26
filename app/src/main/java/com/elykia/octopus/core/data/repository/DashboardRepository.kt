@@ -67,7 +67,7 @@ class DashboardRepository @Inject constructor(
     }
 
     suspend fun syncChannelModels(): AppResult<String?> = withContext(dispatchers.io) {
-        executor.executeUnit { apiService.syncChannelModels() }
+        executor.executeNullable { apiService.syncChannelModels() }
     }
 
     suspend fun groups(): AppResult<List<Group>> = withContext(dispatchers.io) {
@@ -98,7 +98,7 @@ class DashboardRepository @Inject constructor(
     }
 
     suspend fun clearLogs(): AppResult<String?> = withContext(dispatchers.io) {
-        executor.executeUnit { apiService.clearLogs() }
+        executor.executeNullable { apiService.clearLogs() }
     }
 
     suspend fun apiKeys(): AppResult<List<ApiKeyItem>> = withContext(dispatchers.io) {
@@ -122,7 +122,7 @@ class DashboardRepository @Inject constructor(
     }
 
     suspend fun refreshModelPrice(): AppResult<String?> = withContext(dispatchers.io) {
-        executor.executeUnit { apiService.updateModelPrice() }
+        executor.executeNullable { apiService.updateModelPrice() }
     }
 
     suspend fun modelLastUpdateTime(): AppResult<String> = withContext(dispatchers.io) {
@@ -130,15 +130,15 @@ class DashboardRepository @Inject constructor(
     }
 
     suspend fun deleteChannel(id: Int): AppResult<String?> = withContext(dispatchers.io) {
-        executor.executeUnit { apiService.deleteChannel(id) }
+        executor.executeNullable { apiService.deleteChannel(id) }
     }
 
     suspend fun setChannelEnabled(id: Int, enabled: Boolean): AppResult<String?> = withContext(dispatchers.io) {
-        executor.executeUnit { apiService.enableChannel(ChannelEnableRequest(id = id, enabled = enabled)) }
+        executor.executeNullable { apiService.enableChannel(ChannelEnableRequest(id = id, enabled = enabled)) }
     }
 
     suspend fun deleteGroup(id: Int): AppResult<String?> = withContext(dispatchers.io) {
-        executor.executeUnit { apiService.deleteGroup(id) }
+        executor.executeNullable { apiService.deleteGroup(id) }
     }
 
     suspend fun updateApiKey(item: ApiKeyItem): AppResult<ApiKeyItem> = withContext(dispatchers.io) {
@@ -158,6 +158,6 @@ class DashboardRepository @Inject constructor(
     }
 
     suspend fun deleteApiKey(id: Int): AppResult<String?> = withContext(dispatchers.io) {
-        executor.executeUnit { apiService.deleteApiKey(id) }
+        executor.executeNullable { apiService.deleteApiKey(id) }
     }
 }

@@ -45,6 +45,9 @@ set JAVA_EXE=java.exe
 %JAVA_EXE% -version >NUL 2>&1
 if %ERRORLEVEL% equ 0 goto execute
 
+call :resolveJavaFromRegistry
+if defined JAVA_HOME goto findJavaFromJavaHome
+
 echo. 1>&2
 echo ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH. 1>&2
 echo. 1>&2
@@ -66,6 +69,13 @@ echo Please set the JAVA_HOME variable in your environment to match the 1>&2
 echo location of your Java installation. 1>&2
 
 goto fail
+
+:resolveJavaFromRegistry
+for /f "tokens=2,*" %%a in ('reg query "HKLM\SOFTWARE\JavaSoft\JDK" /v CurrentVersion 2^>NUL ^| findstr /R /C:"CurrentVersion"') do set JAVA_VERSION=%%b
+if not defined JAVA_VERSION goto :eof
+
+for /f "tokens=2,*" %%a in ('reg query "HKLM\SOFTWARE\JavaSoft\JDK\%JAVA_VERSION%" /v JavaHome 2^>NUL ^| findstr /R /C:"JavaHome"') do set JAVA_HOME=%%b
+goto :eof
 
 :execute
 @rem Setup the command line
