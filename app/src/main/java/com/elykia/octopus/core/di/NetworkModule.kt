@@ -2,6 +2,7 @@ package com.elykia.octopus.core.di
 
 import com.elykia.octopus.core.data.local.PreferenceStore
 import com.elykia.octopus.core.data.model.AuthState
+import com.elykia.octopus.core.data.remote.JwtTokens
 import com.elykia.octopus.core.data.remote.ServerUrlResolver
 import dagger.Module
 import dagger.Provides
@@ -16,12 +17,12 @@ import okhttp3.OkHttpClient
 import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
-import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.net.CookieManager
 import java.net.CookiePolicy
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
+import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -53,7 +54,10 @@ object NetworkModule {
         baseUrlInterceptor: BaseUrlInterceptor,
         authInterceptor: AuthInterceptor,
     ): OkHttpClient {
-        val logging = HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+            redactHeader("Authorization")
+        }
         val cookieManager = CookieManager().apply {
             setCookiePolicy(CookiePolicy.ACCEPT_ALL)
         }
@@ -105,14 +109,20 @@ class AuthInterceptor(private val preferenceStore: PreferenceStore) : Intercepto
 
         if (authState.token.isBlank()) return chain.proceed(original)
 
-        val headerValue = if (authState.token.startsWith("Bearer ", ignoreCase = true)) {
-            authState.token
-        } else {
-            "Bearer ${authState.token}"
+        if (!authState.isApiKeyMode && JwtTokens.isExpired(authState.token)) {
+            runBlocking { preferenceStore.clearAuthState() }
+            return chain.proceed(original)
         }
+
         val request = original.newBuilder()
-            .header("Authorization", headerValue)
+            .header("Authorization", JwtTokens.authorizationHeader(authState.token))
             .build()
-        return chain.proceed(request)
+        val response = chain.proceed(request)
+
+        if (response.code == 401) {
+            runBlocking { preferenceStore.clearAuthState() }
+        }
+
+        return response
     }
 }

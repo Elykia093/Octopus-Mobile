@@ -4,3 +4,13 @@
 *.iml
 local.properties
 .gradle/
+.gradle-local/
+.kotlin/
+android-sdk/
+*.zip
+*.log
+*.aar
+*-metadata.xml
+sdk-packages.txt
+install-sdk.cmd
+list-sdk.cmd

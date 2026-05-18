@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elykia.octopus.core.designsystem.ErrorPane
@@ -27,7 +28,6 @@ import com.elykia.octopus.core.designsystem.SectionLabel
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -43,6 +43,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsState()
+    val locale = LocalConfiguration.current.locales[0]
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -81,7 +82,7 @@ fun LogScreen(viewModel: LogViewModel = hiltViewModel()) {
             }
 
             items(uiState.items) { log ->
-                val timeFormat = SimpleDateFormat("MM-dd HH:mm:ss", Locale.getDefault())
+                val timeFormat = SimpleDateFormat("MM-dd HH:mm:ss", locale)
                 val timeString = timeFormat.format(Date(log.time * 1000L))
                 val isError = log.hasError
 

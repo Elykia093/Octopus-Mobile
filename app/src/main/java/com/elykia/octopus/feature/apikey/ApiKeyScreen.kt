@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elykia.octopus.core.designsystem.ErrorPane
@@ -28,7 +29,6 @@ import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import com.elykia.octopus.feature.dashboard.util.formatCurrency
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
@@ -41,6 +41,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsState()
+    val locale = LocalConfiguration.current.locales[0]
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -82,7 +83,7 @@ fun ApiKeyScreen(viewModel: ApiKeyViewModel = hiltViewModel()) {
             }
 
             items(uiState.items) { key ->
-                val timeFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val timeFormat = SimpleDateFormat("yyyy-MM-dd", locale)
                 val expireString = if (key.expireAt <= 0L) "永不过期" else timeFormat.format(Date(key.expireAt * 1000L))
                 val isExpired = key.expireAt > 0 && key.expireAt * 1000L < System.currentTimeMillis()
 

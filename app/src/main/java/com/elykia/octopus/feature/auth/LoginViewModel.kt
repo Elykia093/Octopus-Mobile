@@ -21,7 +21,7 @@ data class LoginUiState(
     val username: String = "",
     val password: String = "",
     val apiKey: String = "",
-    val expireDays: String = "",
+    val expireDays: String = "30",
     val isSubmitting: Boolean = false,
     val error: String? = null,
 )
@@ -48,10 +48,14 @@ class LoginViewModel @Inject constructor(
             
             val result = if (state.mode == LoginMode.ADMIN) {
                 if (state.username.isBlank() || state.password.isBlank()) {
-                    _uiState.update { it.copy(isSubmitting = false, error = "Username and password cannot be empty") }
+                    _uiState.update { it.copy(isSubmitting = false, error = "用户名和密码不能为空") }
                     return@launch
                 }
-                val days = state.expireDays.toIntOrNull()
+                val days = state.expireDays.trim().toIntOrNull()
+                if (days == null || days <= 0) {
+                    _uiState.update { it.copy(isSubmitting = false, error = "有效期天数必须为正整数") }
+                    return@launch
+                }
                 authRepository.loginAsAdmin(
                     LoginRequest(
                         username = state.username.trim(), 
@@ -61,7 +65,7 @@ class LoginViewModel @Inject constructor(
                 )
             } else {
                 if (state.apiKey.isBlank()) {
-                    _uiState.update { it.copy(isSubmitting = false, error = "API Key cannot be empty") }
+                    _uiState.update { it.copy(isSubmitting = false, error = "API Key 不能为空") }
                     return@launch
                 }
                 authRepository.loginWithApiKey(state.apiKey.trim())
@@ -70,10 +74,10 @@ class LoginViewModel @Inject constructor(
             if (result.isFailure) {
                 _uiState.update { it.copy(
                     isSubmitting = false, 
-                    error = result.exceptionOrNull()?.message ?: "Unknown error"
+                    error = result.exceptionOrNull()?.message ?: "未知错误"
                 ) }
             } else {
-                // Success: State will be updated in repository which triggers NavGraph redirection
+                // 登录态更新后会触发导航跳转
                 _uiState.update { it.copy(isSubmitting = false) }
             }
         }

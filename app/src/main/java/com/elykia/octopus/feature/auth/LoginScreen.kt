@@ -120,6 +120,17 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 TextField(
                     value = uiState.password,
                     onValueChange = viewModel::updatePassword,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                )
+
+                Text(
+                    text = "有效期天数",
+                    style = MiuixTheme.textStyles.body2,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp, start = 4.dp)
+                )
+                TextField(
+                    value = uiState.expireDays,
+                    onValueChange = viewModel::updateExpireDays,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
                 )
             }
