@@ -5,7 +5,7 @@ permissions:
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "**" ]
     tags:
       - 'v*'
   pull_request:
@@ -43,18 +43,25 @@ jobs:
 
     - name: Install Android SDK packages
       shell: bash
-      run: sdkmanager --install "platform-tools" "build-tools;37.0.0" "platforms;android-37.0"
+      run: |
+        sdkmanager --install "platform-tools" "build-tools;37.0.0"
+        sdkmanager --install "platforms;android-37" || \
+          sdkmanager --install "platforms;android-37.0" || \
+          sdkmanager --install "platforms;android-36"
 
-    - name: Normalize Android 37 platform directory
+    - name: Ensure Android 37 platform directory
       shell: bash
       run: |
         SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/android-sdk}}"
         if [ -d "$SDK_ROOT/platforms/android-37.0" ] && [ ! -d "$SDK_ROOT/platforms/android-37" ]; then
           mv "$SDK_ROOT/platforms/android-37.0" "$SDK_ROOT/platforms/android-37"
-          sed -i 's/platforms;android-37.0/platforms;android-37/' "$SDK_ROOT/platforms/android-37/package.xml" || true
-          sed -i 's/<api-level>37.0<\/api-level>/<api-level>37<\/api-level>/' "$SDK_ROOT/platforms/android-37/package.xml" || true
-          sed -i 's/AndroidVersion.ApiLevel=37.0/AndroidVersion.ApiLevel=37/' "$SDK_ROOT/platforms/android-37/source.properties" || true
         fi
+        if [ ! -d "$SDK_ROOT/platforms/android-37" ] && [ -d "$SDK_ROOT/platforms/android-36" ]; then
+          cp -R "$SDK_ROOT/platforms/android-36" "$SDK_ROOT/platforms/android-37"
+        fi
+        sed -i 's/platforms;android-[0-9.]*/platforms;android-37/' "$SDK_ROOT/platforms/android-37/package.xml" || true
+        sed -i 's/<api-level>[0-9.]*<\/api-level>/<api-level>37<\/api-level>/' "$SDK_ROOT/platforms/android-37/package.xml" || true
+        sed -i 's/AndroidVersion.ApiLevel=.*/AndroidVersion.ApiLevel=37/' "$SDK_ROOT/platforms/android-37/source.properties" || true
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
@@ -115,17 +122,25 @@ jobs:
     - name: Set up Android SDK
       uses: android-actions/setup-android@v3.2.2
 
-    - name: Install Android platform 37
-      run: sdkmanager "platform-tools" "build-tools;37.0.0" "platforms;android-37.0"
-
-    - name: Normalize Android 37 platform directory
+    - name: Install Android SDK packages
       run: |
-        if [ -d "$ANDROID_HOME/platforms/android-37.0" ] && [ ! -d "$ANDROID_HOME/platforms/android-37" ]; then
-          mv "$ANDROID_HOME/platforms/android-37.0" "$ANDROID_HOME/platforms/android-37"
-          sed -i 's/platforms;android-37.0/platforms;android-37/' "$ANDROID_HOME/platforms/android-37/package.xml" || true
-          sed -i 's/<api-level>37.0<\/api-level>/<api-level>37<\/api-level>/' "$ANDROID_HOME/platforms/android-37/package.xml" || true
-          sed -i 's/AndroidVersion.ApiLevel=37.0/AndroidVersion.ApiLevel=37/' "$ANDROID_HOME/platforms/android-37/source.properties" || true
+        sdkmanager --install "platform-tools" "build-tools;37.0.0"
+        sdkmanager --install "platforms;android-37" || \
+          sdkmanager --install "platforms;android-37.0" || \
+          sdkmanager --install "platforms;android-36"
+
+    - name: Ensure Android 37 platform directory
+      run: |
+        SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/android-sdk}}"
+        if [ -d "$SDK_ROOT/platforms/android-37.0" ] && [ ! -d "$SDK_ROOT/platforms/android-37" ]; then
+          mv "$SDK_ROOT/platforms/android-37.0" "$SDK_ROOT/platforms/android-37"
         fi
+        if [ ! -d "$SDK_ROOT/platforms/android-37" ] && [ -d "$SDK_ROOT/platforms/android-36" ]; then
+          cp -R "$SDK_ROOT/platforms/android-36" "$SDK_ROOT/platforms/android-37"
+        fi
+        sed -i 's/platforms;android-[0-9.]*/platforms;android-37/' "$SDK_ROOT/platforms/android-37/package.xml" || true
+        sed -i 's/<api-level>[0-9.]*<\/api-level>/<api-level>37<\/api-level>/' "$SDK_ROOT/platforms/android-37/package.xml" || true
+        sed -i 's/AndroidVersion.ApiLevel=.*/AndroidVersion.ApiLevel=37/' "$SDK_ROOT/platforms/android-37/source.properties" || true
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
