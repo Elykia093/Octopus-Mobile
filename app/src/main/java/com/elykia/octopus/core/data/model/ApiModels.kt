@@ -2,12 +2,15 @@ package com.elykia.octopus.core.data.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
 data class ApiResponse<T>(
     val code: Int? = null,
+    @SerialName("error_code") val errorCode: String = "",
     val success: Boolean = false,
     val message: String = "",
+    val params: JsonObject? = null,
     val data: T? = null
 ) {
     val isSuccessful: Boolean
@@ -17,13 +20,14 @@ data class ApiResponse<T>(
 @Serializable
 data class LoginRequest(
     val username: String,
-    val password: String? = null, // Only for admin login
-    val expire: Int? = null, // Optional for admin token generation
+    val password: String? = null, // 仅管理员登录使用
+    val expire: Int? = null, // 管理员令牌有效期，单位：分钟
 )
 
 @Serializable
 data class LoginResponse(
     val token: String = "",
+    @SerialName("expire_at") val expireAt: String = "",
 )
 
 @Serializable

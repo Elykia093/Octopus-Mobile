@@ -20,7 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.SectionLabel
@@ -46,9 +46,6 @@ fun ChannelScreen(viewModel: ChannelViewModel = hiltViewModel()) {
                 actions = {
                     IconButton(onClick = { viewModel.loadChannels(isRefresh = true) }) {
                         Icon(imageVector = AppMiuixIcons.Refresh, contentDescription = "刷新")
-                    }
-                    IconButton(onClick = { /* TODO: 新增渠道 */ }) {
-                        Icon(imageVector = AppMiuixIcons.Add, contentDescription = "新增渠道")
                     }
                 }
             )

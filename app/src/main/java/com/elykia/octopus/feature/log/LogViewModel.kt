@@ -3,6 +3,7 @@ package com.elykia.octopus.feature.log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.data.model.LogItem
+import com.elykia.octopus.core.data.model.LogListResponse
 import com.elykia.octopus.core.data.remote.LogApiService
 import com.elykia.octopus.core.data.remote.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,6 +19,9 @@ data class LogUiState(
     val isRefreshing: Boolean = false,
     val error: String? = null,
     val items: List<LogItem> = emptyList(),
+    val total: Long = 0L,
+    val warning: String? = null,
+    val searchMode: String? = null,
     val currentPage: Int = 0,
     val hasMore: Boolean = true,
 )
@@ -31,7 +35,7 @@ class LogViewModel @Inject constructor(
     val uiState: StateFlow<LogUiState> = _uiState.asStateFlow()
 
     init {
-        loadLogs(isRefresh = true)
+        loadLogs()
     }
 
     fun loadLogs(isRefresh: Boolean = false) {
@@ -49,19 +53,24 @@ class LogViewModel @Inject constructor(
 
             try {
                 val response = logApi.getLogs(page = nextPage, pageSize = 20)
-                if (response.isSuccessful && response.data != null) {
-                    val pageItems = response.data
+                val payload = response.data ?: LogListResponse()
+                if (response.isSuccessful) {
+                    val pageItems = payload.logs
+                    val hasMore = payload.hasMore ?: (pageItems.size >= 20)
                     _uiState.update {
                         it.copy(
                             items = if (isRefresh) pageItems else it.items + pageItems,
+                            total = payload.total,
+                            warning = payload.warning,
+                            searchMode = payload.searchMode,
                             currentPage = nextPage,
-                            hasMore = pageItems.isNotEmpty(),
+                            hasMore = hasMore,
                             isLoading = false,
                             isRefreshing = false
                         )
                     }
                 } else {
-                    _uiState.update { it.copy(error = response.message, isLoading = false, isRefreshing = false) }
+                    _uiState.update { it.copy(error = response.message.ifBlank { "加载日志失败" }, isLoading = false, isRefreshing = false) }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = e.toUserMessage(), isLoading = false, isRefreshing = false) }

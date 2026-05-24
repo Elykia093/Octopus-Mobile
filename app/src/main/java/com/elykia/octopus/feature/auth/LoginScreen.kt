@@ -13,7 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -124,13 +124,13 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 )
 
                 Text(
-                    text = "有效期天数",
+                    text = "有效期分钟",
                     style = MiuixTheme.textStyles.body2,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp, start = 4.dp)
                 )
                 TextField(
-                    value = uiState.expireDays,
-                    onValueChange = viewModel::updateExpireDays,
+                    value = uiState.expireMinutes,
+                    onValueChange = viewModel::updateExpireMinutes,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
                 )
             }

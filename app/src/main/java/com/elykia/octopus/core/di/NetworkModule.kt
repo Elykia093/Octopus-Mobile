@@ -114,6 +114,11 @@ class AuthInterceptor(private val preferenceStore: PreferenceStore) : Intercepto
             return chain.proceed(original)
         }
 
+        val hasExplicitAuthorization = !original.header("Authorization").isNullOrBlank()
+        if (hasExplicitAuthorization) {
+            return chain.proceed(original)
+        }
+
         val request = original.newBuilder()
             .header("Authorization", JwtTokens.authorizationHeader(authState.token))
             .build()

@@ -28,10 +28,14 @@ private fun String.parseServerMessage(): String? {
     }
 
     return runCatching {
-        errorJson.parseToJsonElement(this)
-            .jsonObject["message"]
+        val body = errorJson.parseToJsonElement(this).jsonObject
+        body["message"]
             ?.jsonPrimitive
             ?.contentOrNull
             ?.takeIf { it.isNotBlank() }
+            ?: body["error_code"]
+                ?.jsonPrimitive
+                ?.contentOrNull
+                ?.takeIf { it.isNotBlank() }
     }.getOrNull()
 }

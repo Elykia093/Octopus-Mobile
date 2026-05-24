@@ -7,7 +7,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.elykia.octopus.core.data.repository.AppRepository
+import com.elykia.octopus.core.data.remote.JwtTokens
 import com.elykia.octopus.feature.apikey.ApiKeyScreen
 import com.elykia.octopus.feature.auth.LoginScreen
 import com.elykia.octopus.feature.channel.ChannelScreen
@@ -51,7 +52,7 @@ class AppViewModel @Inject constructor(
         AppState(
             isLoading = false,
             isConfigured = config.baseUrl.isNotBlank(),
-            isLoggedIn = auth.token.isNotBlank(),
+            isLoggedIn = auth.token.isNotBlank() && (auth.isApiKeyMode || !JwtTokens.isExpired(auth.token)),
             isApiKeyMode = auth.isApiKeyMode
         )
     }.stateIn(
@@ -114,12 +115,7 @@ fun MainScreen(isApiKeyMode: Boolean) {
         currentRoute.contains(route::class.simpleName.orEmpty())
     }
 
-    val destinations = listOf(
-        TopLevelDestination.DASHBOARD,
-        if (isApiKeyMode) TopLevelDestination.API_KEY else TopLevelDestination.CHANNEL,
-        TopLevelDestination.LOG,
-        TopLevelDestination.SETTING
-    )
+    val destinations = topLevelDestinationsFor(isApiKeyMode)
 
     Scaffold(
         bottomBar = {
@@ -155,5 +151,22 @@ fun MainScreen(isApiKeyMode: Boolean) {
             composable<LogRoute> { LogScreen() }
             composable<SettingRoute> { SettingScreen() }
         }
+    }
+}
+
+internal fun topLevelDestinationsFor(isApiKeyMode: Boolean): List<TopLevelDestination> {
+    return if (isApiKeyMode) {
+        listOf(
+            TopLevelDestination.DASHBOARD,
+            TopLevelDestination.SETTING,
+        )
+    } else {
+        listOf(
+            TopLevelDestination.DASHBOARD,
+            TopLevelDestination.CHANNEL,
+            TopLevelDestination.API_KEY,
+            TopLevelDestination.LOG,
+            TopLevelDestination.SETTING,
+        )
     }
 }

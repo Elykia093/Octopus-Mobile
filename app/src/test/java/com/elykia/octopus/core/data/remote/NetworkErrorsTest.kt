@@ -18,6 +18,15 @@ class NetworkErrorsTest {
     }
 
     @Test
+    fun httpExceptionFallsBackToServerErrorCode() {
+        val body = """{"code":401,"error_code":"auth.api_key_expired","message":""}"""
+            .toResponseBody("application/json".toMediaType())
+        val exception = HttpException(Response.error<String>(401, body))
+
+        assertEquals("auth.api_key_expired", exception.toUserMessage())
+    }
+
+    @Test
     fun exceptionUsesFallbackWhenMessageIsEmpty() {
         val exception = RuntimeException("")
 

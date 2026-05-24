@@ -21,7 +21,7 @@ data class LoginUiState(
     val username: String = "",
     val password: String = "",
     val apiKey: String = "",
-    val expireDays: String = "30",
+    val expireMinutes: String = "86400",
     val isSubmitting: Boolean = false,
     val error: String? = null,
 )
@@ -38,7 +38,7 @@ class LoginViewModel @Inject constructor(
     fun updateUsername(name: String) = _uiState.update { it.copy(username = name, error = null) }
     fun updatePassword(pwd: String) = _uiState.update { it.copy(password = pwd, error = null) }
     fun updateApiKey(key: String) = _uiState.update { it.copy(apiKey = key, error = null) }
-    fun updateExpireDays(days: String) = _uiState.update { it.copy(expireDays = days, error = null) }
+    fun updateExpireMinutes(minutes: String) = _uiState.update { it.copy(expireMinutes = minutes, error = null) }
 
     fun submit() {
         val state = _uiState.value
@@ -51,17 +51,13 @@ class LoginViewModel @Inject constructor(
                     _uiState.update { it.copy(isSubmitting = false, error = "用户名和密码不能为空") }
                     return@launch
                 }
-                val days = state.expireDays.trim().toIntOrNull()
-                if (days == null || days <= 0) {
-                    _uiState.update { it.copy(isSubmitting = false, error = "有效期天数必须为正整数") }
+                val minutes = state.expireMinutes.trim().toIntOrNull()
+                if (minutes == null || minutes <= 0) {
+                    _uiState.update { it.copy(isSubmitting = false, error = "有效期分钟数必须为正整数") }
                     return@launch
                 }
                 authRepository.loginAsAdmin(
-                    LoginRequest(
-                        username = state.username.trim(), 
-                        password = state.password.trim(), 
-                        expire = days
-                    )
+                    buildAdminLoginRequest(state, minutes)
                 )
             } else {
                 if (state.apiKey.isBlank()) {
@@ -82,4 +78,12 @@ class LoginViewModel @Inject constructor(
             }
         }
     }
+}
+
+internal fun buildAdminLoginRequest(state: LoginUiState, expireMinutes: Int): LoginRequest {
+    return LoginRequest(
+        username = state.username.trim(),
+        password = state.password,
+        expire = expireMinutes,
+    )
 }

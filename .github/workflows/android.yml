@@ -20,20 +20,22 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.2
+      with:
+        fetch-depth: 0
 
     - name: Set up JDK 21
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5.2.0
       with:
         java-version: '21'
         distribution: 'temurin'
         cache: gradle
 
     - name: Set up Gradle
-      uses: gradle/actions/setup-gradle@v4
+      uses: gradle/actions/setup-gradle@v6.1.0
 
     - name: Set up Android SDK
-      uses: android-actions/setup-android@v3
+      uses: android-actions/setup-android@v3.2.2
 
     - name: Accept Android SDK licenses
       shell: bash
@@ -64,14 +66,29 @@ jobs:
     - name: Verify Gradle environment
       run: ./gradlew --version
 
+    - name: Verify checkout state
+      shell: bash
+      run: |
+        git status --short --branch
+        git rev-parse --is-inside-work-tree
+        git rev-parse HEAD
+        git log -1 --oneline
+
     - name: Build and test
       run: ./gradlew testDebugUnitTest assembleDebug assembleRelease --stacktrace --no-daemon
 
     - name: Prepare APK
-      run: find app/build/outputs/apk/release -name "*.apk" -exec cp {} Octopus.apk \;
+      shell: bash
+      run: |
+        APK="$(find app/build/outputs/apk/release -name "*.apk" ! -name "*unsigned*" | head -n 1)"
+        if [ -z "$APK" ]; then
+          echo "No signed release APK found." >&2
+          exit 1
+        fi
+        cp "$APK" Octopus.apk
 
     - name: Upload Release APK
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7.0.1
       with:
         name: Octopus
         path: Octopus.apk
@@ -84,17 +101,19 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.2
+      with:
+        fetch-depth: 0
 
     - name: Set up JDK 21
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5.2.0
       with:
         java-version: '21'
         distribution: 'temurin'
         cache: gradle
 
     - name: Set up Android SDK
-      uses: android-actions/setup-android@v3
+      uses: android-actions/setup-android@v3.2.2
 
     - name: Install Android platform 37
       run: sdkmanager "platform-tools" "build-tools;37.0.0" "platforms;android-37.0"
@@ -112,14 +131,21 @@ jobs:
       run: chmod +x gradlew
 
     - name: Build Release APK
-      # Note: For a signed APK, you will need to add signing configuration via secrets
+      # Debug-signed by default so CI artifacts are installable; replace with a production signing config for store distribution.
       run: ./gradlew assembleRelease --no-daemon
 
     - name: Prepare APK
-      run: find app/build/outputs/apk/release -name "*.apk" -exec cp {} Octopus.apk \;
+      shell: bash
+      run: |
+        APK="$(find app/build/outputs/apk/release -name "*.apk" ! -name "*unsigned*" | head -n 1)"
+        if [ -z "$APK" ]; then
+          echo "No signed release APK found." >&2
+          exit 1
+        fi
+        cp "$APK" Octopus.apk
 
     - name: Create Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3.0.0
       with:
         files: Octopus.apk
         generate_release_notes: true

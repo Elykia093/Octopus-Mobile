@@ -4,6 +4,8 @@ import com.elykia.octopus.core.data.local.PreferenceStore
 import com.elykia.octopus.core.data.model.AuthState
 import com.elykia.octopus.core.data.model.LoginRequest
 import com.elykia.octopus.core.data.remote.toUserMessage
+import com.elykia.octopus.core.data.remote.ApiKeyApiService
+import com.elykia.octopus.core.data.remote.JwtTokens
 import com.elykia.octopus.core.data.remote.OctopusApiService
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -11,6 +13,7 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepository @Inject constructor(
     private val apiService: OctopusApiService,
+    private val apiKeyApiService: ApiKeyApiService,
     private val preferenceStore: PreferenceStore,
 ) {
     suspend fun loginAsAdmin(request: LoginRequest): Result<Unit> {
@@ -40,11 +43,16 @@ class AuthRepository @Inject constructor(
 
     suspend fun loginWithApiKey(apiKey: String): Result<Unit> {
         return try {
-            preferenceStore.updateAuthState(AuthState(token = apiKey, isApiKeyMode = true))
-            Result.success(Unit)
+            val normalizedApiKey = apiKey.trim()
+            val response = apiKeyApiService.loginApiKey(JwtTokens.authorizationHeader(normalizedApiKey))
+            if (!response.isSuccessful) {
+                Result.failure(Exception(response.message.ifBlank { "API Key 登录失败" }))
+            } else {
+                preferenceStore.updateAuthState(AuthState(token = normalizedApiKey, isApiKeyMode = true))
+                Result.success(Unit)
+            }
         } catch (e: Exception) {
-            preferenceStore.clearAuthState()
-            Result.failure(e)
+            Result.failure(Exception(e.toUserMessage("API Key 登录失败"), e))
         }
     }
 

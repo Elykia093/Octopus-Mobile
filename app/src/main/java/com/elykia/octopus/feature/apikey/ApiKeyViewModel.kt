@@ -29,7 +29,7 @@ class ApiKeyViewModel @Inject constructor(
     val uiState: StateFlow<ApiKeyUiState> = _uiState.asStateFlow()
 
     init {
-        loadApiKeys(isRefresh = true)
+        loadApiKeys()
     }
 
     fun loadApiKeys(isRefresh: Boolean = false) {
@@ -42,16 +42,16 @@ class ApiKeyViewModel @Inject constructor(
 
             try {
                 val response = apiKeyApi.getApiKeys()
-                if (response.isSuccessful && response.data != null) {
+                if (response.isSuccessful) {
                     _uiState.update {
                         it.copy(
-                            items = response.data,
+                            items = response.data.orEmpty(),
                             isLoading = false,
                             isRefreshing = false
                         )
                     }
                 } else {
-                    _uiState.update { it.copy(error = response.message, isLoading = false, isRefreshing = false) }
+                    _uiState.update { it.copy(error = response.message.ifBlank { "加载令牌失败" }, isLoading = false, isRefreshing = false) }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = e.toUserMessage(), isLoading = false, isRefreshing = false) }

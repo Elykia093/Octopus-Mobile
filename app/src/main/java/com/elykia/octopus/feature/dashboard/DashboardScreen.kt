@@ -24,7 +24,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.elykia.octopus.core.data.model.StatsDaily
 import com.elykia.octopus.core.data.model.StatsMetrics
 import com.elykia.octopus.core.designsystem.ErrorPane

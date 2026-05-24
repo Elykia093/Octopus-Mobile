@@ -29,7 +29,7 @@ class ChannelViewModel @Inject constructor(
     val uiState: StateFlow<ChannelUiState> = _uiState.asStateFlow()
 
     init {
-        loadChannels(isRefresh = true)
+        loadChannels()
     }
 
     fun loadChannels(isRefresh: Boolean = false) {
@@ -42,16 +42,16 @@ class ChannelViewModel @Inject constructor(
 
             try {
                 val response = channelApi.getChannels()
-                if (response.isSuccessful && response.data != null) {
+                if (response.isSuccessful) {
                     _uiState.update {
                         it.copy(
-                            items = response.data,
+                            items = response.data.orEmpty(),
                             isLoading = false,
                             isRefreshing = false
                         )
                     }
                 } else {
-                    _uiState.update { it.copy(error = response.message, isLoading = false, isRefreshing = false) }
+                    _uiState.update { it.copy(error = response.message.ifBlank { "加载渠道失败" }, isLoading = false, isRefreshing = false) }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = e.toUserMessage(), isLoading = false, isRefreshing = false) }

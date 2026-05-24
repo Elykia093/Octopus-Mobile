@@ -13,3 +13,9 @@ data class ApiKeyItem(
     @SerialName("max_cost") val maxCost: Double = 0.0,
     @SerialName("supported_models") val supportedModels: String = "",
 )
+
+@Serializable
+data class ApiKeyStatsResponse(
+    val stats: StatsMetrics = StatsMetrics(),
+    val info: ApiKeyItem = ApiKeyItem(),
+)

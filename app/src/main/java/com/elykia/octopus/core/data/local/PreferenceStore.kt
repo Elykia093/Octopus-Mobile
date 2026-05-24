@@ -20,7 +20,7 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "oc
 
 @Singleton
 class PreferenceStore @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
     private val configKey = stringPreferencesKey("server_config")
     private val authStateKey = stringPreferencesKey("auth_state")

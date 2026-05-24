@@ -13,14 +13,27 @@ data class Channel(
     val keys: List<ChannelKey> = emptyList(),
     val model: String = "",
     @SerialName("custom_model") val customModel: String = "",
+    @SerialName("proxy_mode") val proxyMode: String = "direct",
+    @SerialName("proxy_config_id") val proxyConfigId: Int? = null,
     val proxy: Boolean = false,
     @SerialName("auto_sync") val autoSync: Boolean = false,
     @SerialName("auto_group") val autoGroup: Int = 0,
     @SerialName("custom_header") val customHeader: List<CustomHeader> = emptyList(),
+    @SerialName("ws_mode") val wsMode: String = "inherit",
     @SerialName("param_override") val paramOverride: String? = null,
     @SerialName("channel_proxy") val channelProxy: String? = null,
     val stats: StatsChannel? = null,
     @SerialName("match_regex") val matchRegex: String? = null,
+    val managed: Boolean = false,
+    @SerialName("managed_source") val managedSource: ManagedChannelSource? = null,
+)
+
+@Serializable
+data class ManagedChannelSource(
+    @SerialName("site_id") val siteId: Int = 0,
+    @SerialName("site_account_id") val siteAccountId: Int = 0,
+    @SerialName("site_user_group_id") val siteUserGroupId: Int? = null,
+    @SerialName("group_key") val groupKey: String = "",
 )
 
 @Serializable
