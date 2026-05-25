@@ -8,6 +8,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable data object DashboardRoute
 @Serializable data object ChannelRoute
+@Serializable data object GroupRoute
 @Serializable data object ApiKeyRoute
+@Serializable data object ModelRoute
 @Serializable data object LogRoute
 @Serializable data object SettingRoute

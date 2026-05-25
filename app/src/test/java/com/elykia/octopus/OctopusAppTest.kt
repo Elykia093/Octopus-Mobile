@@ -15,7 +15,9 @@ class OctopusAppTest {
             listOf(
                 TopLevelDestination.DASHBOARD,
                 TopLevelDestination.CHANNEL,
+                TopLevelDestination.GROUP,
                 TopLevelDestination.API_KEY,
+                TopLevelDestination.MODEL,
                 TopLevelDestination.LOG,
                 TopLevelDestination.SETTING,
             ),
@@ -35,7 +37,9 @@ class OctopusAppTest {
             destinations,
         )
         assertFalse(destinations.contains(TopLevelDestination.CHANNEL))
+        assertFalse(destinations.contains(TopLevelDestination.GROUP))
         assertFalse(destinations.contains(TopLevelDestination.API_KEY))
+        assertFalse(destinations.contains(TopLevelDestination.MODEL))
         assertFalse(destinations.contains(TopLevelDestination.LOG))
         assertTrue(destinations.contains(TopLevelDestination.DASHBOARD))
     }

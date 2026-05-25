@@ -22,4 +22,8 @@ object AppMiuixIcons {
     val Add: ImageVector = Icons.Rounded.Add
     val Edit: ImageVector = Icons.Rounded.Edit
     val Close: ImageVector = Icons.Rounded.Close
+    val Star: ImageVector = Icons.Rounded.Star
+    val StarBorder: ImageVector = Icons.Rounded.StarBorder
+    val Paid: ImageVector = Icons.Rounded.Paid
+    val Sync: ImageVector = Icons.Rounded.Sync
 }

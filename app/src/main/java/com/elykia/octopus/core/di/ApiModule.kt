@@ -2,7 +2,9 @@ package com.elykia.octopus.core.di
 
 import com.elykia.octopus.core.data.remote.ApiKeyApiService
 import com.elykia.octopus.core.data.remote.ChannelApiService
+import com.elykia.octopus.core.data.remote.GroupApiService
 import com.elykia.octopus.core.data.remote.LogApiService
+import com.elykia.octopus.core.data.remote.ModelApiService
 import com.elykia.octopus.core.data.remote.OctopusApiService
 import dagger.Module
 import dagger.Provides
@@ -43,5 +45,17 @@ object ApiModule {
     @Singleton
     fun provideLogApiService(retrofit: Retrofit): LogApiService {
         return retrofit.create(LogApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGroupApiService(retrofit: Retrofit): GroupApiService {
+        return retrofit.create(GroupApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideModelApiService(retrofit: Retrofit): ModelApiService {
+        return retrofit.create(ModelApiService::class.java)
     }
 }

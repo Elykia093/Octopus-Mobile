@@ -23,7 +23,9 @@ import com.elykia.octopus.feature.auth.LoginScreen
 import com.elykia.octopus.feature.channel.ChannelScreen
 import com.elykia.octopus.feature.connection.SetupScreen
 import com.elykia.octopus.feature.dashboard.DashboardScreen
+import com.elykia.octopus.feature.group.GroupScreen
 import com.elykia.octopus.feature.log.LogScreen
+import com.elykia.octopus.feature.model.ModelScreen
 import com.elykia.octopus.feature.setting.SettingScreen
 import com.elykia.octopus.navigation.*
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -145,8 +147,14 @@ fun MainScreen(isApiKeyMode: Boolean) {
             composable<ChannelRoute> { 
                 ChannelScreen() 
             }
+            composable<GroupRoute> {
+                GroupScreen()
+            }
             composable<ApiKeyRoute> { 
                 ApiKeyScreen() 
+            }
+            composable<ModelRoute> {
+                ModelScreen()
             }
             composable<LogRoute> { LogScreen() }
             composable<SettingRoute> { SettingScreen() }
@@ -164,7 +172,9 @@ internal fun topLevelDestinationsFor(isApiKeyMode: Boolean): List<TopLevelDestin
         listOf(
             TopLevelDestination.DASHBOARD,
             TopLevelDestination.CHANNEL,
+            TopLevelDestination.GROUP,
             TopLevelDestination.API_KEY,
+            TopLevelDestination.MODEL,
             TopLevelDestination.LOG,
             TopLevelDestination.SETTING,
         )

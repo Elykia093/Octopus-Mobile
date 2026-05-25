@@ -25,12 +25,26 @@ enum class TopLevelDestination(
         titleTextId = "渠道",
         route = ChannelRoute
     ),
+    GROUP(
+        selectedIcon = AppMiuixIcons.Group,
+        unselectedIcon = AppMiuixIcons.Group,
+        iconTextId = "分组",
+        titleTextId = "分组",
+        route = GroupRoute
+    ),
     API_KEY(
         selectedIcon = AppMiuixIcons.VpnKey,
         unselectedIcon = AppMiuixIcons.VpnKey,
         iconTextId = "令牌",
         titleTextId = "令牌",
         route = ApiKeyRoute
+    ),
+    MODEL(
+        selectedIcon = AppMiuixIcons.Paid,
+        unselectedIcon = AppMiuixIcons.Paid,
+        iconTextId = "价格",
+        titleTextId = "价格",
+        route = ModelRoute
     ),
     LOG(
         selectedIcon = AppMiuixIcons.ReceiptLong,
