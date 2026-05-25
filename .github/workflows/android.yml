@@ -35,7 +35,7 @@ jobs:
       uses: gradle/actions/setup-gradle@v6.1.0
 
     - name: Set up Android SDK
-      uses: android-actions/setup-android@v3.2.2
+      uses: android-actions/setup-android@v4.0.1
 
     - name: Accept Android SDK licenses
       shell: bash
@@ -120,7 +120,7 @@ jobs:
         cache: gradle
 
     - name: Set up Android SDK
-      uses: android-actions/setup-android@v3.2.2
+      uses: android-actions/setup-android@v4.0.1
 
     - name: Install Android SDK packages
       run: |
