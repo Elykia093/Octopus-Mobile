@@ -1,6 +1,5 @@
 package com.elykia.octopus.feature.group
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,27 +8,29 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.elykia.octopus.core.data.model.Group
 import com.elykia.octopus.core.data.model.GroupItem
 import com.elykia.octopus.core.data.model.GroupMode
+import com.elykia.octopus.core.designsystem.AppAlignedCardBody
+import com.elykia.octopus.core.designsystem.AppCardHeader
+import com.elykia.octopus.core.designsystem.AppInfoChip
 import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.SectionLabel
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
-import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -122,18 +123,12 @@ private fun GroupCard(
         modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
     ) {
         Column {
-            BasicComponent(
+            AppCardHeader(
                 title = group.name.ifBlank { "未命名分组" },
-                summary = "模式: ${groupModeLabel(group.mode)} · 成员: ${group.items.size} · 正则: ${group.matchRegex.ifBlank { "-" }}",
-                startAction = {
-                    Icon(
-                        imageVector = AppMiuixIcons.Group,
-                        contentDescription = "分组",
-                        tint = MiuixTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp),
-                    )
-                },
-                endActions = {
+                summary = "${groupModeLabel(group.mode)} · ${group.items.size} 个成员 · ${group.matchRegex.ifBlank { "无匹配正则" }}",
+                icon = AppMiuixIcons.Group,
+                iconDescription = "分组",
+                endContent = {
                     IconButton(onClick = { if (!isPinning) onTogglePinned() }) {
                         Icon(
                             imageVector = if (group.pinned) AppMiuixIcons.Star else AppMiuixIcons.StarBorder,
@@ -144,60 +139,46 @@ private fun GroupCard(
                 },
             )
 
-            FlowRow(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                GroupChip("超时 ${group.firstTokenTimeOut}s")
-                GroupChip("会话 ${group.sessionKeepTime}s")
-                GroupChip(if (group.retryEnabled) "重试 ${group.maxRetries}" else "未启用重试")
-                group.activePresetId?.let { GroupChip("预设 #$it") }
-                if (group.pinned) GroupChip("已置顶")
-            }
-
-            val previewItems = group.items.take(3)
-            if (previewItems.isNotEmpty()) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 16.dp),
+            AppAlignedCardBody {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    previewItems.forEach { item ->
-                        GroupItemRow(item)
-                    }
-                    if (group.items.size > previewItems.size) {
-                        Text(
-                            text = "+${group.items.size - previewItems.size} 个成员",
-                            style = MiuixTheme.textStyles.body2,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
-                    }
+                    AppInfoChip("超时 ${group.firstTokenTimeOut}s")
+                    AppInfoChip("会话 ${group.sessionKeepTime}s")
+                    AppInfoChip(if (group.retryEnabled) "重试 ${group.maxRetries}" else "不重试")
+                    group.activePresetId?.let { AppInfoChip("预设 #$it", emphasized = true) }
+                    if (group.pinned) AppInfoChip("已置顶", emphasized = true)
                 }
-            } else {
-                Text(
-                    text = "暂无成员",
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 16.dp),
-                )
+
+                val previewItems = group.items.take(3)
+                if (previewItems.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        previewItems.forEach { item ->
+                            GroupItemRow(item)
+                        }
+                        if (group.items.size > previewItems.size) {
+                            Text(
+                                text = "+${group.items.size - previewItems.size} 个成员",
+                                style = MiuixTheme.textStyles.body2,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "暂无成员",
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                }
             }
         }
-    }
-}
-
-@Composable
-private fun GroupChip(text: String) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MiuixTheme.colorScheme.surfaceContainerHigh)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-    ) {
-        Text(
-            text = text,
-            style = MiuixTheme.textStyles.body2,
-            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-        )
     }
 }
 
@@ -213,17 +194,22 @@ private fun GroupItemRow(item: GroupItem) {
                 text = item.modelName.ifBlank { "未设置模型" },
                 style = MiuixTheme.textStyles.body1,
                 color = MiuixTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = "渠道 ID ${item.channelId}",
                 style = MiuixTheme.textStyles.body2,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
         Text(
             text = "P${item.priority} / W${item.weight}",
             style = MiuixTheme.textStyles.body2,
             color = MiuixTheme.colorScheme.primary,
+            modifier = Modifier.widthIn(min = 64.dp).padding(start = 8.dp),
         )
     }
 }

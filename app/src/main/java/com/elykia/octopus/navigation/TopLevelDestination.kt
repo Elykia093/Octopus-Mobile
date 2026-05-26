@@ -14,8 +14,8 @@ enum class TopLevelDestination(
     DASHBOARD(
         selectedIcon = AppMiuixIcons.Home,
         unselectedIcon = AppMiuixIcons.Home,
-        iconTextId = "仪表盘",
-        titleTextId = "仪表盘",
+        iconTextId = "首页",
+        titleTextId = "首页",
         route = DashboardRoute
     ),
     CHANNEL(

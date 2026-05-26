@@ -20,15 +20,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.elykia.octopus.core.data.model.LlmChannel
 import com.elykia.octopus.core.data.model.LlmInfo
+import com.elykia.octopus.core.designsystem.AppAlignedCardBody
+import com.elykia.octopus.core.designsystem.AppCardHeader
+import com.elykia.octopus.core.designsystem.AppInfoChip
 import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.SectionLabel
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
-import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -131,18 +134,12 @@ private fun ModelSummaryCard(
     Card(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(),
     ) {
-        BasicComponent(
+        AppCardHeader(
             title = "模型价格",
             summary = "模型 $modelCount 个 · 渠道映射 $channelCount 条 · ${lastUpdateTime.ifBlank { "未同步" }}",
-            startAction = {
-                Icon(
-                    imageVector = AppMiuixIcons.Paid,
-                    contentDescription = "模型价格",
-                    tint = MiuixTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp),
-                )
-            },
-            endActions = {
+            icon = AppMiuixIcons.Paid,
+            iconDescription = "模型价格",
+            endContent = {
                 if (isSyncing) {
                     Text(
                         text = "同步中",
@@ -164,18 +161,12 @@ private fun ModelCard(
         modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
     ) {
         Column {
-            BasicComponent(
+            AppCardHeader(
                 title = model.name.ifBlank { "未命名模型" },
-                summary = "输入 ${priceText(model.input)} · 输出 ${priceText(model.output)} · 缓存 ${priceText(model.cacheRead)} / ${priceText(model.cacheWrite)}",
-                startAction = {
-                    Icon(
-                        imageVector = AppMiuixIcons.Paid,
-                        contentDescription = "价格",
-                        tint = MiuixTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp),
-                    )
-                },
-                endActions = {
+                summary = "启用 ${channels.count { it.enabled }} / ${channels.size} 个渠道",
+                icon = AppMiuixIcons.Paid,
+                iconDescription = "价格",
+                endContent = {
                     Text(
                         text = "${channels.count { it.enabled }}/${channels.size}",
                         style = MiuixTheme.textStyles.body2,
@@ -184,26 +175,39 @@ private fun ModelCard(
                 },
             )
 
-            if (channels.isNotEmpty()) {
+            AppAlignedCardBody {
                 FlowRow(
-                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    channels.take(4).forEach { channel ->
-                        ChannelChip(channel)
-                    }
-                    if (channels.size > 4) {
-                        PriceChip("+${channels.size - 4} 个渠道")
-                    }
+                    AppInfoChip("输入 ${priceText(model.input)}")
+                    AppInfoChip("输出 ${priceText(model.output)}")
+                    AppInfoChip("缓存读 ${priceText(model.cacheRead)}")
+                    AppInfoChip("缓存写 ${priceText(model.cacheWrite)}")
                 }
-            } else {
-                Text(
-                    text = "暂无渠道映射",
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                )
+
+                if (channels.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        channels.take(4).forEach { channel ->
+                            ChannelChip(channel)
+                        }
+                        if (channels.size > 4) {
+                            AppInfoChip("+${channels.size - 4} 个渠道")
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "暂无渠道映射",
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                }
             }
         }
     }
@@ -229,22 +233,8 @@ private fun ChannelChip(channel: LlmChannel) {
             text = channel.channelName.ifBlank { "渠道 ${channel.channelId}" },
             style = MiuixTheme.textStyles.body2,
             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-        )
-    }
-}
-
-@Composable
-private fun PriceChip(text: String) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MiuixTheme.colorScheme.surfaceContainerHigh)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-    ) {
-        Text(
-            text = text,
-            style = MiuixTheme.textStyles.body2,
-            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
