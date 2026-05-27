@@ -14,6 +14,12 @@ import com.elykia.octopus.R
 import com.elykia.octopus.core.designsystem.DockItem
 import com.elykia.octopus.core.designsystem.FloatingDockBar
 import com.elykia.octopus.core.designsystem.PageContainer
+import com.elykia.octopus.feature.apikey.ApiKeyScreen
+import com.elykia.octopus.feature.channel.ChannelScreen
+import com.elykia.octopus.feature.group.GroupScreen
+import com.elykia.octopus.feature.home.HomeScreen
+import com.elykia.octopus.feature.log.LogScreen
+import com.elykia.octopus.feature.setting.SettingScreen
 import com.elykia.octopus.navigation.MainTab
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBarDisplayMode

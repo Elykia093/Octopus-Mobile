@@ -1,4 +1,4 @@
-package com.elykia.octopus.feature.app
+package com.elykia.octopus.feature.setting
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,7 +27,6 @@ import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SectionSpacer
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
-import com.elykia.octopus.feature.setting.SettingViewModel
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton

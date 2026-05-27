@@ -1,4 +1,4 @@
-package com.elykia.octopus.feature.app
+package com.elykia.octopus.feature.apikey
 
 import android.content.ClipData
 import android.content.ClipboardManager

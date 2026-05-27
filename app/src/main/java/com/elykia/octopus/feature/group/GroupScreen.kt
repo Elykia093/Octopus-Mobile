@@ -1,4 +1,4 @@
-package com.elykia.octopus.feature.app
+package com.elykia.octopus.feature.group
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -50,7 +50,6 @@ import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
 import com.elykia.octopus.core.designsystem.SelectableListCard
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
-import com.elykia.octopus.feature.group.GroupViewModel
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton

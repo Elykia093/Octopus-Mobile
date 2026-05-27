@@ -14,6 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import com.elykia.octopus.R
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.OctopusTheme
+import com.elykia.octopus.feature.auth.LoginScreen
 import com.elykia.octopus.feature.auth.LoginViewModel
 import com.elykia.octopus.navigation.OctopusDestination
 

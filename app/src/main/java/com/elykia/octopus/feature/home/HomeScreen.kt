@@ -1,4 +1,4 @@
-package com.elykia.octopus.feature.app
+package com.elykia.octopus.feature.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -40,7 +40,6 @@ import com.elykia.octopus.core.designsystem.TrendEntry
 import com.elykia.octopus.core.designsystem.formatCount
 import com.elykia.octopus.core.designsystem.formatDurationMs
 import com.elykia.octopus.core.designsystem.formatMoney
-import com.elykia.octopus.feature.home.HomeViewModel
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
