@@ -6,9 +6,6 @@ import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.Group
 import com.elykia.octopus.core.data.model.GroupItem
-import com.elykia.octopus.core.data.model.GroupItemAddRequest
-import com.elykia.octopus.core.data.model.GroupItemUpdateRequest
-import com.elykia.octopus.core.data.model.GroupUpdateRequest
 import com.elykia.octopus.core.data.repository.DashboardRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
@@ -90,53 +87,15 @@ class GroupViewModel @Inject constructor(
         items: List<GroupItem>,
     ) {
         viewModelScope.launch {
-            val existingItemsById = group.items.associateBy { it.id }
-            val newItems = items.filter { it.id == 0 }
-            val changedItems = items.filter { it.id != 0 }
-            val deleteItemIds = group.items.map { it.id }.filter { existingId ->
-                items.none { current -> current.id == existingId }
-            }.toMutableList()
-
-            val itemsToAdd = mutableListOf<GroupItemAddRequest>()
-            val itemsToUpdate = mutableListOf<GroupItemUpdateRequest>()
-
-            changedItems.forEach { item ->
-                val existing = existingItemsById[item.id] ?: return@forEach
-                if (existing.channelId != item.channelId || existing.modelName != item.modelName) {
-                    deleteItemIds += existing.id
-                    itemsToAdd += GroupItemAddRequest(
-                        channelId = item.channelId,
-                        modelName = item.modelName,
-                        priority = item.priority,
-                        weight = item.weight,
-                    )
-                } else {
-                    itemsToUpdate += GroupItemUpdateRequest(
-                        id = item.id,
-                        priority = item.priority,
-                        weight = item.weight,
-                    )
-                }
-            }
-
             repository.updateGroup(
-                GroupUpdateRequest(
-                    id = group.id,
-                    name = name.trim(),
+                buildGroupUpdateRequest(
+                    group = group,
+                    name = name,
                     mode = mode,
-                    matchRegex = matchRegex.trim(),
+                    matchRegex = matchRegex,
                     firstTokenTimeOut = firstTokenTimeOut,
                     sessionKeepTime = sessionKeepTime,
-                    itemsToAdd = newItems.map {
-                        GroupItemAddRequest(
-                            channelId = it.channelId,
-                            modelName = it.modelName,
-                            priority = it.priority,
-                            weight = it.weight,
-                        )
-                    } + itemsToAdd,
-                    itemsToUpdate = itemsToUpdate,
-                    itemsToDelete = deleteItemIds.distinct(),
+                    items = items,
                 )
             )
             refresh()

@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.sp
 
 data class DockItem(
@@ -603,12 +604,8 @@ fun RankBadge(
     rank: Int,
     modifier: Modifier = Modifier,
 ) {
-    val (background, content) = when (rank) {
-        1 -> Color(0xFFFF9500).copy(alpha = 0.16f) to Color(0xFFFF9500)
-        2 -> Color(0xFF8E8E93).copy(alpha = 0.16f) to Color(0xFF8E8E93)
-        3 -> Color(0xFFAF52DE).copy(alpha = 0.16f) to Color(0xFFAF52DE)
-        else -> MiuixTheme.colorScheme.secondaryContainer to MiuixTheme.colorScheme.onSecondaryContainer
-    }
+    val (background, content) = OctopusTones.rank(rank)
+        ?: (MiuixTheme.colorScheme.secondaryContainer to MiuixTheme.colorScheme.onSecondaryContainer)
     Box(
         modifier = modifier
             .size(26.dp)
@@ -753,15 +750,15 @@ fun DangerConfirmDialog(
 fun TrendLineChart(
     entries: List<TrendEntry>,
     modifier: Modifier = Modifier,
-    requestColor: Color = Color(0xFF007AFF),
-    costColor: Color = Color(0xFF34C759),
+    requestColor: Color = OctopusTones.Request,
+    costColor: Color = OctopusTones.Cost,
 ) {
     if (entries.isEmpty()) return
 
     val textColor = MiuixTheme.colorScheme.onSurfaceVariantSummary
     val gridColor = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.12f)
     val labelPaint = android.graphics.Paint().apply {
-        color = textColor.hashCode()
+        color = textColor.toArgb()
         textSize = 28f
         isAntiAlias = true
     }
@@ -796,7 +793,7 @@ fun TrendLineChart(
             val androidCanvas = drawContext.canvas.nativeCanvas
             entries.forEachIndexed { index, entry ->
                 val x = padLeft + chartW * index / (entries.size - 1).coerceAtLeast(1)
-                labelPaint.color = textColor.hashCode()
+                labelPaint.color = textColor.toArgb()
                 labelPaint.textAlign = android.graphics.Paint.Align.CENTER
                 androidCanvas.drawText(entry.label, x, h - 4f, labelPaint)
             }
@@ -870,13 +867,13 @@ fun TrendLineChart(
             }
 
             // 左 Y 轴标签（请求数）
-            labelPaint.color = requestColor.hashCode()
+            labelPaint.color = requestColor.toArgb()
             labelPaint.textAlign = android.graphics.Paint.Align.RIGHT
             androidCanvas.drawText(formatCountCompact(maxRequest), padLeft - 6f, padTop + 10f, labelPaint)
             androidCanvas.drawText("0", padLeft - 6f, padTop + chartH, labelPaint)
 
             // 右 Y 轴标签（费用）
-            labelPaint.color = costColor.hashCode()
+            labelPaint.color = costColor.toArgb()
             labelPaint.textAlign = android.graphics.Paint.Align.LEFT
             androidCanvas.drawText(formatMoneyCompact(maxCost), w - padRight + 6f, padTop + 10f, labelPaint)
         }

@@ -1,0 +1,46 @@
+package com.elykia.octopus.core.designsystem
+
+import androidx.compose.ui.graphics.Color
+
+object OctopusTones {
+    val Blue = Color(0xFF007AFF)
+    val Sky = Color(0xFF5AC8FA)
+    val Purple = Color(0xFFAF52DE)
+    val Indigo = Color(0xFF5856D6)
+    val Orange = Color(0xFFFF9500)
+    val Green = Color(0xFF34C759)
+    val Red = Color(0xFFFF3B30)
+    val Gray = Color(0xFF8E8E93)
+
+    val Request = Blue
+    val Cost = Green
+    val Token = Orange
+    val SuccessRate = Purple
+    val Success = Green
+    val Danger = Red
+
+    fun channelType(type: Int): Color = when (type) {
+        0 -> Blue
+        1 -> Sky
+        2 -> Indigo
+        3 -> Orange
+        4 -> Red
+        5 -> Green
+        else -> Gray
+    }
+
+    fun groupMode(mode: Int): Color = when (mode) {
+        1 -> Blue
+        2 -> Purple
+        3 -> Orange
+        4 -> Green
+        else -> Gray
+    }
+
+    fun rank(rank: Int): Pair<Color, Color>? = when (rank) {
+        1 -> Orange.copy(alpha = 0.16f) to Orange
+        2 -> Gray.copy(alpha = 0.16f) to Gray
+        3 -> Purple.copy(alpha = 0.16f) to Purple
+        else -> null
+    }
+}

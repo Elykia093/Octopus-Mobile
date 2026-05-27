@@ -34,6 +34,7 @@ import com.elykia.octopus.core.designsystem.EmptyPane
 import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.FloatingCreateButton
 import com.elykia.octopus.core.designsystem.LoadingPane
+import com.elykia.octopus.core.designsystem.OctopusTones
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
 import com.elykia.octopus.core.designsystem.ToolbarChip
@@ -211,8 +212,8 @@ private fun ChannelRow(
                 }
                 channel.stats?.let { stats ->
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        AppInfoChip(text = stringResource(R.string.channel_stat_success, stats.requestSuccess), icon = AppMiuixIcons.Check, tint = Color(0xFF34C759))
-                        AppInfoChip(text = stringResource(R.string.channel_stat_failed, stats.requestFailed), icon = AppMiuixIcons.Close, tint = Color(0xFFFF3B30))
+                        AppInfoChip(text = stringResource(R.string.channel_stat_success, stats.requestSuccess), icon = AppMiuixIcons.Check, tint = OctopusTones.Success)
+                        AppInfoChip(text = stringResource(R.string.channel_stat_failed, stats.requestFailed), icon = AppMiuixIcons.Close, tint = OctopusTones.Danger)
                     }
                 }
             }
@@ -251,15 +252,7 @@ private fun channelTypeName(type: Int): String = when (type) {
     else -> stringResource(R.string.channel_type_unknown, type)
 }
 
-private fun channelTypeColor(type: Int): Color = when (type) {
-    0 -> Color(0xFF007AFF)
-    1 -> Color(0xFF5AC8FA)
-    2 -> Color(0xFF5856D6)
-    3 -> Color(0xFFFF9500)
-    4 -> Color(0xFFFF3B30)
-    5 -> Color(0xFF34C759)
-    else -> Color(0xFF8E8E93)
-}
+private fun channelTypeColor(type: Int): Color = OctopusTones.channelType(type)
 
 @Composable
 private fun ChannelEditorDialog(

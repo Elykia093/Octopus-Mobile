@@ -43,6 +43,7 @@ import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.FloatingCreateButton
 import com.elykia.octopus.core.designsystem.InlineEmptyCard
 import com.elykia.octopus.core.designsystem.LoadingPane
+import com.elykia.octopus.core.designsystem.OctopusTones
 import com.elykia.octopus.core.designsystem.OptionChipGroup
 import com.elykia.octopus.core.designsystem.OptionChipItem
 import com.elykia.octopus.core.designsystem.PageActionButton
@@ -245,13 +246,7 @@ private fun groupModeName(mode: Int): String = when (mode) {
     else -> stringResource(R.string.group_mode_unknown, mode)
 }
 
-private fun groupModeColor(mode: Int): Color = when (mode) {
-    1 -> Color(0xFF007AFF)
-    2 -> Color(0xFFAF52DE)
-    3 -> Color(0xFFFF9500)
-    4 -> Color(0xFF34C759)
-    else -> Color(0xFF8E8E93)
-}
+private fun groupModeColor(mode: Int): Color = OctopusTones.groupMode(mode)
 
 @Composable
 private fun GroupEditorDialog(

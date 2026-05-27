@@ -29,6 +29,7 @@ import com.elykia.octopus.core.designsystem.AppPageScaffold
 import com.elykia.octopus.core.designsystem.EmptyPane
 import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.LoadingPane
+import com.elykia.octopus.core.designsystem.OctopusTones
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.RankRow
 import com.elykia.octopus.core.designsystem.SectionCard
@@ -154,14 +155,14 @@ private fun DashboardOverviewSection(
                 value = formatCount(requestCount),
                 summary = stringResource(R.string.home_stat_success_count, formatCount(successCount)),
                 icon = AppMiuixIcons.Request,
-                accentColor = Color(0xFF007AFF),
+                accentColor = OctopusTones.Request,
             )
             StatOverviewCard(
                 title = stringResource(R.string.home_stat_cost),
                 value = formatMoney(costValue),
                 summary = stringResource(R.string.home_stat_input_cost, formatMoney(inputCost)),
                 icon = AppMiuixIcons.Cost,
-                accentColor = Color(0xFF34C759),
+                accentColor = OctopusTones.Cost,
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -170,14 +171,14 @@ private fun DashboardOverviewSection(
                 value = formatCount(tokenValue),
                 summary = stringResource(R.string.home_stat_input_tokens, formatCount(inputToken)),
                 icon = AppMiuixIcons.Token,
-                accentColor = Color(0xFFFF9500),
+                accentColor = OctopusTones.Token,
             )
             StatOverviewCard(
                 title = stringResource(R.string.home_stat_success_rate),
                 value = stringResource(R.string.home_percent_value, successValue * 100.0),
                 summary = stringResource(R.string.home_stat_wait_summary, formatDurationMs(waitValue)),
                 icon = AppMiuixIcons.Success,
-                accentColor = Color(0xFFAF52DE),
+                accentColor = OctopusTones.SuccessRate,
             )
         }
     }
@@ -244,7 +245,7 @@ private fun DashboardRankingSection(
                     progress = totalTokens.toFloat() / maxTokens.toFloat(),
                 ))
             },
-            accent = Color(0xFFFF9500),
+            accent = OctopusTones.Token,
         )
         RankingSectionCard(
             title = stringResource(R.string.home_rank_request_title),
@@ -257,7 +258,7 @@ private fun DashboardRankingSection(
                     progress = requests.toFloat() / maxRequest.toFloat(),
                 ))
             },
-            accent = Color(0xFF007AFF),
+            accent = OctopusTones.Request,
         )
         RankingSectionCard(
             title = stringResource(R.string.home_rank_apikey_title),
@@ -275,7 +276,7 @@ private fun DashboardRankingSection(
                     progress = requests.toFloat() / maxRequest.toFloat(),
                 ))
             },
-            accent = Color(0xFFAF52DE),
+            accent = OctopusTones.SuccessRate,
         )
     }
 }

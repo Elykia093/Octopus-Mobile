@@ -14,7 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,6 +27,7 @@ import com.elykia.octopus.core.designsystem.DangerConfirmDialog
 import com.elykia.octopus.core.designsystem.EmptyPane
 import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.LoadingPane
+import com.elykia.octopus.core.designsystem.OctopusTones
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
 import com.elykia.octopus.core.designsystem.ToolbarChip
@@ -113,7 +113,7 @@ private fun LogRow(
     log: RelayLog,
 ) {
     val hasError = log.error.isNotBlank()
-    val statusColor = if (hasError) MiuixTheme.colorScheme.error else Color(0xFF34C759)
+    val statusColor = if (hasError) MiuixTheme.colorScheme.error else OctopusTones.Success
 
     AppListCard {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
