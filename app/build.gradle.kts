@@ -33,10 +33,6 @@ android {
                 "proguard-rules.pro"
             )
         }
-        debug {
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
-        }
     }
 
     compileOptions {
@@ -86,7 +82,6 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp)
-    implementation(libs.okhttp.logging)
     implementation(libs.coil.compose)
 
     implementation(libs.miuix.ui)

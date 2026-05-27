@@ -15,7 +15,6 @@ import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
-import okhttp3.logging.HttpLoggingInterceptor
 import okhttp3.MediaType.Companion.toMediaType
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
@@ -68,13 +67,9 @@ object NetworkModule {
         preferenceStore: PreferenceStore,
         sessionManager: SessionManager,
     ): OkHttpClient {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
-        }
         return OkHttpClient.Builder()
             .addInterceptor(BaseUrlInterceptor(preferenceStore))
             .addInterceptor(AuthInterceptor(sessionManager))
-            .addInterceptor(logging)
             .connectTimeout(20, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)

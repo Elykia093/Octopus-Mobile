@@ -87,7 +87,7 @@ app/build/outputs/apk/debug/app-debug.apk
 - 拆分 `DashboardRepository`，按统计、渠道、分组、日志、API Key 分出领域仓库。
 - 拆分 `OctopusApiService` 和 `ApiModels.kt`，降低单文件复杂度。
 - 优化 `BaseUrlInterceptor`，避免每次请求都阻塞读取 DataStore。
-- 区分 debug/release 的 OkHttp 日志和明文流量策略。
+- 收紧 release 签名、混淆压缩和明文流量策略。
 - 完善增删改操作的 loading、错误提示和成功反馈。
 
 ## CI
