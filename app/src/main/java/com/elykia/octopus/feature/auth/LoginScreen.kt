@@ -1,17 +1,17 @@
 package com.elykia.octopus.feature.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -19,18 +19,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.elykia.octopus.R
-import com.elykia.octopus.core.designsystem.ErrorPane
+import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.OctopusBrandMark
+import com.elykia.octopus.core.designsystem.OctopusTokens
+import com.elykia.octopus.core.designsystem.PageContainer
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -48,126 +48,137 @@ fun LoginScreen(
         viewModel.initFromConfig(hasServer = !showServerField, currentUrl = currentServerUrl)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        // 品牌标识区
-        BrandHeader()
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // 登录卡片
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            insideMargin = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+    PageContainer {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp, vertical = 44.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxWidth(),
+            BrandHeader(
+                title = if (uiState.showServerField) {
+                    stringResource(R.string.connect_title)
+                } else {
+                    stringResource(R.string.login_title)
+                },
+                summary = if (uiState.showServerField) {
+                    stringResource(R.string.connect_summary)
+                } else {
+                    stringResource(R.string.login_summary)
+                },
+            )
+
+            AppListCard(
+                padding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
             ) {
-                // 服务器地址（仅在未配置时显示）
-                if (uiState.showServerField) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (uiState.showServerField) {
+                        TextField(
+                            value = uiState.serverUrl,
+                            onValueChange = viewModel::updateServerUrl,
+                            label = stringResource(R.string.connect_placeholder_server_url),
+                            useLabelAsPlaceholder = true,
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+
                     TextField(
-                        value = uiState.serverUrl,
-                        onValueChange = viewModel::updateServerUrl,
-                        label = stringResource(R.string.connect_placeholder_server_url),
+                        value = uiState.username,
+                        onValueChange = viewModel::updateUsername,
+                        label = stringResource(R.string.login_placeholder_username),
                         useLabelAsPlaceholder = true,
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                }
 
-                // 用户名
-                TextField(
-                    value = uiState.username,
-                    onValueChange = viewModel::updateUsername,
-                    label = stringResource(R.string.login_placeholder_username),
-                    useLabelAsPlaceholder = true,
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                // 密码
-                TextField(
-                    value = uiState.password,
-                    onValueChange = viewModel::updatePassword,
-                    label = stringResource(R.string.login_placeholder_password),
-                    useLabelAsPlaceholder = true,
-                    singleLine = true,
-                    visualTransformation = if (uiState.passwordVisible) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                // 登录按钮
-                Button(
-                    onClick = { viewModel.submit(onLoggedIn) },
-                    enabled = !uiState.isLoading,
-                    colors = ButtonDefaults.buttonColorsPrimary(),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        text = if (uiState.isLoading) {
-                            stringResource(R.string.login_submitting)
+                    TextField(
+                        value = uiState.password,
+                        onValueChange = viewModel::updatePassword,
+                        label = stringResource(R.string.login_placeholder_password),
+                        useLabelAsPlaceholder = true,
+                        singleLine = true,
+                        visualTransformation = if (uiState.passwordVisible) {
+                            VisualTransformation.None
                         } else {
-                            stringResource(R.string.login_submit)
+                            PasswordVisualTransformation()
                         },
+                        modifier = Modifier.fillMaxWidth(),
                     )
+
+                    Button(
+                        onClick = { viewModel.submit(onLoggedIn) },
+                        enabled = !uiState.isLoading,
+                        colors = ButtonDefaults.buttonColorsPrimary(),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = if (uiState.isLoading) {
+                                stringResource(R.string.login_submitting)
+                            } else {
+                                stringResource(R.string.login_submit)
+                            },
+                        )
+                    }
                 }
             }
-        }
 
-        // 错误提示
-        uiState.error?.let { errorMsg ->
-            Spacer(modifier = Modifier.height(12.dp))
-            ErrorPane(message = errorMsg)
+            uiState.error?.let { errorMsg ->
+                ErrorStrip(message = errorMsg)
+            }
         }
     }
 }
 
 @Composable
-private fun BrandHeader() {
+private fun BrandHeader(
+    title: String,
+    summary: String,
+) {
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // 品牌图标（渐变圆形背景 + 八爪鱼 Logo）
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MiuixTheme.colorScheme.primary,
-                            MiuixTheme.colorScheme.secondaryContainer,
-                        ),
-                    ),
-                ),
-            contentAlignment = Alignment.Center,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OctopusBrandMark(size = 40.dp)
+            OctopusBrandMark(size = 64.dp)
+            Text(
+                text = title,
+                style = MiuixTheme.textStyles.title1,
+                fontWeight = FontWeight.Bold,
+                color = OctopusTokens.TextPrimary,
+            )
         }
-
-        // 标题
         Text(
-            text = stringResource(R.string.brand_title),
-            style = MiuixTheme.textStyles.title1,
-            fontWeight = FontWeight.Bold,
+            text = summary,
+            style = MiuixTheme.textStyles.main,
+            color = OctopusTokens.TextSecondary,
         )
+    }
+}
 
-        // 副标题
+@Composable
+private fun ErrorStrip(
+    message: String,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MiuixTheme.colorScheme.error.copy(alpha = 0.08f))
+            .border(1.dp, MiuixTheme.colorScheme.error.copy(alpha = 0.25f), RoundedCornerShape(18.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
         Text(
-            text = stringResource(R.string.brand_subtitle),
+            text = message,
             style = MiuixTheme.textStyles.body2,
-            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            color = MiuixTheme.colorScheme.error,
         )
     }
 }
