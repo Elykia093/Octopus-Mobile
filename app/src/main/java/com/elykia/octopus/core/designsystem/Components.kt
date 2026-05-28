@@ -2,6 +2,8 @@ package com.elykia.octopus.core.designsystem
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,10 +17,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -34,9 +39,7 @@ import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBarDisplayMode
-import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
@@ -80,21 +83,68 @@ fun FloatingDockBar(
     modifier: Modifier = Modifier,
     mode: FloatingNavigationBarDisplayMode = FloatingNavigationBarDisplayMode.IconOnly,
 ) {
-    FloatingNavigationBar(
-        modifier = modifier,
-        mode = mode,
-        showDivider = true,
-        shadowElevation = 10.dp,
-        color = OctopusTokens.Card,
+    val dockShape = RoundedCornerShape(34.dp)
+    Row(
+        modifier = modifier
+            .shadow(
+                elevation = 10.dp,
+                shape = dockShape,
+                clip = false,
+                ambientColor = Color.Black.copy(alpha = 0.08f),
+                spotColor = Color.Black.copy(alpha = 0.12f),
+            )
+            .clip(dockShape)
+            .background(OctopusTokens.Card)
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.9f), dockShape)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         items.forEach { item ->
-            FloatingNavigationBarItem(
-                selected = item.key == selectedKey,
-                onClick = { onSelected(item.key) },
-                icon = item.icon,
-                label = item.label,
-            )
+            val selected = item.key == selectedKey
+            Box(
+                modifier = Modifier
+                    .size(if (mode == FloatingNavigationBarDisplayMode.IconOnly) 48.dp else 56.dp)
+                    .clip(CircleShape)
+                    .background(if (selected) OctopusTokens.SelectedNav else Color.Transparent)
+                    .clickable { onSelected(item.key) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = item.label,
+                    tint = if (selected) OctopusTokens.TextPrimary else OctopusTokens.NavMuted,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
         }
+    }
+}
+
+@Composable
+fun AppSegmentButton(
+    text: String,
+    selected: Boolean = false,
+    onClick: (() -> Unit)? = null,
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier = Modifier
+            .clip(shape)
+            .background(if (selected) OctopusTokens.Accent else OctopusTokens.Muted)
+            .border(1.dp, if (selected) OctopusTokens.Accent else OctopusTokens.Border, shape)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = MiuixTheme.textStyles.body2,
+            fontWeight = FontWeight.SemiBold,
+            color = if (selected) Color.White else OctopusTokens.TextPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -307,18 +357,10 @@ fun ToolbarChip(
     selected: Boolean = false,
     onClick: (() -> Unit)? = null,
 ) {
-    val colors = if (selected) {
-        ButtonDefaults.textButtonColorsPrimary()
-    } else {
-        ButtonDefaults.textButtonColors()
-    }
-    TextButton(
+    AppSegmentButton(
         text = text,
-        onClick = { onClick?.invoke() },
-        enabled = true,
-        colors = colors,
-        minHeight = 34.dp,
-        insideMargin = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        selected = selected,
+        onClick = onClick,
     )
 }
 

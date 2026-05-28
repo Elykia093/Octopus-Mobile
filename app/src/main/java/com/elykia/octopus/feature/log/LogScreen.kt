@@ -61,6 +61,7 @@ fun LogScreen(
     val uiState by viewModel.uiState.collectAsState()
     var confirmClear by remember { mutableStateOf(false) }
     var searchTerm by remember { mutableStateOf("") }
+    var searchVisible by remember { mutableStateOf(false) }
 
     when {
         uiState.loading -> LoadingPane(title = stringResource(R.string.log_title))
@@ -77,6 +78,14 @@ fun LogScreen(
                 title = stringResource(R.string.log_title),
                 actions = {
                     PageActionButton(
+                        icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
+                        contentDescription = stringResource(R.string.action_open_search),
+                        onClick = {
+                            searchVisible = !searchVisible
+                            if (!searchVisible) searchTerm = ""
+                        },
+                    )
+                    PageActionButton(
                         icon = AppMiuixIcons.Delete,
                         contentDescription = stringResource(R.string.log_toolbar_clear),
                         enabled = uiState.logs.isNotEmpty(),
@@ -86,7 +95,7 @@ fun LogScreen(
                 contentPadding = contentPadding,
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (uiState.logs.isNotEmpty()) {
+                    if (uiState.logs.isNotEmpty() && searchVisible) {
                         SearchField(
                             value = searchTerm,
                             onValueChange = { searchTerm = it },

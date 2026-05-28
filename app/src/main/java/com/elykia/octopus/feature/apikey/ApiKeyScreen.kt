@@ -68,6 +68,7 @@ fun ApiKeyScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var searchTerm by remember { mutableStateOf("") }
+    var searchVisible by remember { mutableStateOf(false) }
     var deletingId by remember { mutableStateOf<Int?>(null) }
     var editingItem by remember { mutableStateOf<ApiKeyItem?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -90,6 +91,14 @@ fun ApiKeyScreen(
                     title = stringResource(R.string.apikey_title),
                     actions = {
                         PageActionButton(
+                            icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
+                            contentDescription = stringResource(R.string.action_open_search),
+                            onClick = {
+                                searchVisible = !searchVisible
+                                if (!searchVisible) searchTerm = ""
+                            },
+                        )
+                        PageActionButton(
                             icon = AppMiuixIcons.Refresh,
                             contentDescription = stringResource(R.string.common_refresh),
                             onClick = viewModel::refresh,
@@ -103,7 +112,7 @@ fun ApiKeyScreen(
                     contentPadding = contentPadding,
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        if (uiState.apiKeys.isNotEmpty()) {
+                        if (uiState.apiKeys.isNotEmpty() && searchVisible) {
                             SearchField(
                                 value = searchTerm,
                                 onValueChange = { searchTerm = it },

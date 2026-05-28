@@ -18,6 +18,8 @@ object OctopusTokens {
     val TextPrimary = Color(0xFF3B352B)
     val TextSecondary = Color(0xFF7A766D)
     val PrimarySoft = Color(0xFFE3EDE3)
+    val SelectedNav = Color(0xFFE8D8B7)
+    val NavMuted = Color(0xFF8B877E)
 }
 
 @Composable

@@ -61,6 +61,7 @@ fun ChannelScreen(
     val uiState by viewModel.uiState.collectAsState()
     var deletingId by remember { mutableStateOf<Int?>(null) }
     var searchTerm by remember { mutableStateOf("") }
+    var searchVisible by remember { mutableStateOf(false) }
     var editingChannel by remember { mutableStateOf<Channel?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var selectedChannelForFetch by remember { mutableStateOf<Channel?>(null) }
@@ -84,6 +85,14 @@ fun ChannelScreen(
                     title = stringResource(R.string.channel_title),
                     actions = {
                         PageActionButton(
+                            icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
+                            contentDescription = stringResource(R.string.action_open_search),
+                            onClick = {
+                                searchVisible = !searchVisible
+                                if (!searchVisible) searchTerm = ""
+                            },
+                        )
+                        PageActionButton(
                             icon = AppMiuixIcons.Sync,
                             contentDescription = stringResource(R.string.action_sync),
                             onClick = viewModel::syncModels,
@@ -102,7 +111,7 @@ fun ChannelScreen(
                     contentPadding = contentPadding,
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        if (uiState.channels.isNotEmpty()) {
+                        if (uiState.channels.isNotEmpty() && searchVisible) {
                             SearchField(
                                 value = searchTerm,
                                 onValueChange = { searchTerm = it },

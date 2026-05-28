@@ -71,6 +71,7 @@ fun GroupScreen(
     val uiState by viewModel.uiState.collectAsState()
     var deletingId by remember { mutableStateOf<Int?>(null) }
     var searchTerm by remember { mutableStateOf("") }
+    var searchVisible by remember { mutableStateOf(false) }
     var editingGroup by remember { mutableStateOf<Group?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
     val expanded = remember { mutableStateMapOf<Int, Boolean>() }
@@ -96,6 +97,14 @@ fun GroupScreen(
                     title = stringResource(R.string.group_title),
                     actions = {
                         PageActionButton(
+                            icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
+                            contentDescription = stringResource(R.string.action_open_search),
+                            onClick = {
+                                searchVisible = !searchVisible
+                                if (!searchVisible) searchTerm = ""
+                            },
+                        )
+                        PageActionButton(
                             icon = AppMiuixIcons.Refresh,
                             contentDescription = stringResource(R.string.common_refresh),
                             onClick = viewModel::refresh,
@@ -109,7 +118,7 @@ fun GroupScreen(
                     contentPadding = contentPadding,
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        if (uiState.groups.isNotEmpty()) {
+                        if (uiState.groups.isNotEmpty() && searchVisible) {
                             SearchField(
                                 value = searchTerm,
                                 onValueChange = { searchTerm = it },
