@@ -168,8 +168,11 @@
     <string name="group_sort_name_asc">Name asc</string>
     <string name="group_sort_name_desc">Name desc</string>
     <string name="group_empty">No groups.</string>
+    <string name="group_search_empty">No matching groups.</string>
+    <string name="group_unnamed">Unnamed group</string>
     <string name="group_timeout_summary">Timeout %1$s s</string>
     <string name="group_keep_summary">Keep %1$s s</string>
+    <string name="group_match_regex_summary">Regex %1$s</string>
     <string name="group_channel_count">Channels %1$s</string>
     <string name="group_expand_more">+%1$s more</string>
     <string name="group_collapse">Collapse</string>
@@ -199,6 +202,7 @@
     <string name="group_channel_picker_title">Select channel</string>
     <string name="group_channel_picker_summary">Choose from existing channels instead of typing channel IDs manually.</string>
     <string name="group_channel_picker_empty">No available channels yet.</string>
+    <string name="group_items_empty">No members yet.</string>
     <string name="group_item_channel_summary">ID %1$d · %2$s</string>
     <string name="group_item_model_display">Model %1$s</string>
     <string name="group_item_channel_fallback">Channel %1$d</string>

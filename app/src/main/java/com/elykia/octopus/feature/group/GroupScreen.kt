@@ -1,6 +1,7 @@
 package com.elykia.octopus.feature.group
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,8 +11,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -23,10 +26,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elykia.octopus.R
@@ -38,7 +43,6 @@ import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.AppPageScaffold
 import com.elykia.octopus.core.designsystem.AppTypePill
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
-import com.elykia.octopus.core.designsystem.EmptyPane
 import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.FloatingCreateButton
 import com.elykia.octopus.core.designsystem.InlineEmptyCard
@@ -51,11 +55,16 @@ import com.elykia.octopus.core.designsystem.SearchField
 import com.elykia.octopus.core.designsystem.SelectableListCard
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+private val GroupInnerRadius = 14.dp
+private val GroupItemRadius = 12.dp
+private val GroupBadgeRadius = 9.dp
 
 @Composable
 fun GroupScreen(
@@ -72,10 +81,17 @@ fun GroupScreen(
     when {
         uiState.loading -> LoadingPane(title = stringResource(R.string.group_title))
         uiState.error != null -> ErrorPane(message = uiState.error ?: stringResource(R.string.error_title), onRetry = viewModel::refresh)
-        uiState.groups.isEmpty() -> EmptyPane(title = stringResource(R.string.group_title), summary = stringResource(R.string.group_empty))
         else -> {
             val groups = uiState.groups
-                .filter { searchTerm.isBlank() || it.name.contains(searchTerm, ignoreCase = true) }
+                .filter { group ->
+                    searchTerm.isBlank() ||
+                        group.name.contains(searchTerm, ignoreCase = true) ||
+                        group.matchRegex.contains(searchTerm, ignoreCase = true) ||
+                        group.items.any { item ->
+                            item.modelName.contains(searchTerm, ignoreCase = true) ||
+                                item.channelId.toString().contains(searchTerm)
+                        }
+                }
                 .sortedByDescending { it.items.size }
 
             Box(modifier = Modifier.fillMaxSize()) {
@@ -91,19 +107,31 @@ fun GroupScreen(
                     contentPadding = contentPadding,
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SearchField(
-                            value = searchTerm,
-                            onValueChange = { searchTerm = it },
-                            hint = stringResource(R.string.group_search_hint),
-                        )
-                        groups.forEach { group ->
-                            GroupRow(
-                                group = group,
-                                expanded = expanded[group.id] == true,
-                                onToggleExpanded = { expanded[group.id] = !(expanded[group.id] == true) },
-                                onEdit = { editingGroup = group },
-                                onDelete = { deletingId = group.id },
+                        if (uiState.groups.isNotEmpty()) {
+                            SearchField(
+                                value = searchTerm,
+                                onValueChange = { searchTerm = it },
+                                hint = stringResource(R.string.group_search_hint),
                             )
+                        }
+                        when {
+                            uiState.groups.isEmpty() -> InlineEmptyCard(
+                                title = stringResource(R.string.group_title),
+                                summary = stringResource(R.string.group_empty),
+                            )
+                            groups.isEmpty() -> InlineEmptyCard(
+                                title = stringResource(R.string.empty_title),
+                                summary = stringResource(R.string.group_search_empty),
+                            )
+                            else -> groups.forEach { group ->
+                                GroupRow(
+                                    group = group,
+                                    expanded = expanded[group.id] == true,
+                                    onToggleExpanded = { expanded[group.id] = !(expanded[group.id] == true) },
+                                    onEdit = { editingGroup = group },
+                                    onDelete = { deletingId = group.id },
+                                )
+                            }
                         }
                     }
                 }
@@ -167,71 +195,186 @@ private fun GroupRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val items = if (expanded) group.items else group.items.take(3)
+    val sortedItems = group.items.sortedBy { it.priority }
+    val visibleItems = if (expanded) sortedItems else sortedItems.take(4)
 
-    AppListCard(onClick = onToggleExpanded) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    AppListCard(
+        onClick = onToggleExpanded,
+        padding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text(
-                    text = group.name,
-                    style = MiuixTheme.textStyles.main,
-                    fontWeight = FontWeight.SemiBold,
+                Column(
                     modifier = Modifier.weight(1f),
-                )
-                AppTypePill(text = groupModeName(group.mode), color = groupModeColor(group.mode))
-                Icon(
-                    imageVector = AppMiuixIcons.Create,
-                    contentDescription = stringResource(R.string.action_edit),
-                    tint = MiuixTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .size(18.dp)
-                        .padding(1.dp)
-                        .clickable(onClick = onEdit),
-                )
-                Icon(
-                    imageVector = AppMiuixIcons.Delete,
-                    contentDescription = stringResource(R.string.common_delete),
-                    tint = MiuixTheme.colorScheme.error,
-                    modifier = Modifier
-                        .size(18.dp)
-                        .padding(start = 2.dp)
-                        .clickable(onClick = onDelete),
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (group.firstTokenTimeOut > 0) {
-                    AppInfoChip(text = stringResource(R.string.group_timeout_summary, group.firstTokenTimeOut), icon = AppMiuixIcons.Time)
-                }
-                if (group.sessionKeepTime > 0) {
-                    AppInfoChip(text = stringResource(R.string.group_keep_summary, group.sessionKeepTime), icon = AppMiuixIcons.Time)
-                }
-                AppInfoChip(text = stringResource(R.string.group_channel_count, group.items.size), icon = AppMiuixIcons.Group)
-            }
-            if (group.items.isNotEmpty()) {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    items.forEach { item ->
-                        AppInfoChip(
-                            text = item.modelName.ifBlank { stringResource(R.string.group_item_channel_fallback, item.channelId) },
-                            icon = AppMiuixIcons.Channel,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = group.name.ifBlank { stringResource(R.string.group_unnamed) },
+                            style = MiuixTheme.textStyles.title3,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        AppTypePill(text = groupModeName(group.mode), color = groupModeColor(group.mode))
+                    }
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        AppInfoChip(text = stringResource(R.string.group_channel_count, group.items.size), icon = AppMiuixIcons.Group)
+                        if (group.firstTokenTimeOut > 0) {
+                            AppInfoChip(text = stringResource(R.string.group_timeout_summary, group.firstTokenTimeOut), icon = AppMiuixIcons.Time)
+                        }
+                        if (group.sessionKeepTime > 0) {
+                            AppInfoChip(text = stringResource(R.string.group_keep_summary, group.sessionKeepTime), icon = AppMiuixIcons.Time)
+                        }
+                        if (group.matchRegex.isNotBlank()) {
+                            AppInfoChip(text = stringResource(R.string.group_match_regex_summary, group.matchRegex), icon = AppMiuixIcons.Filter)
+                        }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            imageVector = AppMiuixIcons.Create,
+                            contentDescription = stringResource(R.string.action_edit),
+                            tint = MiuixTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp),
                         )
                     }
-                    if (group.items.size > 3) {
-                        Text(
-                            text = if (expanded) stringResource(R.string.group_collapse) else stringResource(R.string.group_expand_more, group.items.size - 3),
-                            color = MiuixTheme.colorScheme.primary,
-                            style = MiuixTheme.textStyles.body2,
-                            modifier = Modifier.align(Alignment.CenterVertically),
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            imageVector = AppMiuixIcons.Delete,
+                            contentDescription = stringResource(R.string.common_delete),
+                            tint = MiuixTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp),
                         )
                     }
                 }
             }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 96.dp)
+                    .clip(RoundedCornerShape(GroupInnerRadius))
+                    .background(MiuixTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.48f))
+                    .border(
+                        width = 1.dp,
+                        color = MiuixTheme.colorScheme.surfaceContainerHigh,
+                        shape = RoundedCornerShape(GroupInnerRadius),
+                    )
+                    .padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (group.items.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.group_items_empty),
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp),
+                    )
+                } else {
+                    visibleItems.forEachIndexed { index, item ->
+                        GroupItemRow(index = index, item = item, showWeight = group.mode == 4)
+                    }
+                    if (group.items.size > visibleItems.size) {
+                        Text(
+                            text = if (expanded) {
+                                stringResource(R.string.group_collapse)
+                            } else {
+                                stringResource(R.string.group_expand_more, group.items.size - visibleItems.size)
+                            },
+                            color = MiuixTheme.colorScheme.primary,
+                            style = MiuixTheme.textStyles.body2,
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .padding(top = 2.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GroupItemRow(
+    index: Int,
+    item: GroupItem,
+    showWeight: Boolean,
+) {
+    val modelName = item.modelName.ifBlank { stringResource(R.string.group_item_channel_fallback, item.channelId) }
+    val itemMeta = if (showWeight) {
+        "P${item.priority} / W${item.weight}"
+    } else {
+        "P${item.priority}"
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(GroupItemRadius))
+            .background(MiuixTheme.colorScheme.surface)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(RoundedCornerShape(GroupBadgeRadius))
+                .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = (index + 1).toString(),
+                color = MiuixTheme.colorScheme.primary,
+                style = MiuixTheme.textStyles.body1,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.88f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = modelName.firstOrNull()?.uppercaseChar()?.toString() ?: "#",
+                color = MiuixTheme.colorScheme.onPrimary,
+                style = MiuixTheme.textStyles.body2,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = modelName,
+                style = MiuixTheme.textStyles.main,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = stringResource(R.string.group_item_channel_summary, item.channelId, itemMeta),
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

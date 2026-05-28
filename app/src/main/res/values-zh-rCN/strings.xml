@@ -168,8 +168,11 @@
     <string name="group_sort_name_asc">名称正序</string>
     <string name="group_sort_name_desc">名称倒序</string>
     <string name="group_empty">暂无分组。</string>
+    <string name="group_search_empty">没有匹配的分组。</string>
+    <string name="group_unnamed">未命名分组</string>
     <string name="group_timeout_summary">超时 %1$s 秒</string>
     <string name="group_keep_summary">保持 %1$s 秒</string>
+    <string name="group_match_regex_summary">正则 %1$s</string>
     <string name="group_channel_count">渠道 %1$s 个</string>
     <string name="group_expand_more">还有 %1$s 项</string>
     <string name="group_collapse">收起</string>
@@ -199,6 +202,7 @@
     <string name="group_channel_picker_title">选择渠道</string>
     <string name="group_channel_picker_summary">从现有渠道中选择成员，不再手填渠道 ID。</string>
     <string name="group_channel_picker_empty">还没有可选渠道。</string>
+    <string name="group_items_empty">暂无成员。</string>
     <string name="group_item_channel_summary">ID %1$d · %2$s</string>
     <string name="group_item_model_display">模型 %1$s</string>
     <string name="group_item_channel_fallback">渠道 %1$d</string>
