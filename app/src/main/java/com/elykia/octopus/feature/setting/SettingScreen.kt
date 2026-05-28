@@ -12,9 +12,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elykia.octopus.R
@@ -71,14 +73,12 @@ fun SettingScreen(
                 contentPadding = contentPadding,
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // 版本信息卡片
                     VersionCard(
                         currentVersion = uiState.currentVersion ?: stringResource(R.string.common_unknown),
                         latestVersion = uiState.latestInfo?.tagName ?: stringResource(R.string.common_unknown),
                         publishedAt = uiState.latestInfo?.publishedAt,
                     )
 
-                    // 偏好设置区
                     SectionLabel(title = stringResource(R.string.setting_preferences_title))
                     PreferenceRow(
                         title = stringResource(R.string.setting_language_label),
@@ -107,7 +107,6 @@ fun SettingScreen(
 
                     SectionSpacer(height = 8)
 
-                    // 操作区
                     SectionLabel(title = stringResource(R.string.setting_actions_title))
                     PreferenceRow(
                         title = stringResource(R.string.action_check_update),
@@ -126,12 +125,10 @@ fun SettingScreen(
 
                     SectionSpacer(height = 8)
 
-                    // 服务器设置区
                     SectionLabel(title = stringResource(R.string.setting_server_title))
                     uiState.sections.forEach { section ->
                         section.items.forEach { item ->
                             if (item.key == "relay_log_keep_enabled") {
-                                // 布尔值：右侧 Switch
                                 SwitchRow(
                                     title = settingItemTitle(item.key),
                                     checked = item.value == "true",
@@ -140,7 +137,6 @@ fun SettingScreen(
                                     },
                                 )
                             } else {
-                                // 其他：点击编辑
                                 PreferenceRow(
                                     title = settingItemTitle(item.key),
                                     value = item.value.ifBlank { stringResource(R.string.common_unknown) },
@@ -154,7 +150,6 @@ fun SettingScreen(
         }
     }
 
-    // 编辑弹窗
     editingItem?.let { item ->
         SettingEditDialog(
             item = item,
@@ -177,13 +172,35 @@ private fun VersionCard(
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             AppInfoChip(text = stringResource(R.string.setting_info_title), icon = AppMiuixIcons.Info)
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(text = stringResource(R.string.setting_info_current, currentVersion), style = MiuixTheme.textStyles.main, fontWeight = FontWeight.SemiBold)
-                Text(text = stringResource(R.string.setting_info_latest, latestVersion), style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.setting_info_current, currentVersion),
+                    style = MiuixTheme.textStyles.main,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = stringResource(R.string.setting_info_latest, latestVersion),
+                    style = MiuixTheme.textStyles.body2,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 if (!publishedAt.isNullOrBlank()) {
-                    Text(text = stringResource(R.string.setting_info_published, publishedAt), style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                    Text(
+                        text = stringResource(R.string.setting_info_published, publishedAt),
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
@@ -209,14 +226,23 @@ private fun PreferenceRow(
     AppListCard(onClick = onClick) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(text = title, style = MiuixTheme.textStyles.main)
+            Text(
+                text = title,
+                style = MiuixTheme.textStyles.main,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             if (value != null) {
                 Text(
                     text = value,
                     style = MiuixTheme.textStyles.body2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -233,8 +259,15 @@ private fun SwitchRow(
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(text = title, style = MiuixTheme.textStyles.main)
+            Text(
+                text = title,
+                style = MiuixTheme.textStyles.main,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             Switch(checked = checked, onCheckedChange = onCheckedChange)
         }
     }

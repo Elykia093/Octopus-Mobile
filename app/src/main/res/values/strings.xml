@@ -236,6 +236,7 @@
     <string name="log_card_title">Relay Logs</string>
     <string name="log_card_summary">Recent relay requests.</string>
     <string name="log_empty">No logs.</string>
+    <string name="log_search_empty">No matching logs.</string>
     <string name="log_row_actual_model">Actual model %1$s</string>
     <string name="log_input_token">In %1$s</string>
     <string name="log_output_token">Out %1$s</string>

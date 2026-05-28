@@ -563,9 +563,10 @@ fun StatOverviewCard(
     summary: String,
     icon: ImageVector,
     accentColor: Color,
+    modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(124.dp),
         insideMargin = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
@@ -587,6 +588,8 @@ fun StatOverviewCard(
                 color = accentColor,
                 style = MiuixTheme.textStyles.title1,
                 fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = summary,

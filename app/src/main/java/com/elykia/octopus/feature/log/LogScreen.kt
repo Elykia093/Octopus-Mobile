@@ -2,6 +2,8 @@ package com.elykia.octopus.feature.log
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elykia.octopus.R
@@ -24,8 +27,8 @@ import com.elykia.octopus.core.designsystem.AppInfoChip
 import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.AppPageScaffold
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
-import com.elykia.octopus.core.designsystem.EmptyPane
 import com.elykia.octopus.core.designsystem.ErrorPane
+import com.elykia.octopus.core.designsystem.InlineEmptyCard
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.OctopusTones
 import com.elykia.octopus.core.designsystem.PageActionButton
@@ -52,7 +55,6 @@ fun LogScreen(
     when {
         uiState.loading -> LoadingPane(title = stringResource(R.string.log_title))
         uiState.error != null -> ErrorPane(message = uiState.error ?: stringResource(R.string.error_title), onRetry = viewModel::refresh)
-        uiState.logs.isEmpty() -> EmptyPane(title = stringResource(R.string.log_title), summary = stringResource(R.string.log_empty))
         else -> {
             val logs = uiState.logs.filter { log ->
                 searchTerm.isBlank() ||
@@ -67,27 +69,42 @@ fun LogScreen(
                     PageActionButton(
                         icon = AppMiuixIcons.Delete,
                         contentDescription = stringResource(R.string.log_toolbar_clear),
+                        enabled = uiState.logs.isNotEmpty(),
                         onClick = { confirmClear = true },
                     )
                 },
                 contentPadding = contentPadding,
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SearchField(
-                        value = searchTerm,
-                        onValueChange = { searchTerm = it },
-                        hint = stringResource(R.string.log_search_hint),
-                    )
-                    logs.forEach { log ->
-                        LogRow(log = log)
+                    if (uiState.logs.isNotEmpty()) {
+                        SearchField(
+                            value = searchTerm,
+                            onValueChange = { searchTerm = it },
+                            hint = stringResource(R.string.log_search_hint),
+                        )
                     }
-                    if (uiState.hasMore) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                            ToolbarChip(
-                                text = stringResource(R.string.action_load_more),
-                                selected = false,
-                                onClick = viewModel::loadMore,
-                            )
+                    when {
+                        uiState.logs.isEmpty() -> InlineEmptyCard(
+                            title = stringResource(R.string.log_title),
+                            summary = stringResource(R.string.log_empty),
+                        )
+                        logs.isEmpty() -> InlineEmptyCard(
+                            title = stringResource(R.string.empty_title),
+                            summary = stringResource(R.string.log_search_empty),
+                        )
+                        else -> {
+                            logs.forEach { log ->
+                                LogRow(log = log)
+                            }
+                            if (uiState.hasMore) {
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                    ToolbarChip(
+                                        text = stringResource(R.string.action_load_more),
+                                        selected = false,
+                                        onClick = viewModel::loadMore,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -108,13 +125,14 @@ fun LogScreen(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun LogRow(
     log: RelayLog,
 ) {
     val hasError = log.error.isNotBlank()
     val statusColor = if (hasError) MiuixTheme.colorScheme.error else OctopusTones.Success
 
-    AppListCard {
+    AppListCard(padding = PaddingValues(horizontal = 16.dp, vertical = 16.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -131,11 +149,19 @@ private fun LogRow(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(text = log.requestModelName, style = MiuixTheme.textStyles.main, fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = log.channelName,
+                        text = log.requestModelName.ifBlank { stringResource(R.string.common_unknown) },
+                        style = MiuixTheme.textStyles.main,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = log.channelName.ifBlank { stringResource(R.string.common_unknown) },
                         style = MiuixTheme.textStyles.body2,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -144,6 +170,8 @@ private fun LogRow(
                         style = MiuixTheme.textStyles.main,
                         fontWeight = FontWeight.SemiBold,
                         color = MiuixTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = formatLogTime(log.time),
@@ -156,8 +184,13 @@ private fun LogRow(
                 text = stringResource(R.string.log_row_actual_model, log.actualModelName),
                 style = MiuixTheme.textStyles.body2,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 AppInfoChip(text = stringResource(R.string.log_input_token, log.inputTokens), icon = AppMiuixIcons.ArrowUp)
                 AppInfoChip(text = stringResource(R.string.log_output_token, log.outputTokens), icon = AppMiuixIcons.ArrowDown)
                 AppInfoChip(text = stringResource(R.string.log_use_time, log.useTime), icon = AppMiuixIcons.Time)

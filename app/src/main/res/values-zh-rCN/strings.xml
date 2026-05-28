@@ -236,6 +236,7 @@
     <string name="log_card_title">请求日志</string>
     <string name="log_card_summary">近期中转请求记录。</string>
     <string name="log_empty">暂无日志。</string>
+    <string name="log_search_empty">没有匹配的日志。</string>
     <string name="log_row_actual_model">实际模型 %1$s</string>
     <string name="log_input_token">输入 %1$s</string>
     <string name="log_output_token">输出 %1$s</string>

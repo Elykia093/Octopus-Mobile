@@ -5,16 +5,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elykia.octopus.R
@@ -23,15 +25,14 @@ import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.StatsApiKeyEntry
 import com.elykia.octopus.core.data.model.StatsDaily
 import com.elykia.octopus.core.data.model.StatsTotal
-import com.elykia.octopus.core.designsystem.AppInfoChip
-import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.AppPageScaffold
 import com.elykia.octopus.core.designsystem.EmptyPane
 import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.OctopusTones
 import com.elykia.octopus.core.designsystem.PageActionButton
-import com.elykia.octopus.core.designsystem.RankRow
+import com.elykia.octopus.core.designsystem.ProgressToneBar
+import com.elykia.octopus.core.designsystem.RankBadge
 import com.elykia.octopus.core.designsystem.SectionCard
 import com.elykia.octopus.core.designsystem.StatOverviewCard
 import com.elykia.octopus.core.designsystem.ToolbarChip
@@ -87,19 +88,6 @@ fun HomeScreen(
             AppPageScaffold(
                 title = stringResource(R.string.home_title),
                 actions = {
-                    // SegmentedControl: Today / Total
-                    Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
-                        ToolbarChip(
-                            text = stringResource(R.string.home_scope_today),
-                            selected = showToday,
-                            onClick = { showToday = true },
-                        )
-                        ToolbarChip(
-                            text = stringResource(R.string.home_scope_total),
-                            selected = !showToday,
-                            onClick = { showToday = false },
-                        )
-                    }
                     PageActionButton(
                         icon = AppMiuixIcons.Refresh,
                         contentDescription = stringResource(R.string.common_refresh),
@@ -114,6 +102,18 @@ fun HomeScreen(
                 contentPadding = contentPadding,
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ToolbarChip(
+                            text = stringResource(R.string.home_scope_today),
+                            selected = showToday,
+                            onClick = { showToday = true },
+                        )
+                        ToolbarChip(
+                            text = stringResource(R.string.home_scope_total),
+                            selected = !showToday,
+                            onClick = { showToday = false },
+                        )
+                    }
                     DashboardOverviewSection(
                         requestCount = requestCount,
                         successCount = successCount,
@@ -155,6 +155,7 @@ private fun DashboardOverviewSection(
                 summary = stringResource(R.string.home_stat_success_count, formatCount(successCount)),
                 icon = AppMiuixIcons.Request,
                 accentColor = OctopusTones.Request,
+                modifier = Modifier.weight(1f),
             )
             StatOverviewCard(
                 title = stringResource(R.string.home_stat_cost),
@@ -162,6 +163,7 @@ private fun DashboardOverviewSection(
                 summary = stringResource(R.string.home_stat_input_cost, formatMoney(inputCost)),
                 icon = AppMiuixIcons.Cost,
                 accentColor = OctopusTones.Cost,
+                modifier = Modifier.weight(1f),
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -171,6 +173,7 @@ private fun DashboardOverviewSection(
                 summary = stringResource(R.string.home_stat_input_tokens, formatCount(inputToken)),
                 icon = AppMiuixIcons.Token,
                 accentColor = OctopusTones.Token,
+                modifier = Modifier.weight(1f),
             )
             StatOverviewCard(
                 title = stringResource(R.string.home_stat_success_rate),
@@ -178,6 +181,7 @@ private fun DashboardOverviewSection(
                 summary = stringResource(R.string.home_stat_wait_summary, formatDurationMs(waitValue)),
                 icon = AppMiuixIcons.Success,
                 accentColor = OctopusTones.SuccessRate,
+                modifier = Modifier.weight(1f),
             )
         }
     }
@@ -296,7 +300,7 @@ private fun RankingSectionCard(
                 )
             } else {
                 items.forEach { (rank, label, content) ->
-                    RankRow(
+                    DashboardRankRow(
                         rank = rank,
                         title = label,
                         subtitle = content.subtitle,
@@ -307,6 +311,54 @@ private fun RankingSectionCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DashboardRankRow(
+    rank: Int,
+    title: String,
+    subtitle: String,
+    value: String,
+    accent: Color,
+    progress: Float,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            RankBadge(rank = rank)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = title,
+                    style = MiuixTheme.textStyles.main,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subtitle,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    style = MiuixTheme.textStyles.body2,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Text(
+                text = value,
+                color = accent,
+                style = MiuixTheme.textStyles.main,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        ProgressToneBar(progress = progress, color = accent)
     }
 }
 
