@@ -80,8 +80,13 @@
     <string name="home_total_wait_time">Wait time</string>
     <string name="home_total_tokens">Tokens</string>
     <string name="home_total_cost">Cost</string>
+    <string name="home_all_title">All Stats</string>
     <string name="home_input_title">Input Stats</string>
+    <string name="home_input_tokens">Input Tokens</string>
+    <string name="home_input_cost">Input Cost</string>
     <string name="home_output_title">Output Stats</string>
+    <string name="home_output_tokens">Output Tokens</string>
+    <string name="home_output_cost">Output Cost</string>
     <string name="home_activity_title">Activity</string>
     <string name="home_activity_summary">Recent daily requests.</string>
     <string name="home_chart_title">Trend</string>
@@ -132,6 +137,9 @@
     <string name="channel_fallback_name">Channel #%1$d</string>
     <string name="channel_key_count">Keys %1$d/%2$d</string>
     <string name="channel_base_url_summary">URL %1$s</string>
+    <string name="channel_request_count">Request count</string>
+    <string name="channel_total_cost">Total cost</string>
+    <string name="channel_compact_summary">%1$s · Keys %2$d/%3$d · %4$s</string>
     <string name="channel_proxy_summary">Proxy</string>
     <string name="channel_auto_sync_summary">Auto sync</string>
     <string name="channel_stat_success">Success %1$s</string>
@@ -241,6 +249,12 @@
     <string name="log_input_token">In %1$s</string>
     <string name="log_output_token">Out %1$s</string>
     <string name="log_use_time">%1$s ms</string>
+    <string name="log_metric_time">Time</string>
+    <string name="log_metric_first_token">First</string>
+    <string name="log_metric_total_time">Total</string>
+    <string name="log_metric_input">Input</string>
+    <string name="log_metric_output">Output</string>
+    <string name="log_metric_cost">Cost</string>
     <string name="log_clear_title">Clear logs</string>
     <string name="log_clear_summary">This action will clear all history logs.</string>
     <string name="log_cost_line">Cost %1$.4f · Time %2$d ms · Attempts %3$d</string>

@@ -19,6 +19,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -43,7 +45,6 @@ import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.foundation.Canvas
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -84,7 +85,7 @@ fun FloatingDockBar(
         mode = mode,
         showDivider = true,
         shadowElevation = 10.dp,
-        color = MiuixTheme.colorScheme.surfaceContainer,
+        color = OctopusTokens.Card,
     ) {
         items.forEach { item ->
             FloatingNavigationBarItem(
@@ -154,7 +155,17 @@ fun PageContainer(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MiuixTheme.colorScheme.background),
+            .background(OctopusTokens.Canvas)
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        OctopusTokens.PrimarySoft.copy(alpha = 0.95f),
+                        Color.Transparent,
+                    ),
+                    center = Offset(760f, 120f),
+                    radius = 620f,
+                )
+            ),
     ) {
         content()
     }
@@ -252,10 +263,7 @@ fun SectionCard(
     actions: @Composable (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        insideMargin = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
-    ) {
+    AppListCard(padding = PaddingValues(horizontal = 18.dp, vertical = 18.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -552,52 +560,6 @@ fun MetricCard(
             Text(text = title, style = MiuixTheme.textStyles.title3, fontWeight = FontWeight.SemiBold)
             InfoRow(label = primaryLabel, value = primaryValue)
             InfoRow(label = secondaryLabel, value = secondaryValue)
-        }
-    }
-}
-
-@Composable
-fun StatOverviewCard(
-    title: String,
-    value: String,
-    summary: String,
-    icon: ImageVector,
-    accentColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(124.dp),
-        insideMargin = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(imageVector = icon, contentDescription = title, tint = accentColor)
-                Text(
-                    text = title,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    style = MiuixTheme.textStyles.body2,
-                )
-            }
-            Text(
-                text = value,
-                color = accentColor,
-                style = MiuixTheme.textStyles.title1,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = summary,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                style = MiuixTheme.textStyles.body2,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
     }
 }

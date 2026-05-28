@@ -5,8 +5,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,13 +39,12 @@ import com.elykia.octopus.core.data.model.GroupItem
 import com.elykia.octopus.core.designsystem.AppInfoChip
 import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.AppPageScaffold
-import com.elykia.octopus.core.designsystem.AppTypePill
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
 import com.elykia.octopus.core.designsystem.ErrorPane
-import com.elykia.octopus.core.designsystem.FloatingCreateButton
 import com.elykia.octopus.core.designsystem.InlineEmptyCard
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.OctopusTones
+import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.OptionChipGroup
 import com.elykia.octopus.core.designsystem.OptionChipItem
 import com.elykia.octopus.core.designsystem.PageActionButton
@@ -103,6 +100,11 @@ fun GroupScreen(
                             contentDescription = stringResource(R.string.common_refresh),
                             onClick = viewModel::refresh,
                         )
+                        PageActionButton(
+                            icon = AppMiuixIcons.Add,
+                            contentDescription = stringResource(R.string.action_create),
+                            onClick = { showCreateDialog = true },
+                        )
                     },
                     contentPadding = contentPadding,
                 ) {
@@ -135,15 +137,6 @@ fun GroupScreen(
                         }
                     }
                 }
-
-                FloatingCreateButton(
-                    text = stringResource(R.string.action_create),
-                    icon = AppMiuixIcons.Add,
-                    onClick = { showCreateDialog = true },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 20.dp, bottom = 94.dp),
-                )
             }
 
             DangerConfirmDialog(
@@ -187,7 +180,6 @@ fun GroupScreen(
 }
 
 @Composable
-@OptIn(ExperimentalLayoutApi::class)
 private fun GroupRow(
     group: Group,
     expanded: Boolean,
@@ -200,48 +192,23 @@ private fun GroupRow(
 
     AppListCard(
         onClick = onToggleExpanded,
-        padding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+        padding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Column(
+                Text(
+                    text = group.name.ifBlank { stringResource(R.string.group_unnamed) },
+                    style = MiuixTheme.textStyles.title3,
+                    fontWeight = FontWeight.Bold,
+                    color = OctopusTokens.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            text = group.name.ifBlank { stringResource(R.string.group_unnamed) },
-                            style = MiuixTheme.textStyles.title3,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false),
-                        )
-                        AppTypePill(text = groupModeName(group.mode), color = groupModeColor(group.mode))
-                    }
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        AppInfoChip(text = stringResource(R.string.group_channel_count, group.items.size), icon = AppMiuixIcons.Group)
-                        if (group.firstTokenTimeOut > 0) {
-                            AppInfoChip(text = stringResource(R.string.group_timeout_summary, group.firstTokenTimeOut), icon = AppMiuixIcons.Time)
-                        }
-                        if (group.sessionKeepTime > 0) {
-                            AppInfoChip(text = stringResource(R.string.group_keep_summary, group.sessionKeepTime), icon = AppMiuixIcons.Time)
-                        }
-                        if (group.matchRegex.isNotBlank()) {
-                            AppInfoChip(text = stringResource(R.string.group_match_regex_summary, group.matchRegex), icon = AppMiuixIcons.Filter)
-                        }
-                    }
-                }
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     IconButton(onClick = onEdit) {
                         Icon(
@@ -262,15 +229,28 @@ private fun GroupRow(
                 }
             }
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                listOf(1, 2, 3, 4).forEach { mode ->
+                    ModeOptionPill(
+                        text = groupModeName(mode),
+                        selected = group.mode == mode,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 96.dp)
                     .clip(RoundedCornerShape(GroupInnerRadius))
-                    .background(MiuixTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.48f))
+                    .background(OctopusTokens.Card)
                     .border(
                         width = 1.dp,
-                        color = MiuixTheme.colorScheme.surfaceContainerHigh,
+                        color = OctopusTokens.Border,
                         shape = RoundedCornerShape(GroupInnerRadius),
                     )
                     .padding(10.dp),
@@ -280,7 +260,7 @@ private fun GroupRow(
                     Text(
                         text = stringResource(R.string.group_items_empty),
                         style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        color = OctopusTokens.TextSecondary,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp),
                     )
                 } else {
@@ -294,7 +274,7 @@ private fun GroupRow(
                             } else {
                                 stringResource(R.string.group_expand_more, group.items.size - visibleItems.size)
                             },
-                            color = MiuixTheme.colorScheme.primary,
+                            color = OctopusTokens.Accent,
                             style = MiuixTheme.textStyles.body2,
                             modifier = Modifier
                                 .align(Alignment.CenterHorizontally)
@@ -304,6 +284,30 @@ private fun GroupRow(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ModeOptionPill(
+    text: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) OctopusTokens.Accent else OctopusTokens.Muted)
+            .padding(horizontal = 8.dp, vertical = 9.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = MiuixTheme.textStyles.body2,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            color = if (selected) Color.White else OctopusTokens.TextPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -324,7 +328,8 @@ private fun GroupItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GroupItemRadius))
-            .background(MiuixTheme.colorScheme.surface)
+            .background(OctopusTokens.Muted)
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.7f), RoundedCornerShape(GroupItemRadius))
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -333,12 +338,12 @@ private fun GroupItemRow(
             modifier = Modifier
                 .size(28.dp)
                 .clip(RoundedCornerShape(GroupBadgeRadius))
-                .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                .background(OctopusTokens.PrimarySoft),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = (index + 1).toString(),
-                color = MiuixTheme.colorScheme.primary,
+                color = OctopusTokens.Accent,
                 style = MiuixTheme.textStyles.body1,
                 fontWeight = FontWeight.Bold,
             )
@@ -347,12 +352,12 @@ private fun GroupItemRow(
             modifier = Modifier
                 .size(24.dp)
                 .clip(RoundedCornerShape(999.dp))
-                .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.88f)),
+                .background(OctopusTones.Orange.copy(alpha = 0.88f)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = modelName.firstOrNull()?.uppercaseChar()?.toString() ?: "#",
-                color = MiuixTheme.colorScheme.onPrimary,
+                color = Color.White,
                 style = MiuixTheme.textStyles.body2,
                 fontWeight = FontWeight.Bold,
             )
@@ -365,13 +370,14 @@ private fun GroupItemRow(
                 text = modelName,
                 style = MiuixTheme.textStyles.main,
                 fontWeight = FontWeight.Medium,
+                color = OctopusTokens.TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = stringResource(R.string.group_item_channel_summary, item.channelId, itemMeta),
                 style = MiuixTheme.textStyles.body2,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                color = OctopusTokens.TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -387,8 +393,6 @@ private fun groupModeName(mode: Int): String = when (mode) {
     4 -> stringResource(R.string.group_mode_weighted)
     else -> stringResource(R.string.group_mode_unknown, mode)
 }
-
-private fun groupModeColor(mode: Int): Color = OctopusTones.groupMode(mode)
 
 @Composable
 private fun GroupEditorDialog(

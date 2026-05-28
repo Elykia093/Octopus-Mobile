@@ -45,7 +45,7 @@ fun MainShell(
                 items = dockItems,
                 selectedKey = currentTab.route,
                 onSelected = { route -> currentTab = MainTab.entries.first { it.route == route } },
-                mode = FloatingNavigationBarDisplayMode.IconAndText,
+                mode = FloatingNavigationBarDisplayMode.IconOnly,
             )
         },
     ) { padding ->

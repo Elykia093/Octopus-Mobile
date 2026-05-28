@@ -3,17 +3,18 @@ package com.elykia.octopus.feature.apikey
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -23,6 +24,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -35,14 +38,13 @@ import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.designsystem.AppInfoChip
 import com.elykia.octopus.core.designsystem.AppListCard
+import com.elykia.octopus.core.designsystem.AppMetricRow
 import com.elykia.octopus.core.designsystem.AppPageScaffold
-import com.elykia.octopus.core.designsystem.AppTypePill
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
 import com.elykia.octopus.core.designsystem.ErrorPane
-import com.elykia.octopus.core.designsystem.FloatingCreateButton
 import com.elykia.octopus.core.designsystem.InlineEmptyCard
 import com.elykia.octopus.core.designsystem.LoadingPane
-import com.elykia.octopus.core.designsystem.OctopusTones
+import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
 import com.elykia.octopus.core.designsystem.formatMoney
@@ -92,6 +94,11 @@ fun ApiKeyScreen(
                             contentDescription = stringResource(R.string.common_refresh),
                             onClick = viewModel::refresh,
                         )
+                        PageActionButton(
+                            icon = AppMiuixIcons.Add,
+                            contentDescription = stringResource(R.string.action_create),
+                            onClick = { showCreateDialog = true },
+                        )
                     },
                     contentPadding = contentPadding,
                 ) {
@@ -123,15 +130,6 @@ fun ApiKeyScreen(
                         }
                     }
                 }
-
-                FloatingCreateButton(
-                    text = stringResource(R.string.action_create),
-                    icon = AppMiuixIcons.Add,
-                    onClick = { showCreateDialog = true },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 20.dp, bottom = 94.dp),
-                )
             }
 
             DangerConfirmDialog(
@@ -189,7 +187,6 @@ fun ApiKeyScreen(
 }
 
 @Composable
-@OptIn(ExperimentalLayoutApi::class)
 private fun ApiKeyRow(
     item: ApiKeyItem,
     onToggle: (Boolean) -> Unit,
@@ -202,45 +199,38 @@ private fun ApiKeyRow(
         ?.filter { it.isNotBlank() }
         .orEmpty()
 
-    AppListCard(padding = PaddingValues(horizontal = 16.dp, vertical = 16.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    AppListCard(padding = PaddingValues(horizontal = 18.dp, vertical = 18.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Switch(checked = item.enabled, onCheckedChange = onToggle)
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            text = item.name.ifBlank { stringResource(R.string.apikey_fallback_name, item.id) },
-                            style = MiuixTheme.textStyles.title3,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        AppTypePill(
-                            text = stringResource(if (item.enabled) R.string.apikey_enabled_summary else R.string.apikey_disabled_summary),
-                            color = if (item.enabled) OctopusTones.Success else OctopusTones.Danger,
-                        )
-                    }
+                    Text(
+                        text = item.name.ifBlank { stringResource(R.string.apikey_fallback_name, item.id) },
+                        style = MiuixTheme.textStyles.title3,
+                        fontWeight = FontWeight.Bold,
+                        color = OctopusTokens.TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                     Text(
                         text = item.apiKey.maskApiKey(),
                         style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        color = OctopusTokens.TextSecondary,
                         fontFamily = FontFamily.Monospace,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                ApiKeyStatusPill(
+                    enabled = item.enabled,
+                    onClick = { onToggle(!item.enabled) },
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     IconButton(onClick = onEdit) {
                         Icon(
@@ -261,36 +251,55 @@ private fun ApiKeyRow(
                 }
             }
 
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                AppInfoChip(
-                    text = item.expireAt
-                        ?.takeIf { it > 0 }
-                        ?.let { stringResource(R.string.apikey_expire_summary, it) }
-                        ?: stringResource(R.string.apikey_expire_never),
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                AppMetricRow(
                     icon = AppMiuixIcons.Time,
+                    label = stringResource(R.string.apikey_expire_at_label),
+                    value = item.expireAt
+                        ?.takeIf { it > 0L }
+                        ?.toString()
+                        ?: stringResource(R.string.apikey_expire_never),
                 )
-                AppInfoChip(
-                    text = item.maxCost
+                AppMetricRow(
+                    icon = AppMiuixIcons.Cost,
+                    label = stringResource(R.string.apikey_max_cost_label),
+                    value = item.maxCost
                         ?.takeIf { it > 0.0 }
                         ?.let(::formatMoney)
                         ?: stringResource(R.string.apikey_cost_unlimited),
-                    icon = AppMiuixIcons.Cost,
                 )
-                if (supportedModels.isEmpty()) {
-                    AppInfoChip(text = stringResource(R.string.apikey_models_all), icon = AppMiuixIcons.Token)
-                } else {
-                    supportedModels.take(3).forEach { model ->
-                        AppInfoChip(text = model.compactUiLabel(), icon = AppMiuixIcons.Token)
-                    }
-                    if (supportedModels.size > 3) {
-                        AppInfoChip(text = stringResource(R.string.apikey_models_more, supportedModels.size - 3), icon = AppMiuixIcons.More)
-                    }
-                }
             }
+
+            Text(
+                text = supportedModels.modelSummary(),
+                style = MiuixTheme.textStyles.body2,
+                color = OctopusTokens.TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
+    }
+}
+
+@Composable
+private fun ApiKeyStatusPill(
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(if (enabled) OctopusTokens.Accent else OctopusTokens.Muted)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 7.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(if (enabled) R.string.apikey_enabled_summary else R.string.apikey_disabled_summary),
+            color = if (enabled) Color.White else OctopusTokens.TextSecondary,
+            style = MiuixTheme.textStyles.body2,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
@@ -299,12 +308,17 @@ private fun String.maskApiKey(): String = when {
     else -> take(8) + "..." + takeLast(4)
 }
 
-private fun String.compactUiLabel(limit: Int = 24): String {
-    val clean = trim()
-    return if (clean.length <= limit) {
-        clean
+@Composable
+private fun List<String>.modelSummary(): String {
+    return if (isEmpty()) {
+        stringResource(R.string.apikey_models_all)
     } else {
-        clean.take(limit - 3) + "..."
+        val head = take(3).joinToString(", ")
+        if (size > 3) {
+            "$head · ${stringResource(R.string.apikey_models_more, size - 3)}"
+        } else {
+            head
+        }
     }
 }
 

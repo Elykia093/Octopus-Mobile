@@ -1,6 +1,7 @@
 package com.elykia.octopus.core.designsystem
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,12 +21,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
@@ -41,7 +42,7 @@ fun AppPageScaffold(
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         PageHeader(title = title, actions = actions)
         LazyColumn(
@@ -62,24 +63,22 @@ fun PageHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(start = 28.dp, top = 28.dp, end = 20.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Column(
+        OctopusBrandMark(size = 52.dp)
+        Text(
+            text = title,
+            style = MiuixTheme.textStyles.title1,
+            fontWeight = FontWeight.Bold,
+            color = OctopusTokens.TextPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                text = title,
-                style = MiuixTheme.textStyles.title1,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        )
         Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
             content = actions,
         )
@@ -94,7 +93,11 @@ fun PageActionButton(
     enabled: Boolean = true,
 ) {
     IconButton(onClick = onClick, enabled = enabled) {
-        Icon(imageVector = icon, contentDescription = contentDescription)
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = OctopusTokens.TextPrimary.copy(alpha = 0.72f),
+        )
     }
 }
 
@@ -105,15 +108,24 @@ fun AppListCard(
     padding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
     content: @Composable () -> Unit,
 ) {
-    val clickableModifier = if (onClick != null) {
-        modifier.clickable(onClick = onClick)
-    } else {
-        modifier
-    }
+    val shape = RoundedCornerShape(28.dp)
+    val clickableModifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
 
-    Card(
-        modifier = clickableModifier.fillMaxWidth(),
-        insideMargin = padding,
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 3.dp,
+                shape = shape,
+                clip = false,
+                ambientColor = Color.Black.copy(alpha = 0.05f),
+                spotColor = Color.Black.copy(alpha = 0.07f),
+            )
+            .clip(shape)
+            .background(OctopusTokens.Card)
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.9f), shape)
+            .then(clickableModifier)
+            .padding(padding),
     ) {
         content()
     }
@@ -123,12 +135,13 @@ fun AppListCard(
 fun AppInfoChip(
     text: String,
     icon: ImageVector? = null,
-    tint: Color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+    tint: Color = OctopusTokens.TextSecondary,
 ) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(MiuixTheme.colorScheme.secondaryContainer)
+            .background(OctopusTokens.Muted)
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.6f), RoundedCornerShape(999.dp))
             .padding(horizontal = 10.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -142,6 +155,57 @@ fun AppInfoChip(
             )
         }
         Text(text = text, style = MiuixTheme.textStyles.body2, color = tint)
+    }
+}
+
+@Composable
+fun AppMetricRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    accentColor: Color = OctopusTokens.Accent,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(OctopusTokens.Muted)
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.8f), RoundedCornerShape(18.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(OctopusTokens.PrimarySoft),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = accentColor,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Text(
+            text = label,
+            style = MiuixTheme.textStyles.main,
+            color = OctopusTokens.TextSecondary,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = value,
+            style = MiuixTheme.textStyles.main,
+            color = OctopusTokens.TextPrimary,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -204,40 +268,6 @@ fun RankRow(
             if (progress != null) {
                 ProgressToneBar(progress = progress, color = accent)
             }
-        }
-    }
-}
-
-@Composable
-fun FloatingCreateButton(
-    text: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(MiuixTheme.colorScheme.primary)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = text,
-                tint = MiuixTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                text = text,
-                color = MiuixTheme.colorScheme.onPrimary,
-                style = MiuixTheme.textStyles.main,
-                fontWeight = FontWeight.SemiBold,
-            )
         }
     }
 }

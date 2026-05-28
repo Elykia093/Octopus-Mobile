@@ -1,10 +1,16 @@
 package com.elykia.octopus.feature.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -13,7 +19,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -28,19 +36,21 @@ import com.elykia.octopus.core.data.model.StatsTotal
 import com.elykia.octopus.core.designsystem.AppPageScaffold
 import com.elykia.octopus.core.designsystem.EmptyPane
 import com.elykia.octopus.core.designsystem.ErrorPane
+import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.OctopusTones
+import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.ProgressToneBar
 import com.elykia.octopus.core.designsystem.RankBadge
 import com.elykia.octopus.core.designsystem.SectionCard
-import com.elykia.octopus.core.designsystem.StatOverviewCard
 import com.elykia.octopus.core.designsystem.ToolbarChip
 import com.elykia.octopus.core.designsystem.TrendLineChart
 import com.elykia.octopus.core.designsystem.TrendEntry
 import com.elykia.octopus.core.designsystem.formatCount
 import com.elykia.octopus.core.designsystem.formatDurationMs
 import com.elykia.octopus.core.designsystem.formatMoney
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
@@ -62,28 +72,29 @@ fun HomeScreen(
             val total = uiState.total ?: return
             val today = uiState.today
 
-            val (requestCount, costValue, tokenValue, waitValue, successCount, inputCostVal, inputTokenCount) = when (val s = if (showToday && today != null) today else total) {
+            val snapshot = when (val s = if (showToday && today != null) today else total) {
                 is StatsTotal -> StatsSnapshot(
                     requestCount = s.requestSuccess + s.requestFailed,
                     costValue = s.inputCost + s.outputCost,
                     tokenValue = s.inputToken + s.outputToken,
                     waitValue = s.waitTime,
-                    successCount = s.requestSuccess,
                     inputCost = s.inputCost,
                     inputToken = s.inputToken,
+                    outputCost = s.outputCost,
+                    outputToken = s.outputToken,
                 )
                 is StatsDaily -> StatsSnapshot(
                     requestCount = s.requestSuccess + s.requestFailed,
                     costValue = s.inputCost + s.outputCost,
                     tokenValue = s.inputToken + s.outputToken,
                     waitValue = s.waitTime,
-                    successCount = s.requestSuccess,
                     inputCost = s.inputCost,
                     inputToken = s.inputToken,
+                    outputCost = s.outputCost,
+                    outputToken = s.outputToken,
                 )
                 else -> StatsSnapshot()
             }
-            val successValue = if (requestCount == 0L) 0.0 else successCount.toDouble() / requestCount.toDouble()
 
             AppPageScaffold(
                 title = stringResource(R.string.home_title),
@@ -115,14 +126,7 @@ fun HomeScreen(
                         )
                     }
                     DashboardOverviewSection(
-                        requestCount = requestCount,
-                        successCount = successCount,
-                        costValue = costValue,
-                        inputCost = inputCostVal,
-                        tokenValue = tokenValue,
-                        inputToken = inputTokenCount,
-                        waitValue = waitValue,
-                        successValue = successValue,
+                        snapshot = snapshot,
                     )
                     DashboardTrendSection(daily = uiState.daily)
                     DashboardRankingSection(
@@ -138,50 +142,177 @@ fun HomeScreen(
 
 @Composable
 private fun DashboardOverviewSection(
-    requestCount: Long,
-    successCount: Long,
-    costValue: Double,
-    inputCost: Double,
-    tokenValue: Long,
-    inputToken: Long,
-    waitValue: Long,
-    successValue: Double,
+    snapshot: StatsSnapshot,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            StatOverviewCard(
-                title = stringResource(R.string.home_stat_requests),
-                value = formatCount(requestCount),
-                summary = stringResource(R.string.home_stat_success_count, formatCount(successCount)),
-                icon = AppMiuixIcons.Request,
-                accentColor = OctopusTones.Request,
-                modifier = Modifier.weight(1f),
+        DashboardOverviewCard(
+            title = stringResource(R.string.home_total_title),
+            icon = AppMiuixIcons.Request,
+            accent = OctopusTones.Request,
+            metrics = listOf(
+                OverviewMetric(
+                    icon = AppMiuixIcons.Request,
+                    label = stringResource(R.string.home_total_requests),
+                    value = formatCount(snapshot.requestCount),
+                ),
+                OverviewMetric(
+                    icon = AppMiuixIcons.Time,
+                    label = stringResource(R.string.home_total_wait_time),
+                    value = formatDurationMs(snapshot.waitValue),
+                ),
+            ),
+        )
+        DashboardOverviewCard(
+            title = stringResource(R.string.home_all_title),
+            icon = AppMiuixIcons.Total,
+            accent = OctopusTones.Token,
+            metrics = listOf(
+                OverviewMetric(
+                    icon = AppMiuixIcons.Token,
+                    label = stringResource(R.string.home_total_tokens),
+                    value = formatCount(snapshot.tokenValue),
+                ),
+                OverviewMetric(
+                    icon = AppMiuixIcons.Cost,
+                    label = stringResource(R.string.home_total_cost),
+                    value = formatMoney(snapshot.costValue),
+                ),
+            ),
+        )
+        DashboardOverviewCard(
+            title = stringResource(R.string.home_input_title),
+            icon = AppMiuixIcons.ArrowDown,
+            accent = OctopusTones.Request,
+            metrics = listOf(
+                OverviewMetric(
+                    icon = AppMiuixIcons.ArrowDown,
+                    label = stringResource(R.string.home_input_tokens),
+                    value = formatCount(snapshot.inputToken),
+                ),
+                OverviewMetric(
+                    icon = AppMiuixIcons.Cost,
+                    label = stringResource(R.string.home_input_cost),
+                    value = formatMoney(snapshot.inputCost),
+                ),
+            ),
+        )
+        DashboardOverviewCard(
+            title = stringResource(R.string.home_output_title),
+            icon = AppMiuixIcons.ArrowUp,
+            accent = OctopusTones.SuccessRate,
+            metrics = listOf(
+                OverviewMetric(
+                    icon = AppMiuixIcons.ArrowUp,
+                    label = stringResource(R.string.home_output_tokens),
+                    value = formatCount(snapshot.outputToken),
+                ),
+                OverviewMetric(
+                    icon = AppMiuixIcons.Cost,
+                    label = stringResource(R.string.home_output_cost),
+                    value = formatMoney(snapshot.outputCost),
+                ),
+            ),
+        )
+    }
+}
+
+@Composable
+private fun DashboardOverviewCard(
+    title: String,
+    icon: ImageVector,
+    accent: Color,
+    metrics: List<OverviewMetric>,
+) {
+    AppListCard(
+        padding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 142.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            Column(
+                modifier = Modifier.width(74.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = OctopusTokens.TextPrimary,
+                    modifier = Modifier.size(24.dp),
+                )
+                Text(
+                    text = title,
+                    style = MiuixTheme.textStyles.main,
+                    fontWeight = FontWeight.Medium,
+                    color = OctopusTokens.TextPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .heightIn(min = 112.dp)
+                    .background(OctopusTokens.Border),
             )
-            StatOverviewCard(
-                title = stringResource(R.string.home_stat_cost),
-                value = formatMoney(costValue),
-                summary = stringResource(R.string.home_stat_input_cost, formatMoney(inputCost)),
-                icon = AppMiuixIcons.Cost,
-                accentColor = OctopusTones.Cost,
+            Column(
                 modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                metrics.forEach { metric ->
+                    OverviewMetricLine(metric = metric, accent = accent)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OverviewMetricLine(
+    metric: OverviewMetric,
+    accent: Color,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .clip(RoundedCornerShape(15.dp))
+                .background(OctopusTokens.PrimarySoft),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = metric.icon,
+                contentDescription = metric.label,
+                tint = accent,
+                modifier = Modifier.size(24.dp),
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            StatOverviewCard(
-                title = stringResource(R.string.home_stat_tokens),
-                value = formatCount(tokenValue),
-                summary = stringResource(R.string.home_stat_input_tokens, formatCount(inputToken)),
-                icon = AppMiuixIcons.Token,
-                accentColor = OctopusTones.Token,
-                modifier = Modifier.weight(1f),
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = metric.label,
+                style = MiuixTheme.textStyles.body1,
+                color = OctopusTokens.TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            StatOverviewCard(
-                title = stringResource(R.string.home_stat_success_rate),
-                value = stringResource(R.string.home_percent_value, successValue * 100.0),
-                summary = stringResource(R.string.home_stat_wait_summary, formatDurationMs(waitValue)),
-                icon = AppMiuixIcons.Success,
-                accentColor = OctopusTones.SuccessRate,
-                modifier = Modifier.weight(1f),
+            Text(
+                text = metric.value,
+                style = MiuixTheme.textStyles.title1,
+                fontWeight = FontWeight.Medium,
+                color = OctopusTokens.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -368,12 +499,19 @@ private data class RankContent(
     val progress: Float,
 )
 
+private data class OverviewMetric(
+    val icon: ImageVector,
+    val label: String,
+    val value: String,
+)
+
 private data class StatsSnapshot(
     val requestCount: Long = 0L,
     val costValue: Double = 0.0,
     val tokenValue: Long = 0L,
     val waitValue: Long = 0L,
-    val successCount: Long = 0L,
     val inputCost: Double = 0.0,
     val inputToken: Long = 0L,
+    val outputCost: Double = 0.0,
+    val outputToken: Long = 0L,
 )

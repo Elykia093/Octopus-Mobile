@@ -1,16 +1,17 @@
 package com.elykia.octopus.feature.channel
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -27,19 +29,20 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.Channel
-import com.elykia.octopus.core.designsystem.AppInfoChip
 import com.elykia.octopus.core.designsystem.AppListCard
+import com.elykia.octopus.core.designsystem.AppMetricRow
 import com.elykia.octopus.core.designsystem.AppPageScaffold
-import com.elykia.octopus.core.designsystem.AppTypePill
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
 import com.elykia.octopus.core.designsystem.ErrorPane
-import com.elykia.octopus.core.designsystem.FloatingCreateButton
 import com.elykia.octopus.core.designsystem.InlineEmptyCard
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.OctopusTones
+import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
 import com.elykia.octopus.core.designsystem.ToolbarChip
+import com.elykia.octopus.core.designsystem.formatCount
+import com.elykia.octopus.core.designsystem.formatMoney
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -90,6 +93,11 @@ fun ChannelScreen(
                             contentDescription = stringResource(R.string.common_refresh),
                             onClick = viewModel::refresh,
                         )
+                        PageActionButton(
+                            icon = AppMiuixIcons.Add,
+                            contentDescription = stringResource(R.string.action_create),
+                            onClick = { showCreateDialog = true },
+                        )
                     },
                     contentPadding = contentPadding,
                 ) {
@@ -121,15 +129,6 @@ fun ChannelScreen(
                         }
                     }
                 }
-
-                FloatingCreateButton(
-                    text = stringResource(R.string.action_create),
-                    icon = AppMiuixIcons.Add,
-                    onClick = { showCreateDialog = true },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 20.dp, bottom = 94.dp),
-                )
             }
 
             DangerConfirmDialog(
@@ -188,51 +187,36 @@ fun ChannelScreen(
 }
 
 @Composable
-@OptIn(ExperimentalLayoutApi::class)
 private fun ChannelRow(
     channel: Channel,
     onToggle: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    AppListCard(padding = PaddingValues(horizontal = 16.dp, vertical = 16.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val stats = channel.stats
+    val requestCount = (stats?.requestSuccess ?: 0L) + (stats?.requestFailed ?: 0L)
+    val totalCost = (stats?.inputCost ?: 0.0) + (stats?.outputCost ?: 0.0)
+
+    AppListCard(padding = PaddingValues(horizontal = 18.dp, vertical = 18.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Switch(
-                    checked = channel.enabled,
-                    onCheckedChange = onToggle,
-                )
-                Column(
+                Text(
+                    text = channel.name.ifBlank { stringResource(R.string.channel_fallback_name, channel.id) },
+                    style = MiuixTheme.textStyles.title3,
+                    fontWeight = FontWeight.Bold,
+                    color = OctopusTokens.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            text = channel.name.ifBlank { stringResource(R.string.channel_fallback_name, channel.id) },
-                            style = MiuixTheme.textStyles.title3,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        AppTypePill(text = channelTypeName(channel.type), color = channelTypeColor(channel.type))
-                    }
-                    Text(
-                        text = channel.primaryModelLabel(),
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                )
+                StatusPill(
+                    enabled = channel.enabled,
+                    onClick = { onToggle(!channel.enabled) },
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     IconButton(onClick = onEdit) {
                         Icon(
@@ -253,64 +237,57 @@ private fun ChannelRow(
                 }
             }
 
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                val enabledKeys = channel.keys.count { it.enabled }
-                val totalKeys = channel.keys.size
-                AppInfoChip(
-                    text = stringResource(R.string.channel_key_count, enabledKeys, totalKeys),
-                    icon = AppMiuixIcons.ApiKey,
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                AppMetricRow(
+                    icon = AppMiuixIcons.Request,
+                    label = stringResource(R.string.channel_request_count),
+                    value = formatCount(requestCount),
                 )
-                channel.baseUrls.firstOrNull()?.url?.takeIf { it.isNotBlank() }?.let { url ->
-                    AppInfoChip(
-                        text = stringResource(R.string.channel_base_url_summary, url.compactUiLabel()),
-                        icon = AppMiuixIcons.Request,
-                    )
-                }
-                if (channel.proxy) {
-                    AppInfoChip(text = stringResource(R.string.channel_proxy_summary), icon = AppMiuixIcons.Setting)
-                }
-                if (channel.autoSync) {
-                    AppInfoChip(text = stringResource(R.string.channel_auto_sync_summary), icon = AppMiuixIcons.Sync)
-                }
-                channel.stats?.let { stats ->
-                    AppInfoChip(
-                        text = stringResource(R.string.channel_stat_success, stats.requestSuccess),
-                        icon = AppMiuixIcons.Check,
-                        tint = OctopusTones.Success,
-                    )
-                    AppInfoChip(
-                        text = stringResource(R.string.channel_stat_failed, stats.requestFailed),
-                        icon = AppMiuixIcons.Close,
-                        tint = OctopusTones.Danger,
-                    )
-                }
+                AppMetricRow(
+                    icon = AppMiuixIcons.Cost,
+                    label = stringResource(R.string.channel_total_cost),
+                    value = formatMoney(totalCost),
+                )
             }
+
+            Text(
+                text = channel.compactSummary(),
+                style = MiuixTheme.textStyles.body2,
+                color = OctopusTokens.TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
 
 @Composable
-private fun Channel.primaryModelLabel(): String {
-    val label = model.ifBlank { customModel }.ifBlank {
-        baseUrls.firstOrNull()?.url.orEmpty()
-    }
-    return if (label.isBlank()) {
-        stringResource(R.string.common_unknown)
-    } else {
-        label
+private fun StatusPill(
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(if (enabled) OctopusTokens.Accent else OctopusTones.Gray.copy(alpha = 0.18f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 7.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(if (enabled) R.string.common_enabled else R.string.common_disabled),
+            color = if (enabled) Color.White else OctopusTokens.TextSecondary,
+            style = MiuixTheme.textStyles.body2,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
-private fun String.compactUiLabel(limit: Int = 28): String {
-    val clean = trim()
-    return if (clean.length <= limit) {
-        clean
-    } else {
-        clean.take(limit - 3) + "..."
-    }
+@Composable
+private fun Channel.compactSummary(): String {
+    val enabledKeys = keys.count { it.enabled }
+    val modelText = model.ifBlank { customModel }.ifBlank { stringResource(R.string.common_unknown) }
+    return stringResource(R.string.channel_compact_summary, channelTypeName(type), enabledKeys, keys.size, modelText)
 }
 
 @Composable
@@ -323,8 +300,6 @@ private fun channelTypeName(type: Int): String = when (type) {
     5 -> stringResource(R.string.channel_type_embedding)
     else -> stringResource(R.string.channel_type_unknown, type)
 }
-
-private fun channelTypeColor(type: Int): Color = OctopusTones.channelType(type)
 
 @Composable
 private fun ChannelEditorDialog(

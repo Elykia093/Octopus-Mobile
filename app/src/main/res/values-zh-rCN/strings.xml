@@ -80,8 +80,13 @@
     <string name="home_total_wait_time">消耗时间</string>
     <string name="home_total_tokens">消耗令牌</string>
     <string name="home_total_cost">消耗费用</string>
+    <string name="home_all_title">全部统计</string>
     <string name="home_input_title">输入统计</string>
+    <string name="home_input_tokens">输入 Tokens</string>
+    <string name="home_input_cost">输入费用</string>
     <string name="home_output_title">输出统计</string>
+    <string name="home_output_tokens">输出 Tokens</string>
+    <string name="home_output_cost">输出费用</string>
     <string name="home_activity_title">活跃度</string>
     <string name="home_activity_summary">近期每日请求趋势。</string>
     <string name="home_chart_title">趋势</string>
@@ -132,6 +137,9 @@
     <string name="channel_fallback_name">渠道 #%1$d</string>
     <string name="channel_key_count">密钥 %1$d/%2$d</string>
     <string name="channel_base_url_summary">地址 %1$s</string>
+    <string name="channel_request_count">请求次数</string>
+    <string name="channel_total_cost">总成本</string>
+    <string name="channel_compact_summary">%1$s · 密钥 %2$d/%3$d · %4$s</string>
     <string name="channel_proxy_summary">代理</string>
     <string name="channel_auto_sync_summary">自动同步</string>
     <string name="channel_stat_success">成功 %1$s</string>
@@ -241,6 +249,12 @@
     <string name="log_input_token">输入 %1$s</string>
     <string name="log_output_token">输出 %1$s</string>
     <string name="log_use_time">%1$s ms</string>
+    <string name="log_metric_time">时间</string>
+    <string name="log_metric_first_token">首字</string>
+    <string name="log_metric_total_time">总耗时</string>
+    <string name="log_metric_input">输入</string>
+    <string name="log_metric_output">输出</string>
+    <string name="log_metric_cost">费用</string>
     <string name="log_clear_title">清空日志</string>
     <string name="log_clear_summary">此操作将清空全部历史日志。</string>
     <string name="log_cost_line">费用 %1$.4f · 耗时 %2$d ms · 尝试 %3$d 次</string>

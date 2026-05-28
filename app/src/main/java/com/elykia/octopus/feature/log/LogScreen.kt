@@ -1,13 +1,18 @@
 package com.elykia.octopus.feature.log
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -16,6 +21,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -23,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.RelayLog
-import com.elykia.octopus.core.designsystem.AppInfoChip
 import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.AppPageScaffold
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
@@ -31,9 +38,12 @@ import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.InlineEmptyCard
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.OctopusTones
+import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
 import com.elykia.octopus.core.designsystem.ToolbarChip
+import com.elykia.octopus.core.designsystem.formatCount
+import com.elykia.octopus.core.designsystem.formatDurationMs
 import com.elykia.octopus.core.designsystem.formatMoney
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import top.yukonga.miuix.kmp.basic.Icon
@@ -125,77 +135,213 @@ fun LogScreen(
 }
 
 @Composable
-@OptIn(ExperimentalLayoutApi::class)
 private fun LogRow(
     log: RelayLog,
 ) {
     val hasError = log.error.isNotBlank()
     val statusColor = if (hasError) MiuixTheme.colorScheme.error else OctopusTones.Success
 
-    AppListCard(padding = PaddingValues(horizontal = 16.dp, vertical = 16.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Icon(
-                    imageVector = if (hasError) AppMiuixIcons.Close else AppMiuixIcons.Success,
-                    contentDescription = log.requestModelName,
-                    tint = statusColor,
-                    modifier = Modifier.size(20.dp),
-                )
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        text = log.requestModelName.ifBlank { stringResource(R.string.common_unknown) },
-                        style = MiuixTheme.textStyles.main,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = log.channelName.ifBlank { stringResource(R.string.common_unknown) },
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = formatMoney(log.cost),
-                        style = MiuixTheme.textStyles.main,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MiuixTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = formatLogTime(log.time),
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-                }
-            }
-            Text(
-                text = stringResource(R.string.log_row_actual_model, log.actualModelName),
-                style = MiuixTheme.textStyles.body2,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+    AppListCard(padding = PaddingValues(horizontal = 18.dp, vertical = 18.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            LogProviderMark(
+                label = log.channelName.ifBlank { log.requestModelName },
+                hasError = hasError,
+                color = statusColor,
             )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                AppInfoChip(text = stringResource(R.string.log_input_token, log.inputTokens), icon = AppMiuixIcons.ArrowUp)
-                AppInfoChip(text = stringResource(R.string.log_output_token, log.outputTokens), icon = AppMiuixIcons.ArrowDown)
-                AppInfoChip(text = stringResource(R.string.log_use_time, log.useTime), icon = AppMiuixIcons.Time)
+                LogRouteHeader(log = log)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        LogMetricLine(
+                            icon = AppMiuixIcons.Time,
+                            label = stringResource(R.string.log_metric_time),
+                            value = formatLogTime(log.time),
+                            color = OctopusTones.Success,
+                        )
+                        LogMetricLine(
+                            icon = AppMiuixIcons.Toggle,
+                            label = stringResource(R.string.log_metric_total_time),
+                            value = formatDurationMs(log.useTime.toLong()),
+                            color = OctopusTones.Request,
+                        )
+                        LogMetricLine(
+                            icon = AppMiuixIcons.ArrowUp,
+                            label = stringResource(R.string.log_metric_output),
+                            value = formatCount(log.outputTokens.toLong()),
+                            color = OctopusTones.Token,
+                        )
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        LogMetricLine(
+                            icon = AppMiuixIcons.Success,
+                            label = stringResource(R.string.log_metric_first_token),
+                            value = formatDurationMs(log.ftut.toLong()),
+                            color = OctopusTones.Cost,
+                        )
+                        LogMetricLine(
+                            icon = AppMiuixIcons.ArrowDown,
+                            label = stringResource(R.string.log_metric_input),
+                            value = formatCount(log.inputTokens.toLong()),
+                            color = OctopusTones.SuccessRate,
+                        )
+                        LogMetricLine(
+                            icon = AppMiuixIcons.Cost,
+                            label = stringResource(R.string.log_metric_cost),
+                            value = formatMoney(log.cost),
+                            color = OctopusTokens.Accent,
+                            emphasize = true,
+                        )
+                    }
+                }
+                if (hasError) {
+                    Text(
+                        text = log.error,
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.error,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun LogProviderMark(
+    label: String,
+    hasError: Boolean,
+    color: Color,
+) {
+    Box(
+        modifier = Modifier
+            .size(54.dp)
+            .clip(CircleShape)
+            .background(if (hasError) color.copy(alpha = 0.12f) else color)
+            .border(1.dp, color.copy(alpha = 0.35f), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (hasError) {
+            Icon(
+                imageVector = AppMiuixIcons.Close,
+                contentDescription = label,
+                tint = color,
+                modifier = Modifier.size(24.dp),
+            )
+        } else {
+            Text(
+                text = label.firstOrNull()?.uppercaseChar()?.toString() ?: "#",
+                style = MiuixTheme.textStyles.title3,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LogRouteHeader(
+    log: RelayLog,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = log.requestModelName.ifBlank { stringResource(R.string.common_unknown) },
+            style = MiuixTheme.textStyles.main,
+            fontWeight = FontWeight.SemiBold,
+            color = OctopusTokens.TextPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = AppMiuixIcons.ArrowRight,
+            contentDescription = null,
+            tint = OctopusTokens.TextSecondary,
+            modifier = Modifier.size(16.dp),
+        )
+        LogChannelPill(
+            text = log.channelName.ifBlank { stringResource(R.string.common_unknown) },
+        )
+        Text(
+            text = log.actualModelName.ifBlank { stringResource(R.string.common_unknown) },
+            style = MiuixTheme.textStyles.main,
+            color = OctopusTokens.TextSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun LogChannelPill(
+    text: String,
+) {
+    Box(
+        modifier = Modifier
+            .widthIn(max = 104.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(OctopusTokens.PrimarySoft)
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = MiuixTheme.textStyles.body2,
+            color = OctopusTokens.Accent,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun LogMetricLine(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    color: Color,
+    emphasize: Boolean = false,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = color,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = "$label $value",
+            style = MiuixTheme.textStyles.body2,
+            color = if (emphasize) color else OctopusTokens.TextSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
