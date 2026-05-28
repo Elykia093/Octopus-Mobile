@@ -234,23 +234,34 @@ fun StatePane(
     summary: String,
     action: (@Composable () -> Unit)? = null,
 ) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Card(insideMargin = PaddingValues(horizontal = 20.dp, vertical = 22.dp)) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+    PageContainer {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            AppListCard(
+                modifier = Modifier.padding(horizontal = 28.dp),
+                padding = PaddingValues(horizontal = 22.dp, vertical = 24.dp),
             ) {
-                OctopusBrandMark(size = 36.dp)
-                Text(text = title, style = MiuixTheme.textStyles.title3, fontWeight = FontWeight.SemiBold)
-                Text(
-                    text = summary,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    style = MiuixTheme.textStyles.body2,
-                )
-                action?.invoke()
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    OctopusBrandMark(size = 44.dp)
+                    Text(
+                        text = title,
+                        style = MiuixTheme.textStyles.title3,
+                        fontWeight = FontWeight.Bold,
+                        color = OctopusTokens.TextPrimary,
+                    )
+                    Text(
+                        text = summary,
+                        color = OctopusTokens.TextSecondary,
+                        style = MiuixTheme.textStyles.body2,
+                    )
+                    action?.invoke()
+                }
             }
         }
     }
