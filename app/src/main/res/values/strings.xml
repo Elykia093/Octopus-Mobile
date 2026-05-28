@@ -128,6 +128,12 @@
     <string name="channel_sort_name_asc">Name asc</string>
     <string name="channel_sort_name_desc">Name desc</string>
     <string name="channel_empty">No channels.</string>
+    <string name="channel_search_empty">No matching channels.</string>
+    <string name="channel_fallback_name">Channel #%1$d</string>
+    <string name="channel_key_count">Keys %1$d/%2$d</string>
+    <string name="channel_base_url_summary">URL %1$s</string>
+    <string name="channel_proxy_summary">Proxy</string>
+    <string name="channel_auto_sync_summary">Auto sync</string>
     <string name="channel_stat_success">Success %1$s</string>
     <string name="channel_stat_failed">Failed %1$s</string>
     <string name="channel_delete_title">Delete channel</string>
@@ -283,11 +289,15 @@
 
     <string name="apikey_title">API Keys</string>
     <string name="apikey_empty">No API keys.</string>
+    <string name="apikey_search_empty">No matching API keys.</string>
     <string name="apikey_panel_summary">Browse, toggle and manage API keys.</string>
     <string name="apikey_item_summary">%1$s · Max cost %2$s · Models %3$s</string>
     <string name="apikey_enabled_summary">Enabled</string>
     <string name="apikey_disabled_summary">Disabled</string>
     <string name="apikey_fallback_name">Key #%1$d</string>
+    <string name="apikey_cost_unlimited">Unlimited cost</string>
+    <string name="apikey_models_all">All models</string>
+    <string name="apikey_models_more">+%1$d models</string>
     <string name="apikey_create_title">Create API key</string>
     <string name="apikey_edit_title">Edit API key</string>
     <string name="apikey_name_label">Name</string>

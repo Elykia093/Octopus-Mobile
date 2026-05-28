@@ -3,10 +3,11 @@ package com.elykia.octopus.feature.apikey
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elykia.octopus.R
@@ -34,11 +36,13 @@ import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.designsystem.AppInfoChip
 import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.AppPageScaffold
+import com.elykia.octopus.core.designsystem.AppTypePill
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
-import com.elykia.octopus.core.designsystem.EmptyPane
 import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.FloatingCreateButton
+import com.elykia.octopus.core.designsystem.InlineEmptyCard
 import com.elykia.octopus.core.designsystem.LoadingPane
+import com.elykia.octopus.core.designsystem.OctopusTones
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
 import com.elykia.octopus.core.designsystem.formatMoney
@@ -46,6 +50,7 @@ import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import com.elykia.octopus.feature.setting.SettingViewModel
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -68,10 +73,14 @@ fun ApiKeyScreen(
     when {
         uiState.loading -> LoadingPane(title = stringResource(R.string.apikey_title))
         uiState.error != null -> ErrorPane(message = uiState.error ?: stringResource(R.string.error_title), onRetry = viewModel::refresh)
-        uiState.apiKeys.isEmpty() -> EmptyPane(title = stringResource(R.string.apikey_title), summary = stringResource(R.string.apikey_empty))
         else -> {
             val keys = uiState.apiKeys
-                .filter { searchTerm.isBlank() || it.name.contains(searchTerm, ignoreCase = true) }
+                .filter { item ->
+                    searchTerm.isBlank() ||
+                        item.name.contains(searchTerm, ignoreCase = true) ||
+                        item.apiKey.contains(searchTerm, ignoreCase = true) ||
+                        item.supportedModels.orEmpty().contains(searchTerm, ignoreCase = true)
+                }
                 .sortedByDescending { it.enabled }
 
             Box(modifier = Modifier.fillMaxSize()) {
@@ -87,18 +96,30 @@ fun ApiKeyScreen(
                     contentPadding = contentPadding,
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SearchField(
-                            value = searchTerm,
-                            onValueChange = { searchTerm = it },
-                            hint = stringResource(R.string.setting_apikey_title),
-                        )
-                        keys.forEach { item ->
-                            ApiKeyRow(
-                                item = item,
-                                onToggle = { viewModel.setApiKeyEnabled(item, it) },
-                                onEdit = { editingItem = item },
-                                onDelete = { deletingId = item.id },
+                        if (uiState.apiKeys.isNotEmpty()) {
+                            SearchField(
+                                value = searchTerm,
+                                onValueChange = { searchTerm = it },
+                                hint = stringResource(R.string.setting_apikey_title),
                             )
+                        }
+                        when {
+                            uiState.apiKeys.isEmpty() -> InlineEmptyCard(
+                                title = stringResource(R.string.apikey_title),
+                                summary = stringResource(R.string.apikey_empty),
+                            )
+                            keys.isEmpty() -> InlineEmptyCard(
+                                title = stringResource(R.string.empty_title),
+                                summary = stringResource(R.string.apikey_search_empty),
+                            )
+                            else -> keys.forEach { item ->
+                                ApiKeyRow(
+                                    item = item,
+                                    onToggle = { viewModel.setApiKeyEnabled(item, it) },
+                                    onEdit = { editingItem = item },
+                                    onDelete = { deletingId = item.id },
+                                )
+                            }
                         }
                     }
                 }
@@ -168,69 +189,122 @@ fun ApiKeyScreen(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun ApiKeyRow(
     item: ApiKeyItem,
     onToggle: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    AppListCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Switch(checked = item.enabled, onCheckedChange = onToggle)
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+    val supportedModels = item.supportedModels
+        ?.split(',')
+        ?.map { it.trim() }
+        ?.filter { it.isNotBlank() }
+        .orEmpty()
+
+    AppListCard(padding = PaddingValues(horizontal = 16.dp, vertical = 16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(
-                    text = item.name,
-                    style = MiuixTheme.textStyles.main,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    text = if (item.apiKey.length > 16) item.apiKey.take(16) + "..." else item.apiKey,
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    fontFamily = FontFamily.Monospace,
-                )
-                item.supportedModels
-                    ?.split(',')
-                    ?.map { it.trim() }
-                    ?.filter { it.isNotBlank() }
-                    ?.take(3)
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.let { models ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            models.forEach { model ->
-                                AppInfoChip(text = model, icon = AppMiuixIcons.Token)
-                            }
-                        }
+                Switch(checked = item.enabled, onCheckedChange = onToggle)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = item.name.ifBlank { stringResource(R.string.apikey_fallback_name, item.id) },
+                            style = MiuixTheme.textStyles.title3,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        AppTypePill(
+                            text = stringResource(if (item.enabled) R.string.apikey_enabled_summary else R.string.apikey_disabled_summary),
+                            color = if (item.enabled) OctopusTones.Success else OctopusTones.Danger,
+                        )
                     }
+                    Text(
+                        text = item.apiKey.maskApiKey(),
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        fontFamily = FontFamily.Monospace,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            imageVector = AppMiuixIcons.Create,
+                            contentDescription = stringResource(R.string.action_edit),
+                            tint = MiuixTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            imageVector = AppMiuixIcons.Delete,
+                            contentDescription = stringResource(R.string.common_delete),
+                            tint = MiuixTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = AppMiuixIcons.Create,
-                    contentDescription = stringResource(R.string.action_edit),
-                    tint = MiuixTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .size(18.dp)
-                        .padding(1.dp)
-                        .clickable(onClick = onEdit),
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                AppInfoChip(
+                    text = item.expireAt
+                        ?.takeIf { it > 0 }
+                        ?.let { stringResource(R.string.apikey_expire_summary, it) }
+                        ?: stringResource(R.string.apikey_expire_never),
+                    icon = AppMiuixIcons.Time,
                 )
-                Icon(
-                    imageVector = AppMiuixIcons.Delete,
-                    contentDescription = stringResource(R.string.common_delete),
-                    tint = MiuixTheme.colorScheme.error,
-                    modifier = Modifier
-                        .size(18.dp)
-                        .padding(start = 2.dp)
-                        .clickable(onClick = onDelete),
+                AppInfoChip(
+                    text = item.maxCost
+                        ?.takeIf { it > 0.0 }
+                        ?.let(::formatMoney)
+                        ?: stringResource(R.string.apikey_cost_unlimited),
+                    icon = AppMiuixIcons.Cost,
                 )
+                if (supportedModels.isEmpty()) {
+                    AppInfoChip(text = stringResource(R.string.apikey_models_all), icon = AppMiuixIcons.Token)
+                } else {
+                    supportedModels.take(3).forEach { model ->
+                        AppInfoChip(text = model.compactUiLabel(), icon = AppMiuixIcons.Token)
+                    }
+                    if (supportedModels.size > 3) {
+                        AppInfoChip(text = stringResource(R.string.apikey_models_more, supportedModels.size - 3), icon = AppMiuixIcons.More)
+                    }
+                }
             }
         }
+    }
+}
+
+private fun String.maskApiKey(): String = when {
+    length <= 12 -> this
+    else -> take(8) + "..." + takeLast(4)
+}
+
+private fun String.compactUiLabel(limit: Int = 24): String {
+    val clean = trim()
+    return if (clean.length <= limit) {
+        clean
+    } else {
+        clean.take(limit - 3) + "..."
     }
 }
 

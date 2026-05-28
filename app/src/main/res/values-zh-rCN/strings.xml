@@ -128,6 +128,12 @@
     <string name="channel_sort_name_asc">名称正序</string>
     <string name="channel_sort_name_desc">名称倒序</string>
     <string name="channel_empty">暂无渠道。</string>
+    <string name="channel_search_empty">没有匹配的渠道。</string>
+    <string name="channel_fallback_name">渠道 #%1$d</string>
+    <string name="channel_key_count">密钥 %1$d/%2$d</string>
+    <string name="channel_base_url_summary">地址 %1$s</string>
+    <string name="channel_proxy_summary">代理</string>
+    <string name="channel_auto_sync_summary">自动同步</string>
     <string name="channel_stat_success">成功 %1$s</string>
     <string name="channel_stat_failed">失败 %1$s</string>
     <string name="channel_delete_title">删除渠道</string>
@@ -301,10 +307,14 @@
 
     <string name="apikey_title">API 密钥</string>
     <string name="apikey_empty">暂无 API 密钥。</string>
+    <string name="apikey_search_empty">没有匹配的 API 密钥。</string>
     <string name="apikey_panel_summary">查看、切换并管理 API 密钥。</string>
     <string name="apikey_item_summary">%1$s · 最大费用 %2$s · 支持模型 %3$s</string>
     <string name="apikey_enabled_summary">已启用</string>
     <string name="apikey_disabled_summary">已禁用</string>
+    <string name="apikey_cost_unlimited">不限费用</string>
+    <string name="apikey_models_all">全部模型</string>
+    <string name="apikey_models_more">还有 %1$d 个模型</string>
     <string name="apikey_create_title">创建 API 密钥</string>
     <string name="apikey_edit_title">编辑 API 密钥</string>
     <string name="apikey_name_label">名称</string>
