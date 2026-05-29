@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -63,6 +64,7 @@ fun PageHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .statusBarsPadding()
             .padding(start = 28.dp, top = 28.dp, end = 20.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -96,7 +98,7 @@ fun PageActionButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = OctopusTokens.TextPrimary.copy(alpha = 0.72f),
+            tint = OctopusTokens.TextPrimary.copy(alpha = 0.66f),
         )
     }
 }

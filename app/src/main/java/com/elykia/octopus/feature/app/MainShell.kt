@@ -1,6 +1,7 @@
 package com.elykia.octopus.feature.app
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,7 +42,9 @@ fun MainShell(
     Scaffold(
         bottomBar = {
             FloatingDockBar(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
                 items = dockItems,
                 selectedKey = currentTab.route,
                 onSelected = { route -> currentTab = MainTab.entries.first { it.route == route } },
@@ -49,15 +52,23 @@ fun MainShell(
             )
         },
     ) { padding ->
+        val contentPadding = mainContentPadding(padding)
         PageContainer {
             when (currentTab) {
-                MainTab.Home -> HomeScreen(contentPadding = PaddingValues(start = 16.dp, top = 8.dp + padding.calculateTopPadding(), end = 16.dp, bottom = 110.dp), onLogout = onLogout)
-                MainTab.Channel -> ChannelScreen(contentPadding = PaddingValues(start = 16.dp, top = 8.dp + padding.calculateTopPadding(), end = 16.dp, bottom = 110.dp))
-                MainTab.Group -> GroupScreen(contentPadding = PaddingValues(start = 16.dp, top = 8.dp + padding.calculateTopPadding(), end = 16.dp, bottom = 110.dp))
-                MainTab.ApiKey -> ApiKeyScreen(contentPadding = PaddingValues(start = 16.dp, top = 8.dp + padding.calculateTopPadding(), end = 16.dp, bottom = 110.dp))
-                MainTab.Log -> LogScreen(contentPadding = PaddingValues(start = 16.dp, top = 8.dp + padding.calculateTopPadding(), end = 16.dp, bottom = 110.dp))
-                MainTab.Setting -> SettingScreen(contentPadding = PaddingValues(start = 16.dp, top = 8.dp + padding.calculateTopPadding(), end = 16.dp, bottom = 110.dp))
+                MainTab.Home -> HomeScreen(contentPadding = contentPadding, onLogout = onLogout)
+                MainTab.Channel -> ChannelScreen(contentPadding = contentPadding)
+                MainTab.Group -> GroupScreen(contentPadding = contentPadding)
+                MainTab.ApiKey -> ApiKeyScreen(contentPadding = contentPadding)
+                MainTab.Log -> LogScreen(contentPadding = contentPadding)
+                MainTab.Setting -> SettingScreen(contentPadding = contentPadding)
             }
         }
     }
 }
+
+private fun mainContentPadding(scaffoldPadding: PaddingValues): PaddingValues = PaddingValues(
+    start = 16.dp,
+    top = 8.dp + scaffoldPadding.calculateTopPadding(),
+    end = 16.dp,
+    bottom = maxOf(110.dp, scaffoldPadding.calculateBottomPadding() + 16.dp),
+)

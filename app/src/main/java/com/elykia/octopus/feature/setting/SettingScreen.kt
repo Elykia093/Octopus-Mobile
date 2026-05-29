@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.SettingItem
 import com.elykia.octopus.core.designsystem.AppListCard
@@ -35,7 +35,6 @@ import com.elykia.octopus.core.designsystem.ErrorPane
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.OctopusBrandMark
 import com.elykia.octopus.core.designsystem.OctopusTokens
-import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Switch
@@ -50,7 +49,7 @@ fun SettingScreen(
     contentPadding: PaddingValues,
     viewModel: SettingViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var language by remember(uiState.language) { mutableStateOf(uiState.language) }
     var themeMode by remember(uiState.themeMode) { mutableStateOf(uiState.themeMode) }
     var editingItem by remember { mutableStateOf<SettingItem?>(null) }
@@ -72,13 +71,6 @@ fun SettingScreen(
         else -> {
             AppPageScaffold(
                 title = stringResource(R.string.setting_title),
-                actions = {
-                    PageActionButton(
-                        icon = AppMiuixIcons.Refresh,
-                        contentDescription = stringResource(R.string.common_refresh),
-                        onClick = viewModel::refresh,
-                    )
-                },
                 contentPadding = contentPadding,
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

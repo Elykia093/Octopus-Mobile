@@ -2,6 +2,7 @@ package com.elykia.octopus.feature.group
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,8 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -26,12 +27,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.Group
@@ -68,7 +71,7 @@ fun GroupScreen(
     contentPadding: PaddingValues,
     viewModel: GroupViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var deletingId by remember { mutableStateOf<Int?>(null) }
     var searchTerm by remember { mutableStateOf("") }
     var searchVisible by remember { mutableStateOf(false) }
@@ -91,6 +94,9 @@ fun GroupScreen(
                         }
                 }
                 .sortedByDescending { it.items.size }
+            val modelCandidates = remember(uiState.channels, uiState.modelChannels) {
+                buildGroupModelCandidates(uiState.channels, uiState.modelChannels)
+            }
 
             Box(modifier = Modifier.fillMaxSize()) {
                 AppPageScaffold(
@@ -105,14 +111,13 @@ fun GroupScreen(
                             },
                         )
                         PageActionButton(
-                            icon = AppMiuixIcons.Refresh,
-                            contentDescription = stringResource(R.string.common_refresh),
-                            onClick = viewModel::refresh,
-                        )
-                        PageActionButton(
                             icon = AppMiuixIcons.Add,
                             contentDescription = stringResource(R.string.action_create),
-                            onClick = { showCreateDialog = true },
+                            enabled = !uiState.submitting,
+                            onClick = {
+                                viewModel.clearOperationError()
+                                showCreateDialog = true
+                            },
                         )
                     },
                     contentPadding = contentPadding,
@@ -124,6 +129,11 @@ fun GroupScreen(
                                 onValueChange = { searchTerm = it },
                                 hint = stringResource(R.string.group_search_hint),
                             )
+                        }
+                        if (!showCreateDialog && editingGroup == null) {
+                            uiState.operationError?.takeIf { it.isNotBlank() }?.let { error ->
+                                GroupOperationErrorStrip(message = error)
+                            }
                         }
                         when {
                             uiState.groups.isEmpty() -> InlineEmptyCard(
@@ -139,7 +149,10 @@ fun GroupScreen(
                                     group = group,
                                     expanded = expanded[group.id] == true,
                                     onToggleExpanded = { expanded[group.id] = !(expanded[group.id] == true) },
-                                    onEdit = { editingGroup = group },
+                                    onEdit = {
+                                        viewModel.clearOperationError()
+                                        editingGroup = group
+                                    },
                                     onDelete = { deletingId = group.id },
                                 )
                             }
@@ -164,11 +177,21 @@ fun GroupScreen(
                 title = stringResource(R.string.group_create_title),
                 initialGroup = null,
                 channels = uiState.channels,
+                modelCandidates = modelCandidates,
+                submitting = uiState.submitting,
+                operationError = uiState.operationError,
                 onConfirm = { name, mode, matchRegex, timeout, keepTime, items ->
-                    viewModel.createGroup(name, mode, matchRegex, timeout, keepTime, items)
-                    showCreateDialog = false
+                    viewModel.createGroup(name, mode, matchRegex, timeout, keepTime, items) {
+                        showCreateDialog = false
+                        viewModel.clearOperationError()
+                    }
                 },
-                onDismiss = { showCreateDialog = false },
+                onDismiss = {
+                    if (!uiState.submitting) {
+                        showCreateDialog = false
+                        viewModel.clearOperationError()
+                    }
+                },
             )
 
             GroupEditorDialog(
@@ -176,13 +199,23 @@ fun GroupScreen(
                 title = stringResource(R.string.group_edit_title),
                 initialGroup = editingGroup,
                 channels = uiState.channels,
+                modelCandidates = modelCandidates,
+                submitting = uiState.submitting,
+                operationError = uiState.operationError,
                 onConfirm = { name, mode, matchRegex, timeout, keepTime, items ->
                     editingGroup?.let { current ->
-                        viewModel.updateGroup(current, name, mode, matchRegex, timeout, keepTime, items)
+                        viewModel.updateGroup(current, name, mode, matchRegex, timeout, keepTime, items) {
+                            editingGroup = null
+                            viewModel.clearOperationError()
+                        }
                     }
-                    editingGroup = null
                 },
-                onDismiss = { editingGroup = null },
+                onDismiss = {
+                    if (!uiState.submitting) {
+                        editingGroup = null
+                        viewModel.clearOperationError()
+                    }
+                },
             )
         }
     }
@@ -223,7 +256,7 @@ private fun GroupRow(
                         Icon(
                             imageVector = AppMiuixIcons.Create,
                             contentDescription = stringResource(R.string.action_edit),
-                            tint = MiuixTheme.colorScheme.primary,
+                            tint = OctopusTokens.TextSecondary,
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -231,7 +264,7 @@ private fun GroupRow(
                         Icon(
                             imageVector = AppMiuixIcons.Delete,
                             contentDescription = stringResource(R.string.common_delete),
-                            tint = MiuixTheme.colorScheme.error,
+                            tint = OctopusTokens.TextSecondary,
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -361,7 +394,7 @@ private fun GroupItemRow(
             modifier = Modifier
                 .size(24.dp)
                 .clip(RoundedCornerShape(999.dp))
-                .background(OctopusTones.Orange.copy(alpha = 0.88f)),
+                .background(OctopusTones.Orange.copy(alpha = 0.72f)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -409,6 +442,9 @@ private fun GroupEditorDialog(
     title: String,
     initialGroup: Group?,
     channels: List<Channel>,
+    modelCandidates: List<GroupModelCandidate>,
+    submitting: Boolean,
+    operationError: String?,
     onConfirm: (String, Int, String, Int, Int, List<GroupItem>) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -425,90 +461,135 @@ private fun GroupEditorDialog(
     }
     var showChannelPicker by remember(initialGroup?.id, visible) { mutableStateOf(false) }
     val items = remember(initialGroup?.id, visible) {
-        mutableStateListOf<GroupItem>().apply { addAll(initialGroup?.items.orEmpty()) }
+        mutableStateListOf<GroupItem>().apply { addAll(initialGroup?.items.orEmpty().sortedBy { it.priority }) }
     }
+    val selectedKeys = items.map { GroupModelCandidateKey(it.channelId, it.modelName) }.toSet()
+    val matchingCandidates = findMatchingGroupModelCandidates(
+        candidates = modelCandidates,
+        name = name,
+        matchRegex = matchRegex,
+        selectedKeys = selectedKeys,
+    )
+    val hasValidItems = items.isNotEmpty() && items.all { it.modelName.isNotBlank() }
+    val editorScrollState = rememberScrollState()
+    val editorMaxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.66f
 
     OverlayDialog(
         show = visible,
         title = title,
         summary = stringResource(R.string.group_panel_summary),
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            if (!submitting) onDismiss()
+        },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            TextField(
-                value = name,
-                onValueChange = { name = it },
-                label = stringResource(R.string.group_name_hint),
-                useLabelAsPlaceholder = true,
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            TextField(
-                value = matchRegex,
-                onValueChange = { matchRegex = it },
-                label = stringResource(R.string.group_match_regex_hint),
-                useLabelAsPlaceholder = true,
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                text = groupModeName(mode),
-                style = MiuixTheme.textStyles.main,
-                fontWeight = FontWeight.SemiBold,
-            )
-            OptionChipGroup(
-                options = listOf(
-                    OptionChipItem(1, groupModeName(1)),
-                    OptionChipItem(2, groupModeName(2)),
-                    OptionChipItem(3, groupModeName(3)),
-                    OptionChipItem(4, groupModeName(4)),
-                ),
-                selectedValue = mode,
-                onSelect = { mode = it },
-                columns = 2,
-            )
-            TextField(
-                value = firstTokenTimeOut,
-                onValueChange = { firstTokenTimeOut = it },
-                label = stringResource(R.string.group_timeout_label),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            TextField(
-                value = sessionKeepTime,
-                onValueChange = { sessionKeepTime = it },
-                label = stringResource(R.string.group_keep_time_label),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier
+                    .heightIn(max = editorMaxHeight)
+                    .verticalScroll(editorScrollState),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(text = stringResource(R.string.group_items_label), style = MiuixTheme.textStyles.main, fontWeight = FontWeight.SemiBold)
-                TextButton(
-                    text = stringResource(R.string.group_add_item),
-                    onClick = { showChannelPicker = true },
+                operationError?.takeIf { it.isNotBlank() }?.let { error ->
+                    GroupOperationErrorStrip(message = error)
+                }
+                TextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = stringResource(R.string.group_name_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-            }
-            if (items.isEmpty()) {
-                InlineEmptyCard(
-                    title = stringResource(R.string.group_channel_picker_title),
-                    summary = stringResource(R.string.group_channel_picker_summary),
+                TextField(
+                    value = matchRegex,
+                    onValueChange = { matchRegex = it },
+                    label = stringResource(R.string.group_match_regex_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items.forEachIndexed { index, item ->
-                        GroupItemEditorRow(
-                            item = item,
-                            channel = channels.firstOrNull { it.id == item.channelId },
-                            onChange = { items[index] = it },
-                            onDelete = { items.removeAt(index) },
+                Text(
+                    text = groupModeName(mode),
+                    style = MiuixTheme.textStyles.main,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                OptionChipGroup(
+                    options = listOf(
+                        OptionChipItem(1, groupModeName(1)),
+                        OptionChipItem(2, groupModeName(2)),
+                        OptionChipItem(3, groupModeName(3)),
+                        OptionChipItem(4, groupModeName(4)),
+                    ),
+                    selectedValue = mode,
+                    onSelect = { mode = it },
+                    columns = 2,
+                )
+                TextField(
+                    value = firstTokenTimeOut,
+                    onValueChange = { firstTokenTimeOut = it },
+                    label = stringResource(R.string.group_timeout_label),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TextField(
+                    value = sessionKeepTime,
+                    onValueChange = { sessionKeepTime = it },
+                    label = stringResource(R.string.group_keep_time_label),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = stringResource(R.string.group_items_label),
+                        style = MiuixTheme.textStyles.main,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        TextButton(
+                            text = stringResource(R.string.group_auto_add_items),
+                            enabled = !submitting && matchingCandidates.isNotEmpty(),
+                            onClick = {
+                                matchingCandidates.forEach { candidate ->
+                                    items.add(
+                                        GroupItem(
+                                            channelId = candidate.channelId,
+                                            modelName = candidate.modelName,
+                                            priority = nextGroupItemPriority(items),
+                                            weight = 1,
+                                        )
+                                    )
+                                }
+                            },
                         )
+                        TextButton(
+                            text = stringResource(R.string.group_add_item),
+                            enabled = !submitting,
+                            onClick = { showChannelPicker = true },
+                        )
+                    }
+                }
+                if (items.isEmpty()) {
+                    InlineEmptyCard(
+                        title = stringResource(R.string.group_channel_picker_title),
+                        summary = stringResource(R.string.group_channel_picker_summary),
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items.forEachIndexed { index, item ->
+                            GroupItemEditorRow(
+                                item = item,
+                                channel = channels.firstOrNull { it.id == item.channelId },
+                                onChange = { items[index] = it },
+                                onDelete = { items.removeAt(index) },
+                                enabled = !submitting,
+                            )
+                        }
                     }
                 }
             }
@@ -517,10 +598,18 @@ private fun GroupEditorDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
             ) {
-                TextButton(text = stringResource(R.string.common_cancel), onClick = onDismiss)
                 TextButton(
-                    text = stringResource(R.string.common_confirm),
-                    enabled = name.isNotBlank(),
+                    text = stringResource(R.string.common_cancel),
+                    enabled = !submitting,
+                    onClick = onDismiss,
+                )
+                TextButton(
+                    text = if (submitting) {
+                        stringResource(R.string.group_submitting)
+                    } else {
+                        stringResource(R.string.common_confirm)
+                    },
+                    enabled = !submitting && name.isNotBlank() && hasValidItems,
                     onClick = {
                         onConfirm(
                             name.trim(),
@@ -538,14 +627,14 @@ private fun GroupEditorDialog(
 
     ChannelPickerDialog(
         visible = showChannelPicker,
-        channels = channels,
-        selectedChannelIds = items.map { it.channelId }.toSet(),
-        onSelect = { channel ->
+        candidates = modelCandidates,
+        selectedKeys = selectedKeys,
+        onSelect = { candidate ->
             items.add(
                 GroupItem(
-                    channelId = channel.id,
-                    modelName = channel.model.ifBlank { channel.customModel.ifBlank { channel.name } },
-                    priority = 100,
+                    channelId = candidate.channelId,
+                    modelName = candidate.modelName,
+                    priority = nextGroupItemPriority(items),
                     weight = 1,
                 )
             )
@@ -556,11 +645,32 @@ private fun GroupEditorDialog(
 }
 
 @Composable
+private fun GroupOperationErrorStrip(
+    message: String,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MiuixTheme.colorScheme.error.copy(alpha = 0.08f))
+            .border(1.dp, MiuixTheme.colorScheme.error.copy(alpha = 0.24f), RoundedCornerShape(16.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Text(
+            text = message,
+            style = MiuixTheme.textStyles.body2,
+            color = MiuixTheme.colorScheme.error,
+        )
+    }
+}
+
+@Composable
 private fun GroupItemEditorRow(
     item: GroupItem,
     channel: Channel?,
     onChange: (GroupItem) -> Unit,
     onDelete: () -> Unit,
+    enabled: Boolean,
 ) {
     AppListCard {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -578,6 +688,7 @@ private fun GroupItemEditorRow(
                 label = stringResource(R.string.group_item_model_name_hint),
                 useLabelAsPlaceholder = true,
                 singleLine = true,
+                enabled = enabled,
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -586,6 +697,7 @@ private fun GroupItemEditorRow(
                     onValueChange = { onChange(item.copy(priority = it.toIntOrNull() ?: 0)) },
                     label = stringResource(R.string.group_item_priority_hint),
                     singleLine = true,
+                    enabled = enabled,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f),
                 )
@@ -594,11 +706,12 @@ private fun GroupItemEditorRow(
                     onValueChange = { onChange(item.copy(weight = it.toIntOrNull() ?: 0)) },
                     label = stringResource(R.string.group_item_weight_hint),
                     singleLine = true,
+                    enabled = enabled,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f),
                 )
             }
-            TextButton(text = stringResource(R.string.common_delete), onClick = onDelete)
+            TextButton(text = stringResource(R.string.common_delete), enabled = enabled, onClick = onDelete)
         }
     }
 }
@@ -606,14 +719,29 @@ private fun GroupItemEditorRow(
 @Composable
 private fun ChannelPickerDialog(
     visible: Boolean,
-    channels: List<Channel>,
-    selectedChannelIds: Set<Int>,
-    onSelect: (Channel) -> Unit,
+    candidates: List<GroupModelCandidate>,
+    selectedKeys: Set<GroupModelCandidateKey>,
+    onSelect: (GroupModelCandidate) -> Unit,
     onDismiss: () -> Unit,
 ) {
     if (!visible) return
 
-    val availableChannels = channels.filterNot { it.id in selectedChannelIds }
+    val availableCandidates = candidates.filterNot { it.key in selectedKeys }
+    val pickerScrollState = rememberScrollState()
+    val pickerMaxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.58f
+    var searchTerm by remember { mutableStateOf("") }
+    val visibleCandidates = remember(availableCandidates, searchTerm) {
+        val keyword = searchTerm.trim()
+        if (keyword.isBlank()) {
+            availableCandidates
+        } else {
+            availableCandidates.filter { candidate ->
+                candidate.modelName.contains(keyword, ignoreCase = true) ||
+                    candidate.channelName.contains(keyword, ignoreCase = true) ||
+                    candidate.channelId.toString().contains(keyword)
+            }
+        }
+    }
 
     OverlayDialog(
         show = visible,
@@ -622,23 +750,42 @@ private fun ChannelPickerDialog(
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (availableChannels.isEmpty()) {
-                InlineEmptyCard(
-                    title = stringResource(R.string.group_channel_picker_title),
-                    summary = stringResource(R.string.group_channel_picker_empty),
+            if (availableCandidates.isNotEmpty()) {
+                SearchField(
+                    value = searchTerm,
+                    onValueChange = { searchTerm = it },
+                    hint = stringResource(R.string.group_model_picker_search_hint),
                 )
-            } else {
-                availableChannels.forEach { channel ->
-                    SelectableListCard(
-                        title = channel.name,
-                        summary = stringResource(
-                            R.string.group_item_channel_summary,
-                            channel.id,
-                            channel.model.ifBlank { channel.customModel.ifBlank { channel.name } },
-                        ),
-                        selected = false,
-                        onClick = { onSelect(channel) },
+            }
+            Column(
+                modifier = Modifier
+                    .heightIn(max = pickerMaxHeight)
+                    .verticalScroll(pickerScrollState),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (availableCandidates.isEmpty()) {
+                    InlineEmptyCard(
+                        title = stringResource(R.string.group_channel_picker_title),
+                        summary = stringResource(R.string.group_channel_picker_empty),
                     )
+                } else if (visibleCandidates.isEmpty()) {
+                    InlineEmptyCard(
+                        title = stringResource(R.string.empty_title),
+                        summary = stringResource(R.string.group_model_picker_search_empty),
+                    )
+                } else {
+                    visibleCandidates.forEach { candidate ->
+                        SelectableListCard(
+                            title = candidate.modelName,
+                            summary = stringResource(
+                                R.string.group_item_channel_summary,
+                                candidate.channelId,
+                                candidate.channelName,
+                            ),
+                            selected = false,
+                            onClick = { onSelect(candidate) },
+                        )
+                    }
                 }
             }
             Row(

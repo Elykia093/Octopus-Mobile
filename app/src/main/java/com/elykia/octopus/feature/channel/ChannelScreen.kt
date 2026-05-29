@@ -2,18 +2,21 @@ package com.elykia.octopus.feature.channel
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,11 +25,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.designsystem.AppListCard
@@ -58,7 +63,7 @@ fun ChannelScreen(
     contentPadding: PaddingValues,
     viewModel: ChannelViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var deletingId by remember { mutableStateOf<Int?>(null) }
     var searchTerm by remember { mutableStateOf("") }
     var searchVisible by remember { mutableStateOf(false) }
@@ -91,16 +96,6 @@ fun ChannelScreen(
                                 searchVisible = !searchVisible
                                 if (!searchVisible) searchTerm = ""
                             },
-                        )
-                        PageActionButton(
-                            icon = AppMiuixIcons.Sync,
-                            contentDescription = stringResource(R.string.action_sync),
-                            onClick = viewModel::syncModels,
-                        )
-                        PageActionButton(
-                            icon = AppMiuixIcons.Refresh,
-                            contentDescription = stringResource(R.string.common_refresh),
-                            onClick = viewModel::refresh,
                         )
                         PageActionButton(
                             icon = AppMiuixIcons.Add,
@@ -231,7 +226,7 @@ private fun ChannelRow(
                         Icon(
                             imageVector = AppMiuixIcons.Create,
                             contentDescription = stringResource(R.string.action_edit),
-                            tint = MiuixTheme.colorScheme.primary,
+                            tint = OctopusTokens.TextSecondary,
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -239,7 +234,7 @@ private fun ChannelRow(
                         Icon(
                             imageVector = AppMiuixIcons.Delete,
                             contentDescription = stringResource(R.string.common_delete),
-                            tint = MiuixTheme.colorScheme.error,
+                            tint = OctopusTokens.TextSecondary,
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -334,6 +329,8 @@ private fun ChannelEditorDialog(
     var customModel by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.customModel.orEmpty()) }
     var proxy by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.proxy ?: false) }
     var autoSync by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.autoSync ?: false) }
+    val editorScrollState = rememberScrollState()
+    val editorMaxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.64f
 
     OverlayDialog(
         show = visible,
@@ -342,84 +339,89 @@ private fun ChannelEditorDialog(
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            TextField(
-                value = name,
-                onValueChange = { name = it },
-                label = stringResource(R.string.channel_name_hint),
-                useLabelAsPlaceholder = true,
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            TextField(
-                value = baseUrl,
-                onValueChange = { baseUrl = it },
-                label = stringResource(R.string.channel_base_url_hint),
-                useLabelAsPlaceholder = true,
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            TextField(
-                value = apiKey,
-                onValueChange = { apiKey = it },
-                label = stringResource(R.string.channel_api_key_hint),
-                useLabelAsPlaceholder = true,
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            TextField(
-                value = model,
-                onValueChange = { model = it },
-                label = stringResource(R.string.channel_model_hint),
-                useLabelAsPlaceholder = true,
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            TextField(
-                value = customModel,
-                onValueChange = { customModel = it },
-                label = stringResource(R.string.channel_custom_model_hint),
-                useLabelAsPlaceholder = true,
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                text = stringResource(R.string.channel_type_label),
-                style = MiuixTheme.textStyles.main,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ChannelTypeOption(type = 0, selectedType = type) { type = 0 }
-                ChannelTypeOption(type = 1, selectedType = type) { type = 1 }
-                ChannelTypeOption(type = 2, selectedType = type) { type = 2 }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ChannelTypeOption(type = 3, selectedType = type) { type = 3 }
-                ChannelTypeOption(type = 4, selectedType = type) { type = 4 }
-                ChannelTypeOption(type = 5, selectedType = type) { type = 5 }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier
+                    .heightIn(max = editorMaxHeight)
+                    .verticalScroll(editorScrollState),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(text = stringResource(R.string.channel_enabled_label), style = MiuixTheme.textStyles.main)
-                Switch(checked = enabled, onCheckedChange = { enabled = it })
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(text = stringResource(R.string.channel_proxy_label), style = MiuixTheme.textStyles.main)
-                Switch(checked = proxy, onCheckedChange = { proxy = it })
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(text = stringResource(R.string.channel_auto_sync_label), style = MiuixTheme.textStyles.main)
-                Switch(checked = autoSync, onCheckedChange = { autoSync = it })
+                TextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = stringResource(R.string.channel_name_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TextField(
+                    value = baseUrl,
+                    onValueChange = { baseUrl = it },
+                    label = stringResource(R.string.channel_base_url_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TextField(
+                    value = apiKey,
+                    onValueChange = { apiKey = it },
+                    label = stringResource(R.string.channel_api_key_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TextField(
+                    value = model,
+                    onValueChange = { model = it },
+                    label = stringResource(R.string.channel_model_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TextField(
+                    value = customModel,
+                    onValueChange = { customModel = it },
+                    label = stringResource(R.string.channel_custom_model_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = stringResource(R.string.channel_type_label),
+                    style = MiuixTheme.textStyles.main,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    (0..5).forEach { optionType ->
+                        ChannelTypeOption(type = optionType, selectedType = type) { type = optionType }
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(text = stringResource(R.string.channel_enabled_label), style = MiuixTheme.textStyles.main)
+                    Switch(checked = enabled, onCheckedChange = { enabled = it })
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(text = stringResource(R.string.channel_proxy_label), style = MiuixTheme.textStyles.main)
+                    Switch(checked = proxy, onCheckedChange = { proxy = it })
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(text = stringResource(R.string.channel_auto_sync_label), style = MiuixTheme.textStyles.main)
+                    Switch(checked = autoSync, onCheckedChange = { autoSync = it })
+                }
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),

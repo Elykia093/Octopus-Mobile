@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.data.model.Channel
@@ -61,7 +61,7 @@ fun HomeScreen(
     onLogout: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showToday by remember { mutableStateOf(true) }
 
     when {
@@ -99,11 +99,6 @@ fun HomeScreen(
             AppPageScaffold(
                 title = stringResource(R.string.home_title),
                 actions = {
-                    PageActionButton(
-                        icon = AppMiuixIcons.Refresh,
-                        contentDescription = stringResource(R.string.common_refresh),
-                        onClick = viewModel::refresh,
-                    )
                     PageActionButton(
                         icon = AppMiuixIcons.Logout,
                         contentDescription = stringResource(R.string.action_logout),
@@ -148,7 +143,7 @@ private fun DashboardOverviewSection(
         DashboardOverviewCard(
             title = stringResource(R.string.home_total_title),
             icon = AppMiuixIcons.Request,
-            accent = OctopusTones.Request,
+            accent = OctopusTokens.Accent,
             metrics = listOf(
                 OverviewMetric(
                     icon = AppMiuixIcons.Request,
@@ -165,7 +160,7 @@ private fun DashboardOverviewSection(
         DashboardOverviewCard(
             title = stringResource(R.string.home_all_title),
             icon = AppMiuixIcons.Total,
-            accent = OctopusTones.Token,
+            accent = OctopusTokens.Accent,
             metrics = listOf(
                 OverviewMetric(
                     icon = AppMiuixIcons.Token,
@@ -182,7 +177,7 @@ private fun DashboardOverviewSection(
         DashboardOverviewCard(
             title = stringResource(R.string.home_input_title),
             icon = AppMiuixIcons.ArrowDown,
-            accent = OctopusTones.Request,
+            accent = OctopusTokens.Accent,
             metrics = listOf(
                 OverviewMetric(
                     icon = AppMiuixIcons.ArrowDown,
@@ -199,7 +194,7 @@ private fun DashboardOverviewSection(
         DashboardOverviewCard(
             title = stringResource(R.string.home_output_title),
             icon = AppMiuixIcons.ArrowUp,
-            accent = OctopusTones.SuccessRate,
+            accent = OctopusTokens.Accent,
             metrics = listOf(
                 OverviewMetric(
                     icon = AppMiuixIcons.ArrowUp,

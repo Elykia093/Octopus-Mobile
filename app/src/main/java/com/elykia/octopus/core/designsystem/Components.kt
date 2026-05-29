@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -84,38 +85,47 @@ fun FloatingDockBar(
     mode: FloatingNavigationBarDisplayMode = FloatingNavigationBarDisplayMode.IconOnly,
 ) {
     val dockShape = RoundedCornerShape(34.dp)
-    Row(
-        modifier = modifier
-            .shadow(
-                elevation = 10.dp,
-                shape = dockShape,
-                clip = false,
-                ambientColor = Color.Black.copy(alpha = 0.08f),
-                spotColor = Color.Black.copy(alpha = 0.12f),
-            )
-            .clip(dockShape)
-            .background(OctopusTokens.Card)
-            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.9f), dockShape)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        items.forEach { item ->
-            val selected = item.key == selectedKey
-            Box(
-                modifier = Modifier
-                    .size(if (mode == FloatingNavigationBarDisplayMode.IconOnly) 48.dp else 56.dp)
-                    .clip(CircleShape)
-                    .background(if (selected) OctopusTokens.SelectedNav else Color.Transparent)
-                    .clickable { onSelected(item.key) },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = item.icon,
-                    contentDescription = item.label,
-                    tint = if (selected) OctopusTokens.TextPrimary else OctopusTokens.NavMuted,
-                    modifier = Modifier.size(28.dp),
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val sidePadding = 12.dp
+        val gap = 8.dp
+        val availableItemWidth = (maxWidth - sidePadding * 2f - gap * (items.size - 1).toFloat()) / items.size.toFloat()
+        val itemSize = availableItemWidth.coerceIn(42.dp, if (mode == FloatingNavigationBarDisplayMode.IconOnly) 48.dp else 56.dp)
+        val iconSize = (itemSize * 0.56f).coerceIn(22.dp, 28.dp)
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .shadow(
+                    elevation = 10.dp,
+                    shape = dockShape,
+                    clip = false,
+                    ambientColor = Color.Black.copy(alpha = 0.08f),
+                    spotColor = Color.Black.copy(alpha = 0.12f),
                 )
+                .clip(dockShape)
+                .background(OctopusTokens.Card)
+                .border(1.dp, OctopusTokens.Border.copy(alpha = 0.9f), dockShape)
+                .padding(horizontal = sidePadding, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(gap),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            items.forEach { item ->
+                val selected = item.key == selectedKey
+                Box(
+                    modifier = Modifier
+                        .size(itemSize)
+                        .clip(CircleShape)
+                        .background(if (selected) OctopusTokens.SelectedNav else Color.Transparent)
+                        .clickable { onSelected(item.key) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.label,
+                        tint = if (selected) OctopusTokens.TextPrimary else OctopusTokens.NavMuted,
+                        modifier = Modifier.size(iconSize),
+                    )
+                }
             }
         }
     }
@@ -131,8 +141,8 @@ fun AppSegmentButton(
     Box(
         modifier = Modifier
             .clip(shape)
-            .background(if (selected) OctopusTokens.Accent else OctopusTokens.Muted)
-            .border(1.dp, if (selected) OctopusTokens.Accent else OctopusTokens.Border, shape)
+            .background(if (selected) OctopusTokens.SelectedNav else OctopusTokens.Muted)
+            .border(1.dp, if (selected) OctopusTokens.SelectedNav else OctopusTokens.Border, shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
@@ -141,7 +151,7 @@ fun AppSegmentButton(
             text = text,
             style = MiuixTheme.textStyles.body2,
             fontWeight = FontWeight.SemiBold,
-            color = if (selected) Color.White else OctopusTokens.TextPrimary,
+            color = OctopusTokens.TextPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -409,7 +419,7 @@ fun SelectableListCard(
                 Icon(
                     imageVector = icon,
                     contentDescription = title,
-                    tint = MiuixTheme.colorScheme.primary,
+                    tint = OctopusTokens.Accent,
                     modifier = Modifier.size(16.dp),
                 )
             }
@@ -428,7 +438,7 @@ fun SelectableListCard(
                 Icon(
                     imageVector = AppMiuixIcons.Check,
                     contentDescription = stringResource(R.string.common_selected),
-                    tint = MiuixTheme.colorScheme.primary,
+                    tint = OctopusTokens.Accent,
                     modifier = Modifier.size(18.dp),
                 )
             }

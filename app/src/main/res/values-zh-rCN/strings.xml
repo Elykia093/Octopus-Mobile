@@ -213,9 +213,13 @@
     <string name="group_item_priority_hint">优先级</string>
     <string name="group_item_weight_hint">权重</string>
     <string name="group_add_item">新增条目</string>
-    <string name="group_channel_picker_title">选择渠道</string>
-    <string name="group_channel_picker_summary">从现有渠道中选择成员，不再手填渠道 ID。</string>
-    <string name="group_channel_picker_empty">还没有可选渠道。</string>
+    <string name="group_auto_add_items">自动加入</string>
+    <string name="group_submitting">保存中…</string>
+    <string name="group_channel_picker_title">选择模型</string>
+    <string name="group_channel_picker_summary">从现有渠道中选择模型成员。</string>
+    <string name="group_channel_picker_empty">还没有可选模型。</string>
+    <string name="group_model_picker_search_hint">搜索模型或渠道</string>
+    <string name="group_model_picker_search_empty">没有匹配的模型。</string>
     <string name="group_items_empty">暂无成员。</string>
     <string name="group_item_channel_summary">ID %1$d · %2$s</string>
     <string name="group_item_model_display">模型 %1$s</string>

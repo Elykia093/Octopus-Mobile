@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.RelayLog
 import com.elykia.octopus.core.designsystem.AppListCard
@@ -58,7 +58,7 @@ fun LogScreen(
     contentPadding: PaddingValues,
     viewModel: LogViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmClear by remember { mutableStateOf(false) }
     var searchTerm by remember { mutableStateOf("") }
     var searchVisible by remember { mutableStateOf(false) }
@@ -148,7 +148,7 @@ private fun LogRow(
     log: RelayLog,
 ) {
     val hasError = log.error.isNotBlank()
-    val statusColor = if (hasError) MiuixTheme.colorScheme.error else OctopusTones.Success
+    val statusColor = if (hasError) MiuixTheme.colorScheme.error else OctopusTokens.Accent
 
     AppListCard(padding = PaddingValues(horizontal = 18.dp, vertical = 18.dp)) {
         Row(
@@ -178,19 +178,19 @@ private fun LogRow(
                             icon = AppMiuixIcons.Time,
                             label = stringResource(R.string.log_metric_time),
                             value = formatLogTime(log.time),
-                            color = OctopusTones.Success,
+                            color = OctopusTokens.Accent,
                         )
                         LogMetricLine(
                             icon = AppMiuixIcons.Toggle,
                             label = stringResource(R.string.log_metric_total_time),
                             value = formatDurationMs(log.useTime.toLong()),
-                            color = OctopusTones.Request,
+                            color = OctopusTokens.TextSecondary,
                         )
                         LogMetricLine(
                             icon = AppMiuixIcons.ArrowUp,
                             label = stringResource(R.string.log_metric_output),
                             value = formatCount(log.outputTokens.toLong()),
-                            color = OctopusTones.Token,
+                            color = OctopusTokens.TextSecondary,
                         )
                     }
                     Column(
@@ -201,13 +201,13 @@ private fun LogRow(
                             icon = AppMiuixIcons.Success,
                             label = stringResource(R.string.log_metric_first_token),
                             value = formatDurationMs(log.ftut.toLong()),
-                            color = OctopusTones.Cost,
+                            color = OctopusTones.Orange,
                         )
                         LogMetricLine(
                             icon = AppMiuixIcons.ArrowDown,
                             label = stringResource(R.string.log_metric_input),
                             value = formatCount(log.inputTokens.toLong()),
-                            color = OctopusTones.SuccessRate,
+                            color = OctopusTokens.TextSecondary,
                         )
                         LogMetricLine(
                             icon = AppMiuixIcons.Cost,

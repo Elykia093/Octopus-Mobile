@@ -3,14 +3,14 @@ package com.elykia.octopus.core.designsystem
 import androidx.compose.ui.graphics.Color
 
 object OctopusTones {
-    val Blue = Color(0xFF007AFF)
-    val Sky = Color(0xFF5AC8FA)
-    val Purple = Color(0xFFAF52DE)
-    val Indigo = Color(0xFF5856D6)
-    val Orange = Color(0xFFFF9500)
-    val Green = Color(0xFF34C759)
-    val Red = Color(0xFFFF3B30)
-    val Gray = Color(0xFF8E8E93)
+    val Blue = Color(0xFF5C8C72)
+    val Sky = Color(0xFF6F9B8A)
+    val Purple = Color(0xFF897C68)
+    val Indigo = Color(0xFF6F7F8A)
+    val Orange = Color(0xFFB98C53)
+    val Green = Color(0xFF5BA567)
+    val Red = Color(0xFFB45B53)
+    val Gray = Color(0xFF8B877E)
 
     val Request = Blue
     val Cost = Green

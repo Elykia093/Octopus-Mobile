@@ -2,9 +2,9 @@ package com.elykia.octopus.feature.app
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -23,8 +23,8 @@ fun OctopusApp(
     appViewModel: AppViewModel = hiltViewModel(),
 ) {
     val navController = rememberNavController()
-    val launchState by appViewModel.launchState.collectAsState()
-    val themeMode by appViewModel.themeMode.collectAsState()
+    val launchState by appViewModel.launchState.collectAsStateWithLifecycle()
+    val themeMode by appViewModel.themeMode.collectAsStateWithLifecycle()
     val backStackEntry by navController.currentBackStackEntryAsState()
 
     LaunchedEffect(launchState, backStackEntry?.destination?.route) {

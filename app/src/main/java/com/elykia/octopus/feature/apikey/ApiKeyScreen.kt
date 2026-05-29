@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,12 +13,13 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -34,6 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.designsystem.AppInfoChip
@@ -65,7 +69,7 @@ fun ApiKeyScreen(
     contentPadding: PaddingValues,
     viewModel: SettingViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var searchTerm by remember { mutableStateOf("") }
     var searchVisible by remember { mutableStateOf(false) }
@@ -97,11 +101,6 @@ fun ApiKeyScreen(
                                 searchVisible = !searchVisible
                                 if (!searchVisible) searchTerm = ""
                             },
-                        )
-                        PageActionButton(
-                            icon = AppMiuixIcons.Refresh,
-                            contentDescription = stringResource(R.string.common_refresh),
-                            onClick = viewModel::refresh,
                         )
                         PageActionButton(
                             icon = AppMiuixIcons.Add,
@@ -245,7 +244,7 @@ private fun ApiKeyRow(
                         Icon(
                             imageVector = AppMiuixIcons.Create,
                             contentDescription = stringResource(R.string.action_edit),
-                            tint = MiuixTheme.colorScheme.primary,
+                            tint = OctopusTokens.TextSecondary,
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -253,7 +252,7 @@ private fun ApiKeyRow(
                         Icon(
                             imageVector = AppMiuixIcons.Delete,
                             contentDescription = stringResource(R.string.common_delete),
-                            tint = MiuixTheme.colorScheme.error,
+                            tint = OctopusTokens.TextSecondary,
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -354,6 +353,9 @@ private fun CreatedApiKeyDialog(
                     text = item.apiKey,
                     style = MiuixTheme.textStyles.body2,
                     fontFamily = FontFamily.Monospace,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -392,6 +394,8 @@ private fun ApiKeyEditorDialog(
     var maxCost by remember(initialItem?.id, visible) { mutableStateOf(initialItem?.maxCost?.toString().orEmpty()) }
     var supportedModels by remember(initialItem?.id, visible) { mutableStateOf(initialItem?.supportedModels.orEmpty()) }
     var enabled by remember(initialItem?.id, visible) { mutableStateOf(initialItem?.enabled ?: true) }
+    val editorScrollState = rememberScrollState()
+    val editorMaxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.58f
 
     OverlayDialog(
         show = visible,
@@ -400,46 +404,53 @@ private fun ApiKeyEditorDialog(
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            TextField(
-                value = name,
-                onValueChange = { name = it },
-                label = stringResource(R.string.apikey_name_hint),
-                useLabelAsPlaceholder = true,
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            TextField(
-                value = maxCost,
-                onValueChange = { maxCost = it },
-                label = stringResource(R.string.apikey_max_cost_hint),
-                useLabelAsPlaceholder = true,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            TextField(
-                value = expireAt,
-                onValueChange = { expireAt = it },
-                label = stringResource(R.string.apikey_expire_at_hint),
-                useLabelAsPlaceholder = true,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            TextField(
-                value = supportedModels,
-                onValueChange = { supportedModels = it },
-                label = stringResource(R.string.apikey_supported_models_hint),
-                useLabelAsPlaceholder = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+            Column(
+                modifier = Modifier
+                    .heightIn(max = editorMaxHeight)
+                    .verticalScroll(editorScrollState),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(text = stringResource(R.string.apikey_enabled_label), style = MiuixTheme.textStyles.main)
-                Switch(checked = enabled, onCheckedChange = { enabled = it })
+                TextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = stringResource(R.string.apikey_name_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TextField(
+                    value = maxCost,
+                    onValueChange = { maxCost = it },
+                    label = stringResource(R.string.apikey_max_cost_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TextField(
+                    value = expireAt,
+                    onValueChange = { expireAt = it },
+                    label = stringResource(R.string.apikey_expire_at_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TextField(
+                    value = supportedModels,
+                    onValueChange = { supportedModels = it },
+                    label = stringResource(R.string.apikey_supported_models_hint),
+                    useLabelAsPlaceholder = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(text = stringResource(R.string.apikey_enabled_label), style = MiuixTheme.textStyles.main)
+                    Switch(checked = enabled, onCheckedChange = { enabled = it })
+                }
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),

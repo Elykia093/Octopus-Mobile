@@ -213,9 +213,13 @@
     <string name="group_item_priority_hint">Priority</string>
     <string name="group_item_weight_hint">Weight</string>
     <string name="group_add_item">Add item</string>
-    <string name="group_channel_picker_title">Select channel</string>
-    <string name="group_channel_picker_summary">Choose from existing channels instead of typing channel IDs manually.</string>
-    <string name="group_channel_picker_empty">No available channels yet.</string>
+    <string name="group_auto_add_items">Auto add</string>
+    <string name="group_submitting">Saving…</string>
+    <string name="group_channel_picker_title">Select model</string>
+    <string name="group_channel_picker_summary">Choose model members from existing channels.</string>
+    <string name="group_channel_picker_empty">No available models yet.</string>
+    <string name="group_model_picker_search_hint">Search models or channels</string>
+    <string name="group_model_picker_search_empty">No matching models.</string>
     <string name="group_items_empty">No members yet.</string>
     <string name="group_item_channel_summary">ID %1$d · %2$s</string>
     <string name="group_item_model_display">Model %1$s</string>
