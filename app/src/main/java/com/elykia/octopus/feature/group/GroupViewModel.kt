@@ -86,6 +86,8 @@ class GroupViewModel @Inject constructor(
         matchRegex: String,
         firstTokenTimeOut: Int,
         sessionKeepTime: Int,
+        retryEnabled: Boolean,
+        maxRetries: Int,
         items: List<GroupItem>,
         onSuccess: () -> Unit = {},
     ) {
@@ -99,6 +101,8 @@ class GroupViewModel @Inject constructor(
                     matchRegex = matchRegex.trim(),
                     firstTokenTimeOut = firstTokenTimeOut,
                     sessionKeepTime = sessionKeepTime,
+                    retryEnabled = retryEnabled,
+                    maxRetries = maxRetries.takeIf { it > 0 } ?: 3,
                     items = items,
                 )
             )) {
@@ -122,6 +126,8 @@ class GroupViewModel @Inject constructor(
         matchRegex: String,
         firstTokenTimeOut: Int,
         sessionKeepTime: Int,
+        retryEnabled: Boolean,
+        maxRetries: Int,
         items: List<GroupItem>,
         onSuccess: () -> Unit = {},
     ) {
@@ -136,6 +142,8 @@ class GroupViewModel @Inject constructor(
                     matchRegex = matchRegex,
                     firstTokenTimeOut = firstTokenTimeOut,
                     sessionKeepTime = sessionKeepTime,
+                    retryEnabled = retryEnabled,
+                    maxRetries = maxRetries,
                     items = items,
                 )
             )) {

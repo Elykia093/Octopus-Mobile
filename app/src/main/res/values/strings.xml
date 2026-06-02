@@ -14,6 +14,7 @@
     <string name="common_retry">Retry</string>
     <string name="common_cancel">Cancel</string>
     <string name="common_confirm">Confirm</string>
+    <string name="common_saving">Saving…</string>
     <string name="common_delete">Delete</string>
     <string name="common_search">Search</string>
     <string name="common_filter">Filter</string>
@@ -207,6 +208,8 @@
     <string name="group_match_regex_hint">Optional regex rule</string>
     <string name="group_timeout_label">First token timeout</string>
     <string name="group_keep_time_label">Session keep time</string>
+    <string name="group_retry_enabled_label">Retry failed channel</string>
+    <string name="group_max_retries_label">Max retries</string>
     <string name="group_items_label">Group items</string>
     <string name="group_item_channel_id_hint">Channel ID</string>
     <string name="group_item_model_name_hint">Model name</string>

@@ -70,5 +70,5 @@ private fun mainContentPadding(scaffoldPadding: PaddingValues): PaddingValues = 
     start = 16.dp,
     top = 8.dp + scaffoldPadding.calculateTopPadding(),
     end = 16.dp,
-    bottom = maxOf(110.dp, scaffoldPadding.calculateBottomPadding() + 16.dp),
+    bottom = maxOf(96.dp, scaffoldPadding.calculateBottomPadding() + 20.dp),
 )

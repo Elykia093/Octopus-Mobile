@@ -21,6 +21,23 @@ data class ChannelUiState(
     val channels: List<Channel> = emptyList(),
     val fetchedModels: List<String> = emptyList(),
     val error: String? = null,
+    val submitting: Boolean = false,
+    val operationError: String? = null,
+)
+
+internal fun ChannelUiState.channelOperationStarted(): ChannelUiState = copy(
+    submitting = true,
+    operationError = null,
+)
+
+internal fun ChannelUiState.channelOperationSucceeded(): ChannelUiState = copy(
+    submitting = false,
+    operationError = null,
+)
+
+internal fun ChannelUiState.channelOperationFailed(message: String): ChannelUiState = copy(
+    submitting = false,
+    operationError = message,
 )
 
 @HiltViewModel
@@ -46,17 +63,36 @@ class ChannelViewModel @Inject constructor(
 
     fun syncModels() {
         viewModelScope.launch {
-            repository.syncChannelModels()
-            refresh()
+            if (_uiState.value.submitting) return@launch
+            _uiState.value = _uiState.value.channelOperationStarted()
+            when (val result = repository.syncChannelModels()) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.channelOperationSucceeded()
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.channelOperationFailed(result.message)
+            }
         }
     }
 
-    fun fetchModels(channel: Channel) {
+    fun fetchModels(
+        channel: Channel,
+        onSuccess: () -> Unit = {},
+    ) {
         viewModelScope.launch {
+            if (_uiState.value.submitting) return@launch
+            _uiState.value = _uiState.value.channelOperationStarted()
             val result = repository.fetchChannelModels(channel.toFetchRequest())
-            _uiState.value = when (result) {
-                is AppResult.Success -> _uiState.value.copy(fetchedModels = result.data, error = null)
-                is AppResult.Error -> _uiState.value.copy(error = result.message)
+            when (result) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        submitting = false,
+                        fetchedModels = result.data,
+                        operationError = null,
+                    )
+                    onSuccess()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.channelOperationFailed(result.message)
             }
         }
     }
@@ -66,8 +102,11 @@ class ChannelViewModel @Inject constructor(
         baseUrl: String,
         apiKey: String,
         proxy: Boolean,
+        onSuccess: () -> Unit = {},
     ) {
         viewModelScope.launch {
+            if (_uiState.value.submitting) return@launch
+            _uiState.value = _uiState.value.channelOperationStarted()
             val result = repository.fetchChannelModels(
                 ChannelFetchModelRequest(
                     type = type,
@@ -78,11 +117,22 @@ class ChannelViewModel @Inject constructor(
                     proxy = proxy,
                 )
             )
-            _uiState.value = when (result) {
-                is AppResult.Success -> _uiState.value.copy(fetchedModels = result.data, error = null)
-                is AppResult.Error -> _uiState.value.copy(error = result.message)
+            when (result) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        submitting = false,
+                        fetchedModels = result.data,
+                        operationError = null,
+                    )
+                    onSuccess()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.channelOperationFailed(result.message)
             }
         }
+    }
+
+    fun clearOperationError() {
+        _uiState.value = _uiState.value.copy(operationError = null)
     }
 
     fun clearFetchedModels() {
@@ -91,15 +141,29 @@ class ChannelViewModel @Inject constructor(
 
     fun delete(id: Int) {
         viewModelScope.launch {
-            repository.deleteChannel(id)
-            refresh()
+            if (_uiState.value.submitting) return@launch
+            _uiState.value = _uiState.value.channelOperationStarted()
+            when (val result = repository.deleteChannel(id)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.channelOperationSucceeded()
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.channelOperationFailed(result.message)
+            }
         }
     }
 
     fun setEnabled(id: Int, enabled: Boolean) {
         viewModelScope.launch {
-            repository.setChannelEnabled(id, enabled)
-            refresh()
+            if (_uiState.value.submitting) return@launch
+            _uiState.value = _uiState.value.channelOperationStarted()
+            when (val result = repository.setChannelEnabled(id, enabled)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.channelOperationSucceeded()
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.channelOperationFailed(result.message)
+            }
         }
     }
 
@@ -113,9 +177,12 @@ class ChannelViewModel @Inject constructor(
         customModel: String,
         proxy: Boolean,
         autoSync: Boolean,
+        onSuccess: () -> Unit = {},
     ) {
         viewModelScope.launch {
-            repository.createChannel(
+            if (_uiState.value.submitting) return@launch
+            _uiState.value = _uiState.value.channelOperationStarted()
+            when (val result = repository.createChannel(
                 Channel(
                     name = name.trim(),
                     type = type,
@@ -129,8 +196,14 @@ class ChannelViewModel @Inject constructor(
                     proxy = proxy,
                     autoSync = autoSync,
                 )
-            )
-            refresh()
+            )) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.channelOperationSucceeded()
+                    onSuccess()
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.channelOperationFailed(result.message)
+            }
         }
     }
 
@@ -145,8 +218,11 @@ class ChannelViewModel @Inject constructor(
         customModel: String,
         proxy: Boolean,
         autoSync: Boolean,
+        onSuccess: () -> Unit = {},
     ) {
         viewModelScope.launch {
+            if (_uiState.value.submitting) return@launch
+            _uiState.value = _uiState.value.channelOperationStarted()
             val existingKey = channel.keys.firstOrNull()
             val trimmedKey = apiKey.trim()
             val keysToAdd = if (existingKey == null && trimmedKey.isNotEmpty()) {
@@ -172,7 +248,7 @@ class ChannelViewModel @Inject constructor(
                 emptyList()
             }
 
-            repository.updateChannel(
+            when (val result = repository.updateChannel(
                 ChannelUpdateRequest(
                     id = channel.id,
                     name = name.trim(),
@@ -187,8 +263,14 @@ class ChannelViewModel @Inject constructor(
                     keysToUpdate = keysToUpdate,
                     keysToDelete = keysToDelete,
                 )
-            )
-            refresh()
+            )) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.channelOperationSucceeded()
+                    onSuccess()
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.channelOperationFailed(result.message)
+            }
         }
     }
 }

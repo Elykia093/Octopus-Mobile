@@ -199,6 +199,8 @@ data class Group(
     @SerialName("match_regex") val matchRegex: String = "",
     @SerialName("first_token_time_out") val firstTokenTimeOut: Int = 0,
     @SerialName("session_keep_time") val sessionKeepTime: Int = 0,
+    @SerialName("retry_enabled") val retryEnabled: Boolean = false,
+    @SerialName("max_retries") val maxRetries: Int = 3,
     val items: List<GroupItem> = emptyList(),
 )
 
@@ -225,6 +227,8 @@ data class GroupUpdateRequest(
     @SerialName("match_regex") val matchRegex: String? = null,
     @SerialName("first_token_time_out") val firstTokenTimeOut: Int? = null,
     @SerialName("session_keep_time") val sessionKeepTime: Int? = null,
+    @SerialName("retry_enabled") val retryEnabled: Boolean? = null,
+    @SerialName("max_retries") val maxRetries: Int? = null,
     @SerialName("items_to_add") val itemsToAdd: List<GroupItemAddRequest> = emptyList(),
     @SerialName("items_to_update") val itemsToUpdate: List<GroupItemUpdateRequest> = emptyList(),
     @SerialName("items_to_delete") val itemsToDelete: List<Int> = emptyList(),

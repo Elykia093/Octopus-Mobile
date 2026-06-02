@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,10 +32,10 @@ import com.elykia.octopus.core.data.model.StatsApiKeyEntry
 import com.elykia.octopus.core.data.model.StatsDaily
 import com.elykia.octopus.core.data.model.StatsTotal
 import com.elykia.octopus.core.designsystem.AppPageScaffold
-import com.elykia.octopus.core.designsystem.EmptyPane
-import com.elykia.octopus.core.designsystem.ErrorPane
+import com.elykia.octopus.core.designsystem.EmptyStateCard
+import com.elykia.octopus.core.designsystem.ErrorStateCard
 import com.elykia.octopus.core.designsystem.AppListCard
-import com.elykia.octopus.core.designsystem.LoadingPane
+import com.elykia.octopus.core.designsystem.LoadingStateCard
 import com.elykia.octopus.core.designsystem.OctopusTones
 import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.PageActionButton
@@ -64,50 +62,54 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showToday by remember { mutableStateOf(true) }
 
-    when {
-        uiState.loading -> LoadingPane(title = stringResource(R.string.home_title))
-        uiState.error != null -> ErrorPane(message = uiState.error ?: stringResource(R.string.error_title), onRetry = viewModel::refresh)
-        uiState.total == null -> EmptyPane(title = stringResource(R.string.empty_title), summary = stringResource(R.string.home_empty))
-        else -> {
-            val total = uiState.total ?: return
-            val today = uiState.today
+    val total = uiState.total
+    val snapshot = when (val s = if (showToday && uiState.today != null) uiState.today else total) {
+        is StatsTotal -> StatsSnapshot(
+            requestCount = s.requestSuccess + s.requestFailed,
+            costValue = s.inputCost + s.outputCost,
+            tokenValue = s.inputToken + s.outputToken,
+            waitValue = s.waitTime,
+            inputCost = s.inputCost,
+            inputToken = s.inputToken,
+            outputCost = s.outputCost,
+            outputToken = s.outputToken,
+        )
+        is StatsDaily -> StatsSnapshot(
+            requestCount = s.requestSuccess + s.requestFailed,
+            costValue = s.inputCost + s.outputCost,
+            tokenValue = s.inputToken + s.outputToken,
+            waitValue = s.waitTime,
+            inputCost = s.inputCost,
+            inputToken = s.inputToken,
+            outputCost = s.outputCost,
+            outputToken = s.outputToken,
+        )
+        else -> StatsSnapshot()
+    }
 
-            val snapshot = when (val s = if (showToday && today != null) today else total) {
-                is StatsTotal -> StatsSnapshot(
-                    requestCount = s.requestSuccess + s.requestFailed,
-                    costValue = s.inputCost + s.outputCost,
-                    tokenValue = s.inputToken + s.outputToken,
-                    waitValue = s.waitTime,
-                    inputCost = s.inputCost,
-                    inputToken = s.inputToken,
-                    outputCost = s.outputCost,
-                    outputToken = s.outputToken,
+    AppPageScaffold(
+        title = stringResource(R.string.home_title),
+        actions = {
+            PageActionButton(
+                icon = AppMiuixIcons.Logout,
+                contentDescription = stringResource(R.string.action_logout),
+                onClick = onLogout,
+            )
+        },
+        contentPadding = contentPadding,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            when {
+                uiState.loading -> LoadingStateCard(title = stringResource(R.string.home_title))
+                uiState.error != null -> ErrorStateCard(
+                    message = uiState.error ?: stringResource(R.string.error_title),
+                    onRetry = viewModel::refresh,
                 )
-                is StatsDaily -> StatsSnapshot(
-                    requestCount = s.requestSuccess + s.requestFailed,
-                    costValue = s.inputCost + s.outputCost,
-                    tokenValue = s.inputToken + s.outputToken,
-                    waitValue = s.waitTime,
-                    inputCost = s.inputCost,
-                    inputToken = s.inputToken,
-                    outputCost = s.outputCost,
-                    outputToken = s.outputToken,
+                total == null -> EmptyStateCard(
+                    title = stringResource(R.string.empty_title),
+                    summary = stringResource(R.string.home_empty),
                 )
-                else -> StatsSnapshot()
-            }
-
-            AppPageScaffold(
-                title = stringResource(R.string.home_title),
-                actions = {
-                    PageActionButton(
-                        icon = AppMiuixIcons.Logout,
-                        contentDescription = stringResource(R.string.action_logout),
-                        onClick = onLogout,
-                    )
-                },
-                contentPadding = contentPadding,
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                else -> {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         ToolbarChip(
                             text = stringResource(R.string.home_scope_today),
@@ -221,43 +223,37 @@ private fun DashboardOverviewCard(
     AppListCard(
         padding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 142.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            Column(
-                modifier = Modifier.width(74.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = title,
-                    tint = OctopusTokens.TextPrimary,
-                    modifier = Modifier.size(24.dp),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(OctopusTokens.PrimarySoft),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = title,
+                        tint = accent,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
                 Text(
                     text = title,
                     style = MiuixTheme.textStyles.main,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     color = OctopusTokens.TextPrimary,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
             }
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .heightIn(min = 112.dp)
-                    .background(OctopusTokens.Border),
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(18.dp),
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 metrics.forEach { metric ->
                     OverviewMetricLine(metric = metric, accent = accent)
                 }

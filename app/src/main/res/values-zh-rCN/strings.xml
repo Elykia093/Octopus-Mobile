@@ -14,6 +14,7 @@
     <string name="common_retry">重试</string>
     <string name="common_cancel">取消</string>
     <string name="common_confirm">确认</string>
+    <string name="common_saving">保存中…</string>
     <string name="common_delete">删除</string>
     <string name="common_search">搜索</string>
     <string name="common_filter">筛选</string>
@@ -207,6 +208,8 @@
     <string name="group_match_regex_hint">可选，填写正则规则</string>
     <string name="group_timeout_label">首个令牌超时</string>
     <string name="group_keep_time_label">会话保持时间</string>
+    <string name="group_retry_enabled_label">失败后重试</string>
+    <string name="group_max_retries_label">最大重试次数</string>
     <string name="group_items_label">分组条目</string>
     <string name="group_item_channel_id_hint">渠道 ID</string>
     <string name="group_item_model_name_hint">模型名称</string>

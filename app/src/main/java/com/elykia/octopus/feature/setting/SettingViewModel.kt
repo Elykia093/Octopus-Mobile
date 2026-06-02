@@ -36,6 +36,23 @@ data class SettingUiState(
     val modelLastUpdateTime: String? = null,
     val createdApiKey: ApiKeyItem? = null,
     val error: String? = null,
+    val apiKeySubmitting: Boolean = false,
+    val apiKeyOperationError: String? = null,
+)
+
+internal fun SettingUiState.apiKeyOperationStarted(): SettingUiState = copy(
+    apiKeySubmitting = true,
+    apiKeyOperationError = null,
+)
+
+internal fun SettingUiState.apiKeyOperationSucceeded(): SettingUiState = copy(
+    apiKeySubmitting = false,
+    apiKeyOperationError = null,
+)
+
+internal fun SettingUiState.apiKeyOperationFailed(message: String): SettingUiState = copy(
+    apiKeySubmitting = false,
+    apiKeyOperationError = message,
 )
 
 @HiltViewModel
@@ -53,6 +70,7 @@ class SettingViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(loading = true, error = null)
+            val previous = _uiState.value
             val settingsDeferred = async { appRepository.settings() }
             val apiKeysDeferred = async { dashboardRepository.apiKeys() }
             val latestDeferred = async { dashboardRepository.latestInfo() }
@@ -77,9 +95,17 @@ class SettingViewModel @Inject constructor(
                     language = config.language,
                     themeMode = config.themeMode,
                     createdApiKey = _uiState.value.createdApiKey,
+                    apiKeySubmitting = previous.apiKeySubmitting,
+                    apiKeyOperationError = previous.apiKeyOperationError,
                 )
             } else {
-                _uiState.value = SettingUiState(loading = false, error = (settings as AppResult.Error).message)
+                _uiState.value = SettingUiState(
+                    loading = false,
+                    error = (settings as AppResult.Error).message,
+                    createdApiKey = previous.createdApiKey,
+                    apiKeySubmitting = previous.apiKeySubmitting,
+                    apiKeyOperationError = previous.apiKeyOperationError,
+                )
             }
         }
     }
@@ -132,8 +158,15 @@ class SettingViewModel @Inject constructor(
 
     fun setApiKeyEnabled(item: ApiKeyItem, enabled: Boolean) {
         viewModelScope.launch {
-            dashboardRepository.updateApiKey(item.copy(enabled = enabled))
-            refresh()
+            if (_uiState.value.apiKeySubmitting) return@launch
+            _uiState.value = _uiState.value.apiKeyOperationStarted()
+            when (val result = dashboardRepository.updateApiKey(item.copy(enabled = enabled))) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.apiKeyOperationSucceeded()
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.apiKeyOperationFailed(result.message)
+            }
         }
     }
 
@@ -143,8 +176,11 @@ class SettingViewModel @Inject constructor(
         maxCost: Double,
         supportedModels: String,
         enabled: Boolean,
+        onSuccess: () -> Unit = {},
     ) {
         viewModelScope.launch {
+            if (_uiState.value.apiKeySubmitting) return@launch
+            _uiState.value = _uiState.value.apiKeyOperationStarted()
             when (
                 val result = dashboardRepository.createApiKey(
                 ApiKeyMutationRequest(
@@ -155,28 +191,57 @@ class SettingViewModel @Inject constructor(
                     supportedModels = supportedModels,
                 )
             )) {
-                is AppResult.Success -> _uiState.value = _uiState.value.copy(createdApiKey = result.data)
-                is AppResult.Error -> _uiState.value = _uiState.value.copy(error = result.message)
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        apiKeySubmitting = false,
+                        apiKeyOperationError = null,
+                        createdApiKey = result.data,
+                    )
+                    onSuccess()
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.apiKeyOperationFailed(result.message)
             }
-            refresh()
         }
+    }
+
+    fun clearApiKeyOperationError() {
+        _uiState.value = _uiState.value.copy(apiKeyOperationError = null)
     }
 
     fun dismissCreatedApiKey() {
         _uiState.value = _uiState.value.copy(createdApiKey = null)
     }
 
-    fun updateApiKey(item: ApiKeyItem) {
+    fun updateApiKey(
+        item: ApiKeyItem,
+        onSuccess: () -> Unit = {},
+    ) {
         viewModelScope.launch {
-            dashboardRepository.updateApiKey(item)
-            refresh()
+            if (_uiState.value.apiKeySubmitting) return@launch
+            _uiState.value = _uiState.value.apiKeyOperationStarted()
+            when (val result = dashboardRepository.updateApiKey(item)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.apiKeyOperationSucceeded()
+                    onSuccess()
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.apiKeyOperationFailed(result.message)
+            }
         }
     }
 
     fun deleteApiKey(id: Int) {
         viewModelScope.launch {
-            dashboardRepository.deleteApiKey(id)
-            refresh()
+            if (_uiState.value.apiKeySubmitting) return@launch
+            _uiState.value = _uiState.value.apiKeyOperationStarted()
+            when (val result = dashboardRepository.deleteApiKey(id)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.apiKeyOperationSucceeded()
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.apiKeyOperationFailed(result.message)
+            }
         }
     }
 }

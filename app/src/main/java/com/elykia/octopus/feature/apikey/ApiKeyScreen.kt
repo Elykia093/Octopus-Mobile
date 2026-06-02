@@ -13,12 +13,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -45,10 +42,12 @@ import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.AppMetricRow
 import com.elykia.octopus.core.designsystem.AppPageScaffold
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
-import com.elykia.octopus.core.designsystem.ErrorPane
+import com.elykia.octopus.core.designsystem.DialogScrollableColumn
+import com.elykia.octopus.core.designsystem.ErrorStateCard
 import com.elykia.octopus.core.designsystem.InlineEmptyCard
-import com.elykia.octopus.core.designsystem.LoadingPane
+import com.elykia.octopus.core.designsystem.LoadingStateCard
 import com.elykia.octopus.core.designsystem.OctopusTokens
+import com.elykia.octopus.core.designsystem.OperationErrorCard
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
 import com.elykia.octopus.core.designsystem.formatMoney
@@ -77,46 +76,59 @@ fun ApiKeyScreen(
     var editingItem by remember { mutableStateOf<ApiKeyItem?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
 
-    when {
-        uiState.loading -> LoadingPane(title = stringResource(R.string.apikey_title))
-        uiState.error != null -> ErrorPane(message = uiState.error ?: stringResource(R.string.error_title), onRetry = viewModel::refresh)
-        else -> {
-            val keys = uiState.apiKeys
-                .filter { item ->
-                    searchTerm.isBlank() ||
-                        item.name.contains(searchTerm, ignoreCase = true) ||
-                        item.apiKey.contains(searchTerm, ignoreCase = true) ||
-                        item.supportedModels.orEmpty().contains(searchTerm, ignoreCase = true)
-                }
-                .sortedByDescending { it.enabled }
+    val keys = uiState.apiKeys
+        .filter { item ->
+            searchTerm.isBlank() ||
+                item.name.contains(searchTerm, ignoreCase = true) ||
+                item.apiKey.contains(searchTerm, ignoreCase = true) ||
+                item.supportedModels.orEmpty().contains(searchTerm, ignoreCase = true)
+        }
+        .sortedByDescending { it.enabled }
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                AppPageScaffold(
-                    title = stringResource(R.string.apikey_title),
-                    actions = {
-                        PageActionButton(
-                            icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
-                            contentDescription = stringResource(R.string.action_open_search),
-                            onClick = {
-                                searchVisible = !searchVisible
-                                if (!searchVisible) searchTerm = ""
-                            },
-                        )
-                        PageActionButton(
-                            icon = AppMiuixIcons.Add,
-                            contentDescription = stringResource(R.string.action_create),
-                            onClick = { showCreateDialog = true },
-                        )
+    Box(modifier = Modifier.fillMaxSize()) {
+        AppPageScaffold(
+            title = stringResource(R.string.apikey_title),
+            actions = {
+                PageActionButton(
+                    icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
+                    contentDescription = stringResource(R.string.action_open_search),
+                    enabled = !uiState.loading && uiState.error == null,
+                    onClick = {
+                        searchVisible = !searchVisible
+                        if (!searchVisible) searchTerm = ""
                     },
-                    contentPadding = contentPadding,
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                )
+                PageActionButton(
+                    icon = AppMiuixIcons.Add,
+                    contentDescription = stringResource(R.string.action_create),
+                    enabled = !uiState.loading && uiState.error == null && !uiState.apiKeySubmitting,
+                    onClick = {
+                        viewModel.clearApiKeyOperationError()
+                        showCreateDialog = true
+                    },
+                )
+            },
+            contentPadding = contentPadding,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                when {
+                    uiState.loading -> LoadingStateCard(title = stringResource(R.string.apikey_title))
+                    uiState.error != null -> ErrorStateCard(
+                        message = uiState.error ?: stringResource(R.string.error_title),
+                        onRetry = viewModel::refresh,
+                    )
+                    else -> {
                         if (uiState.apiKeys.isNotEmpty() && searchVisible) {
                             SearchField(
                                 value = searchTerm,
                                 onValueChange = { searchTerm = it },
                                 hint = stringResource(R.string.setting_apikey_title),
                             )
+                        }
+                        if (!showCreateDialog && editingItem == null) {
+                            uiState.apiKeyOperationError?.takeIf { it.isNotBlank() }?.let { error ->
+                                OperationErrorCard(message = error)
+                            }
                         }
                         when {
                             uiState.apiKeys.isEmpty() -> InlineEmptyCard(
@@ -130,8 +142,12 @@ fun ApiKeyScreen(
                             else -> keys.forEach { item ->
                                 ApiKeyRow(
                                     item = item,
+                                    submitting = uiState.apiKeySubmitting,
                                     onToggle = { viewModel.setApiKeyEnabled(item, it) },
-                                    onEdit = { editingItem = item },
+                                    onEdit = {
+                                        viewModel.clearApiKeyOperationError()
+                                        editingItem = item
+                                    },
                                     onDelete = { deletingId = item.id },
                                 )
                             }
@@ -139,64 +155,83 @@ fun ApiKeyScreen(
                     }
                 }
             }
-
-            DangerConfirmDialog(
-                visible = deletingId != null,
-                title = stringResource(R.string.common_delete),
-                summary = stringResource(R.string.setting_apikey_summary),
-                onConfirm = {
-                    deletingId?.let(viewModel::deleteApiKey)
-                    deletingId = null
-                },
-                onDismiss = { deletingId = null },
-            )
-
-            ApiKeyEditorDialog(
-                visible = showCreateDialog,
-                title = stringResource(R.string.apikey_create_title),
-                initialItem = null,
-                onConfirm = { name, expireAt, maxCost, supportedModels, enabled ->
-                    viewModel.createApiKey(name, expireAt, maxCost, supportedModels, enabled)
-                    showCreateDialog = false
-                },
-                onDismiss = { showCreateDialog = false },
-            )
-
-            ApiKeyEditorDialog(
-                visible = editingItem != null,
-                title = stringResource(R.string.apikey_edit_title),
-                initialItem = editingItem,
-                onConfirm = { name, expireAt, maxCost, supportedModels, enabled ->
-                    editingItem?.let { current ->
-                        viewModel.updateApiKey(
-                            current.copy(
-                                name = name,
-                                expireAt = expireAt,
-                                maxCost = maxCost,
-                                supportedModels = supportedModels,
-                                enabled = enabled,
-                            )
-                        )
-                    }
-                    editingItem = null
-                },
-                onDismiss = { editingItem = null },
-            )
-
-            uiState.createdApiKey?.let { created ->
-                CreatedApiKeyDialog(
-                    item = created,
-                    onCopy = { copyApiKey(context, created.apiKey) },
-                    onDismiss = viewModel::dismissCreatedApiKey,
-                )
-            }
         }
+    }
+
+    DangerConfirmDialog(
+        visible = deletingId != null,
+        title = stringResource(R.string.common_delete),
+        summary = stringResource(R.string.setting_apikey_summary),
+        onConfirm = {
+            deletingId?.let(viewModel::deleteApiKey)
+            deletingId = null
+        },
+        onDismiss = { deletingId = null },
+    )
+
+    ApiKeyEditorDialog(
+        visible = showCreateDialog,
+        title = stringResource(R.string.apikey_create_title),
+        initialItem = null,
+        submitting = uiState.apiKeySubmitting,
+        operationError = uiState.apiKeyOperationError,
+        onConfirm = { name, expireAt, maxCost, supportedModels, enabled ->
+            viewModel.createApiKey(name, expireAt, maxCost, supportedModels, enabled) {
+                showCreateDialog = false
+                viewModel.clearApiKeyOperationError()
+            }
+        },
+        onDismiss = {
+            if (!uiState.apiKeySubmitting) {
+                showCreateDialog = false
+                viewModel.clearApiKeyOperationError()
+            }
+        },
+    )
+
+    ApiKeyEditorDialog(
+        visible = editingItem != null,
+        title = stringResource(R.string.apikey_edit_title),
+        initialItem = editingItem,
+        submitting = uiState.apiKeySubmitting,
+        operationError = uiState.apiKeyOperationError,
+        onConfirm = { name, expireAt, maxCost, supportedModels, enabled ->
+            editingItem?.let { current ->
+                viewModel.updateApiKey(
+                    current.copy(
+                        name = name,
+                        expireAt = expireAt,
+                        maxCost = maxCost,
+                        supportedModels = supportedModels,
+                        enabled = enabled,
+                    )
+                ) {
+                    editingItem = null
+                    viewModel.clearApiKeyOperationError()
+                }
+            }
+        },
+        onDismiss = {
+            if (!uiState.apiKeySubmitting) {
+                editingItem = null
+                viewModel.clearApiKeyOperationError()
+            }
+        },
+    )
+
+    uiState.createdApiKey?.let { created ->
+        CreatedApiKeyDialog(
+            item = created,
+            onCopy = { copyApiKey(context, created.apiKey) },
+            onDismiss = viewModel::dismissCreatedApiKey,
+        )
     }
 }
 
 @Composable
 private fun ApiKeyRow(
     item: ApiKeyItem,
+    submitting: Boolean,
     onToggle: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -237,10 +272,11 @@ private fun ApiKeyRow(
                 }
                 ApiKeyStatusPill(
                     enabled = item.enabled,
+                    clickable = !submitting,
                     onClick = { onToggle(!item.enabled) },
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    IconButton(onClick = onEdit) {
+                    IconButton(onClick = onEdit, enabled = !submitting) {
                         Icon(
                             imageVector = AppMiuixIcons.Create,
                             contentDescription = stringResource(R.string.action_edit),
@@ -248,7 +284,7 @@ private fun ApiKeyRow(
                             modifier = Modifier.size(18.dp),
                         )
                     }
-                    IconButton(onClick = onDelete) {
+                    IconButton(onClick = onDelete, enabled = !submitting) {
                         Icon(
                             imageVector = AppMiuixIcons.Delete,
                             contentDescription = stringResource(R.string.common_delete),
@@ -292,13 +328,14 @@ private fun ApiKeyRow(
 @Composable
 private fun ApiKeyStatusPill(
     enabled: Boolean,
+    clickable: Boolean,
     onClick: () -> Unit,
 ) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(if (enabled) OctopusTokens.Accent else OctopusTokens.Muted)
-            .clickable(onClick = onClick)
+            .then(if (clickable) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 14.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -384,6 +421,8 @@ private fun ApiKeyEditorDialog(
     visible: Boolean,
     title: String,
     initialItem: ApiKeyItem?,
+    submitting: Boolean,
+    operationError: String?,
     onConfirm: (String, Long, Double, String, Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -395,27 +434,30 @@ private fun ApiKeyEditorDialog(
     var supportedModels by remember(initialItem?.id, visible) { mutableStateOf(initialItem?.supportedModels.orEmpty()) }
     var enabled by remember(initialItem?.id, visible) { mutableStateOf(initialItem?.enabled ?: true) }
     val editorScrollState = rememberScrollState()
-    val editorMaxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.58f
 
     OverlayDialog(
         show = visible,
         title = title,
         summary = stringResource(R.string.setting_apikey_summary),
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            if (!submitting) onDismiss()
+        },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Column(
-                modifier = Modifier
-                    .heightIn(max = editorMaxHeight)
-                    .verticalScroll(editorScrollState),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+            DialogScrollableColumn(
+                fraction = 0.58f,
+                scrollState = editorScrollState,
             ) {
+                operationError?.takeIf { it.isNotBlank() }?.let { error ->
+                    OperationErrorCard(message = error)
+                }
                 TextField(
                     value = name,
                     onValueChange = { name = it },
                     label = stringResource(R.string.apikey_name_hint),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
+                    enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 TextField(
@@ -425,6 +467,7 @@ private fun ApiKeyEditorDialog(
                     useLabelAsPlaceholder = true,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 TextField(
@@ -434,6 +477,7 @@ private fun ApiKeyEditorDialog(
                     useLabelAsPlaceholder = true,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 TextField(
@@ -441,6 +485,7 @@ private fun ApiKeyEditorDialog(
                     onValueChange = { supportedModels = it },
                     label = stringResource(R.string.apikey_supported_models_hint),
                     useLabelAsPlaceholder = true,
+                    enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(
@@ -449,17 +494,21 @@ private fun ApiKeyEditorDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(text = stringResource(R.string.apikey_enabled_label), style = MiuixTheme.textStyles.main)
-                    Switch(checked = enabled, onCheckedChange = { enabled = it })
+                    Switch(checked = enabled, onCheckedChange = { if (!submitting) enabled = it })
                 }
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
             ) {
-                TextButton(text = stringResource(R.string.common_cancel), onClick = onDismiss)
+                TextButton(text = stringResource(R.string.common_cancel), enabled = !submitting, onClick = onDismiss)
                 TextButton(
-                    text = stringResource(R.string.common_confirm),
-                    enabled = name.isNotBlank(),
+                    text = if (submitting) {
+                        stringResource(R.string.common_saving)
+                    } else {
+                        stringResource(R.string.common_confirm)
+                    },
+                    enabled = !submitting && name.isNotBlank(),
                     colors = ButtonDefaults.textButtonColorsPrimary(),
                     onClick = {
                         onConfirm(

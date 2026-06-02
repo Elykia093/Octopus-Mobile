@@ -13,6 +13,8 @@ internal fun buildGroupUpdateRequest(
     matchRegex: String,
     firstTokenTimeOut: Int,
     sessionKeepTime: Int,
+    retryEnabled: Boolean,
+    maxRetries: Int,
     items: List<GroupItem>,
 ): GroupUpdateRequest {
     val existingItemsById = group.items.associateBy { it.id }
@@ -46,6 +48,8 @@ internal fun buildGroupUpdateRequest(
         matchRegex = matchRegex.trim(),
         firstTokenTimeOut = firstTokenTimeOut,
         sessionKeepTime = sessionKeepTime,
+        retryEnabled = retryEnabled,
+        maxRetries = maxRetries.takeIf { it > 0 } ?: 3,
         itemsToAdd = newItems.map { it.toAddRequest() } + itemsToAdd,
         itemsToUpdate = itemsToUpdate,
         itemsToDelete = deleteItemIds.distinct(),

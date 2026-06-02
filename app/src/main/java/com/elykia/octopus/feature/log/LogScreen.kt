@@ -34,9 +34,9 @@ import com.elykia.octopus.core.data.model.RelayLog
 import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.AppPageScaffold
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
-import com.elykia.octopus.core.designsystem.ErrorPane
+import com.elykia.octopus.core.designsystem.ErrorStateCard
 import com.elykia.octopus.core.designsystem.InlineEmptyCard
-import com.elykia.octopus.core.designsystem.LoadingPane
+import com.elykia.octopus.core.designsystem.LoadingStateCard
 import com.elykia.octopus.core.designsystem.OctopusTones
 import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.PageActionButton
@@ -63,38 +63,42 @@ fun LogScreen(
     var searchTerm by remember { mutableStateOf("") }
     var searchVisible by remember { mutableStateOf(false) }
 
-    when {
-        uiState.loading -> LoadingPane(title = stringResource(R.string.log_title))
-        uiState.error != null -> ErrorPane(message = uiState.error ?: stringResource(R.string.error_title), onRetry = viewModel::refresh)
-        else -> {
-            val logs = uiState.logs.filter { log ->
-                searchTerm.isBlank() ||
-                    log.requestModelName.contains(searchTerm, ignoreCase = true) ||
-                    log.channelName.contains(searchTerm, ignoreCase = true) ||
-                    log.actualModelName.contains(searchTerm, ignoreCase = true)
-            }
+    val logs = uiState.logs.filter { log ->
+        searchTerm.isBlank() ||
+            log.requestModelName.contains(searchTerm, ignoreCase = true) ||
+            log.channelName.contains(searchTerm, ignoreCase = true) ||
+            log.actualModelName.contains(searchTerm, ignoreCase = true)
+    }
 
-            AppPageScaffold(
-                title = stringResource(R.string.log_title),
-                actions = {
-                    PageActionButton(
-                        icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
-                        contentDescription = stringResource(R.string.action_open_search),
-                        onClick = {
-                            searchVisible = !searchVisible
-                            if (!searchVisible) searchTerm = ""
-                        },
-                    )
-                    PageActionButton(
-                        icon = AppMiuixIcons.Delete,
-                        contentDescription = stringResource(R.string.log_toolbar_clear),
-                        enabled = uiState.logs.isNotEmpty(),
-                        onClick = { confirmClear = true },
-                    )
+    AppPageScaffold(
+        title = stringResource(R.string.log_title),
+        actions = {
+            PageActionButton(
+                icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
+                contentDescription = stringResource(R.string.action_open_search),
+                enabled = !uiState.loading && uiState.error == null,
+                onClick = {
+                    searchVisible = !searchVisible
+                    if (!searchVisible) searchTerm = ""
                 },
-                contentPadding = contentPadding,
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            )
+            PageActionButton(
+                icon = AppMiuixIcons.Delete,
+                contentDescription = stringResource(R.string.log_toolbar_clear),
+                enabled = !uiState.loading && uiState.error == null && uiState.logs.isNotEmpty(),
+                onClick = { confirmClear = true },
+            )
+        },
+        contentPadding = contentPadding,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            when {
+                uiState.loading -> LoadingStateCard(title = stringResource(R.string.log_title))
+                uiState.error != null -> ErrorStateCard(
+                    message = uiState.error ?: stringResource(R.string.error_title),
+                    onRetry = viewModel::refresh,
+                )
+                else -> {
                     if (uiState.logs.isNotEmpty() && searchVisible) {
                         SearchField(
                             value = searchTerm,
@@ -128,19 +132,19 @@ fun LogScreen(
                     }
                 }
             }
-
-            DangerConfirmDialog(
-                visible = confirmClear,
-                title = stringResource(R.string.log_clear_title),
-                summary = stringResource(R.string.log_clear_summary),
-                onConfirm = {
-                    confirmClear = false
-                    viewModel.clear()
-                },
-                onDismiss = { confirmClear = false },
-            )
         }
     }
+
+    DangerConfirmDialog(
+        visible = confirmClear,
+        title = stringResource(R.string.log_clear_title),
+        summary = stringResource(R.string.log_clear_summary),
+        onConfirm = {
+            confirmClear = false
+            viewModel.clear()
+        },
+        onDismiss = { confirmClear = false },
+    )
 }
 
 @Composable
@@ -268,36 +272,41 @@ private fun LogProviderMark(
 private fun LogRouteHeader(
     log: RelayLog,
 ) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(
-            text = log.requestModelName.ifBlank { stringResource(R.string.common_unknown) },
-            style = MiuixTheme.textStyles.main,
-            fontWeight = FontWeight.SemiBold,
-            color = OctopusTokens.TextPrimary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        Icon(
-            imageVector = AppMiuixIcons.ArrowRight,
-            contentDescription = null,
-            tint = OctopusTokens.TextSecondary,
-            modifier = Modifier.size(16.dp),
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = log.requestModelName.ifBlank { stringResource(R.string.common_unknown) },
+                style = MiuixTheme.textStyles.main,
+                fontWeight = FontWeight.SemiBold,
+                color = OctopusTokens.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                imageVector = AppMiuixIcons.ArrowRight,
+                contentDescription = null,
+                tint = OctopusTokens.TextSecondary,
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                text = log.actualModelName.ifBlank { stringResource(R.string.common_unknown) },
+                style = MiuixTheme.textStyles.main,
+                color = OctopusTokens.TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
         LogChannelPill(
             text = log.channelName.ifBlank { stringResource(R.string.common_unknown) },
-        )
-        Text(
-            text = log.actualModelName.ifBlank { stringResource(R.string.common_unknown) },
-            style = MiuixTheme.textStyles.main,
-            color = OctopusTokens.TextSecondary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
         )
     }
 }

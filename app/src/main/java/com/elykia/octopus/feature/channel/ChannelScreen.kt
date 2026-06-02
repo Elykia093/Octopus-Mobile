@@ -11,11 +11,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,7 +23,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,11 +35,13 @@ import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.AppMetricRow
 import com.elykia.octopus.core.designsystem.AppPageScaffold
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
-import com.elykia.octopus.core.designsystem.ErrorPane
+import com.elykia.octopus.core.designsystem.DialogScrollableColumn
+import com.elykia.octopus.core.designsystem.ErrorStateCard
 import com.elykia.octopus.core.designsystem.InlineEmptyCard
-import com.elykia.octopus.core.designsystem.LoadingPane
+import com.elykia.octopus.core.designsystem.LoadingStateCard
 import com.elykia.octopus.core.designsystem.OctopusTones
 import com.elykia.octopus.core.designsystem.OctopusTokens
+import com.elykia.octopus.core.designsystem.OperationErrorCard
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
 import com.elykia.octopus.core.designsystem.ToolbarChip
@@ -71,47 +70,60 @@ fun ChannelScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var selectedChannelForFetch by remember { mutableStateOf<Channel?>(null) }
 
-    when {
-        uiState.loading -> LoadingPane(title = stringResource(R.string.channel_title))
-        uiState.error != null -> ErrorPane(message = uiState.error ?: stringResource(R.string.error_title), onRetry = viewModel::refresh)
-        else -> {
-            val channels = uiState.channels
-                .filter { channel ->
-                    searchTerm.isBlank() ||
-                        channel.name.contains(searchTerm, ignoreCase = true) ||
-                        channel.model.contains(searchTerm, ignoreCase = true) ||
-                        channel.customModel.contains(searchTerm, ignoreCase = true) ||
-                        channel.baseUrls.any { it.url.contains(searchTerm, ignoreCase = true) }
-                }
-                .sortedByDescending { it.enabled }
+    val channels = uiState.channels
+        .filter { channel ->
+            searchTerm.isBlank() ||
+                channel.name.contains(searchTerm, ignoreCase = true) ||
+                channel.model.contains(searchTerm, ignoreCase = true) ||
+                channel.customModel.contains(searchTerm, ignoreCase = true) ||
+                channel.baseUrls.any { it.url.contains(searchTerm, ignoreCase = true) }
+        }
+        .sortedByDescending { it.enabled }
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                AppPageScaffold(
-                    title = stringResource(R.string.channel_title),
-                    actions = {
-                        PageActionButton(
-                            icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
-                            contentDescription = stringResource(R.string.action_open_search),
-                            onClick = {
-                                searchVisible = !searchVisible
-                                if (!searchVisible) searchTerm = ""
-                            },
-                        )
-                        PageActionButton(
-                            icon = AppMiuixIcons.Add,
-                            contentDescription = stringResource(R.string.action_create),
-                            onClick = { showCreateDialog = true },
-                        )
+    Box(modifier = Modifier.fillMaxSize()) {
+        AppPageScaffold(
+            title = stringResource(R.string.channel_title),
+            actions = {
+                PageActionButton(
+                    icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
+                    contentDescription = stringResource(R.string.action_open_search),
+                    enabled = !uiState.loading && uiState.error == null,
+                    onClick = {
+                        searchVisible = !searchVisible
+                        if (!searchVisible) searchTerm = ""
                     },
-                    contentPadding = contentPadding,
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                )
+                PageActionButton(
+                    icon = AppMiuixIcons.Add,
+                    contentDescription = stringResource(R.string.action_create),
+                    enabled = !uiState.loading && uiState.error == null && !uiState.submitting,
+                    onClick = {
+                        viewModel.clearOperationError()
+                        showCreateDialog = true
+                    },
+                )
+            },
+            contentPadding = contentPadding,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                when {
+                    uiState.loading -> LoadingStateCard(title = stringResource(R.string.channel_title))
+                    uiState.error != null -> ErrorStateCard(
+                        message = uiState.error ?: stringResource(R.string.error_title),
+                        onRetry = viewModel::refresh,
+                    )
+                    else -> {
                         if (uiState.channels.isNotEmpty() && searchVisible) {
                             SearchField(
                                 value = searchTerm,
                                 onValueChange = { searchTerm = it },
                                 hint = stringResource(R.string.channel_search_hint),
                             )
+                        }
+                        if (!showCreateDialog && editingChannel == null) {
+                            uiState.operationError?.takeIf { it.isNotBlank() }?.let { error ->
+                                OperationErrorCard(message = error)
+                            }
                         }
                         when {
                             uiState.channels.isEmpty() -> InlineEmptyCard(
@@ -125,8 +137,12 @@ fun ChannelScreen(
                             else -> channels.forEach { channel ->
                                 ChannelRow(
                                     channel = channel,
+                                    submitting = uiState.submitting,
                                     onToggle = { viewModel.setEnabled(channel.id, it) },
-                                    onEdit = { editingChannel = channel },
+                                    onEdit = {
+                                        viewModel.clearOperationError()
+                                        editingChannel = channel
+                                    },
                                     onDelete = { deletingId = channel.id },
                                 )
                             }
@@ -134,65 +150,87 @@ fun ChannelScreen(
                     }
                 }
             }
-
-            DangerConfirmDialog(
-                visible = deletingId != null,
-                title = stringResource(R.string.channel_delete_title),
-                summary = stringResource(R.string.channel_delete_summary),
-                onConfirm = {
-                    deletingId?.let(viewModel::delete)
-                    deletingId = null
-                },
-                onDismiss = { deletingId = null },
-            )
-
-            ChannelEditorDialog(
-                visible = showCreateDialog,
-                title = stringResource(R.string.channel_create_title),
-                initialChannel = null,
-                onFetchModels = { type, baseUrl, apiKey, proxy ->
-                    selectedChannelForFetch = Channel(name = "", type = type)
-                    viewModel.fetchModels(type, baseUrl, apiKey, proxy)
-                },
-                onConfirm = { name, type, enabled, baseUrl, apiKey, model, customModel, proxy, autoSync ->
-                    viewModel.createChannel(name, type, enabled, baseUrl, apiKey, model, customModel, proxy, autoSync)
-                    showCreateDialog = false
-                },
-                onDismiss = { showCreateDialog = false },
-            )
-
-            ChannelEditorDialog(
-                visible = editingChannel != null,
-                title = stringResource(R.string.channel_edit_title),
-                initialChannel = editingChannel,
-                onFetchModels = { type, baseUrl, apiKey, proxy ->
-                    selectedChannelForFetch = editingChannel
-                    viewModel.fetchModels(type, baseUrl, apiKey, proxy)
-                },
-                onConfirm = { name, type, enabled, baseUrl, apiKey, model, customModel, proxy, autoSync ->
-                    editingChannel?.let { current ->
-                        viewModel.updateChannel(current, name, type, enabled, baseUrl, apiKey, model, customModel, proxy, autoSync)
-                    }
-                    editingChannel = null
-                },
-                onDismiss = { editingChannel = null },
-            )
-
-            ChannelFetchResultDialog(
-                visible = selectedChannelForFetch != null,
-                models = uiState.fetchedModels,
-                onDismiss = {
-                    selectedChannelForFetch = null
-                    viewModel.clearFetchedModels()
-                },
-            )
         }
     }
+
+    DangerConfirmDialog(
+        visible = deletingId != null,
+        title = stringResource(R.string.channel_delete_title),
+        summary = stringResource(R.string.channel_delete_summary),
+        onConfirm = {
+            deletingId?.let(viewModel::delete)
+            deletingId = null
+        },
+        onDismiss = { deletingId = null },
+    )
+
+    ChannelEditorDialog(
+        visible = showCreateDialog,
+        title = stringResource(R.string.channel_create_title),
+        initialChannel = null,
+        submitting = uiState.submitting,
+        operationError = uiState.operationError,
+        onFetchModels = { type, baseUrl, apiKey, proxy ->
+            viewModel.fetchModels(type, baseUrl, apiKey, proxy) {
+                selectedChannelForFetch = Channel(name = "", type = type)
+            }
+        },
+        onConfirm = { name, type, enabled, baseUrl, apiKey, model, customModel, proxy, autoSync ->
+            viewModel.createChannel(name, type, enabled, baseUrl, apiKey, model, customModel, proxy, autoSync) {
+                showCreateDialog = false
+                viewModel.clearOperationError()
+            }
+        },
+        onDismiss = {
+            if (!uiState.submitting) {
+                showCreateDialog = false
+                viewModel.clearOperationError()
+            }
+        },
+    )
+
+    ChannelEditorDialog(
+        visible = editingChannel != null,
+        title = stringResource(R.string.channel_edit_title),
+        initialChannel = editingChannel,
+        submitting = uiState.submitting,
+        operationError = uiState.operationError,
+        onFetchModels = { type, baseUrl, apiKey, proxy ->
+            val current = editingChannel
+            viewModel.fetchModels(type, baseUrl, apiKey, proxy) {
+                selectedChannelForFetch = current
+            }
+        },
+        onConfirm = { name, type, enabled, baseUrl, apiKey, model, customModel, proxy, autoSync ->
+            editingChannel?.let { current ->
+                viewModel.updateChannel(current, name, type, enabled, baseUrl, apiKey, model, customModel, proxy, autoSync) {
+                    editingChannel = null
+                    viewModel.clearOperationError()
+                }
+            }
+        },
+        onDismiss = {
+            if (!uiState.submitting) {
+                editingChannel = null
+                viewModel.clearOperationError()
+            }
+        },
+    )
+
+    ChannelFetchResultDialog(
+        visible = selectedChannelForFetch != null,
+        models = uiState.fetchedModels,
+        onDismiss = {
+            selectedChannelForFetch = null
+            viewModel.clearFetchedModels()
+        },
+    )
 }
 
 @Composable
 private fun ChannelRow(
     channel: Channel,
+    submitting: Boolean,
     onToggle: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -219,10 +257,11 @@ private fun ChannelRow(
                 )
                 StatusPill(
                     enabled = channel.enabled,
+                    clickable = !submitting,
                     onClick = { onToggle(!channel.enabled) },
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    IconButton(onClick = onEdit) {
+                    IconButton(onClick = onEdit, enabled = !submitting) {
                         Icon(
                             imageVector = AppMiuixIcons.Create,
                             contentDescription = stringResource(R.string.action_edit),
@@ -230,7 +269,7 @@ private fun ChannelRow(
                             modifier = Modifier.size(18.dp),
                         )
                     }
-                    IconButton(onClick = onDelete) {
+                    IconButton(onClick = onDelete, enabled = !submitting) {
                         Icon(
                             imageVector = AppMiuixIcons.Delete,
                             contentDescription = stringResource(R.string.common_delete),
@@ -268,13 +307,14 @@ private fun ChannelRow(
 @Composable
 private fun StatusPill(
     enabled: Boolean,
+    clickable: Boolean,
     onClick: () -> Unit,
 ) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(if (enabled) OctopusTokens.Accent else OctopusTones.Gray.copy(alpha = 0.18f))
-            .clickable(onClick = onClick)
+            .then(if (clickable) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 14.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -310,6 +350,8 @@ private fun ChannelEditorDialog(
     visible: Boolean,
     title: String,
     initialChannel: Channel?,
+    submitting: Boolean,
+    operationError: String?,
     onFetchModels: (Int, String, String, Boolean) -> Unit,
     onConfirm: (String, Int, Boolean, String, String, String, String, Boolean, Boolean) -> Unit,
     onDismiss: () -> Unit,
@@ -330,27 +372,30 @@ private fun ChannelEditorDialog(
     var proxy by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.proxy ?: false) }
     var autoSync by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.autoSync ?: false) }
     val editorScrollState = rememberScrollState()
-    val editorMaxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.64f
 
     OverlayDialog(
         show = visible,
         title = title,
         summary = stringResource(R.string.channel_panel_summary),
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            if (!submitting) onDismiss()
+        },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Column(
-                modifier = Modifier
-                    .heightIn(max = editorMaxHeight)
-                    .verticalScroll(editorScrollState),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+            DialogScrollableColumn(
+                fraction = 0.64f,
+                scrollState = editorScrollState,
             ) {
+                operationError?.takeIf { it.isNotBlank() }?.let { error ->
+                    OperationErrorCard(message = error)
+                }
                 TextField(
                     value = name,
                     onValueChange = { name = it },
                     label = stringResource(R.string.channel_name_hint),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
+                    enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 TextField(
@@ -359,6 +404,7 @@ private fun ChannelEditorDialog(
                     label = stringResource(R.string.channel_base_url_hint),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
+                    enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 TextField(
@@ -367,6 +413,7 @@ private fun ChannelEditorDialog(
                     label = stringResource(R.string.channel_api_key_hint),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
+                    enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 TextField(
@@ -375,6 +422,7 @@ private fun ChannelEditorDialog(
                     label = stringResource(R.string.channel_model_hint),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
+                    enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 TextField(
@@ -383,6 +431,7 @@ private fun ChannelEditorDialog(
                     label = stringResource(R.string.channel_custom_model_hint),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
+                    enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
@@ -395,7 +444,9 @@ private fun ChannelEditorDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     (0..5).forEach { optionType ->
-                        ChannelTypeOption(type = optionType, selectedType = type) { type = optionType }
+                        ChannelTypeOption(type = optionType, selectedType = type) {
+                            if (!submitting) type = optionType
+                        }
                     }
                 }
                 Row(
@@ -404,7 +455,7 @@ private fun ChannelEditorDialog(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(text = stringResource(R.string.channel_enabled_label), style = MiuixTheme.textStyles.main)
-                    Switch(checked = enabled, onCheckedChange = { enabled = it })
+                    Switch(checked = enabled, onCheckedChange = { if (!submitting) enabled = it })
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -412,7 +463,7 @@ private fun ChannelEditorDialog(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(text = stringResource(R.string.channel_proxy_label), style = MiuixTheme.textStyles.main)
-                    Switch(checked = proxy, onCheckedChange = { proxy = it })
+                    Switch(checked = proxy, onCheckedChange = { if (!submitting) proxy = it })
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -420,7 +471,7 @@ private fun ChannelEditorDialog(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(text = stringResource(R.string.channel_auto_sync_label), style = MiuixTheme.textStyles.main)
-                    Switch(checked = autoSync, onCheckedChange = { autoSync = it })
+                    Switch(checked = autoSync, onCheckedChange = { if (!submitting) autoSync = it })
                 }
             }
             Row(
@@ -429,12 +480,17 @@ private fun ChannelEditorDialog(
             ) {
                 TextButton(
                     text = stringResource(R.string.action_fetch_model),
+                    enabled = !submitting,
                     onClick = { onFetchModels(type, baseUrl, apiKey, proxy) },
                 )
-                TextButton(text = stringResource(R.string.common_cancel), onClick = onDismiss)
+                TextButton(text = stringResource(R.string.common_cancel), enabled = !submitting, onClick = onDismiss)
                 TextButton(
-                    text = stringResource(R.string.common_confirm),
-                    enabled = name.isNotBlank(),
+                    text = if (submitting) {
+                        stringResource(R.string.common_saving)
+                    } else {
+                        stringResource(R.string.common_confirm)
+                    },
+                    enabled = !submitting && name.isNotBlank(),
                     onClick = {
                         onConfirm(name.trim(), type, enabled, baseUrl.trim(), apiKey.trim(), model.trim(), customModel.trim(), proxy, autoSync)
                     },

@@ -1,19 +1,24 @@
 package com.elykia.octopus.core.designsystem
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.elykia.octopus.R
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
@@ -286,6 +292,133 @@ fun EmptyPane(
     summary: String,
 ) {
     StatePane(title = title, summary = summary)
+}
+
+@Composable
+fun LoadingStateCard(
+    title: String,
+    modifier: Modifier = Modifier,
+) {
+    InlineStateCard(
+        title = title,
+        summary = stringResource(R.string.common_loading),
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun ErrorStateCard(
+    message: String,
+    modifier: Modifier = Modifier,
+    onRetry: (() -> Unit)? = null,
+) {
+    InlineStateCard(
+        title = stringResource(R.string.error_title),
+        summary = message,
+        modifier = modifier,
+        action = if (onRetry != null) {
+            {
+                Button(
+                    onClick = onRetry,
+                    colors = ButtonDefaults.buttonColorsPrimary(),
+                ) {
+                    Text(text = stringResource(R.string.common_retry))
+                }
+            }
+        } else {
+            null
+        },
+    )
+}
+
+@Composable
+fun EmptyStateCard(
+    title: String,
+    summary: String,
+    modifier: Modifier = Modifier,
+) {
+    InlineStateCard(title = title, summary = summary, modifier = modifier)
+}
+
+@Composable
+fun InlineStateCard(
+    title: String,
+    summary: String,
+    modifier: Modifier = Modifier,
+    action: (@Composable () -> Unit)? = null,
+) {
+    AppListCard(
+        modifier = modifier,
+        padding = PaddingValues(horizontal = 22.dp, vertical = 24.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            OctopusBrandMark(size = 42.dp)
+            Text(
+                text = title,
+                style = MiuixTheme.textStyles.title3,
+                fontWeight = FontWeight.Bold,
+                color = OctopusTokens.TextPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = summary,
+                color = OctopusTokens.TextSecondary,
+                style = MiuixTheme.textStyles.body2,
+            )
+            action?.invoke()
+        }
+    }
+}
+
+@Composable
+fun OperationErrorCard(
+    message: String,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MiuixTheme.colorScheme.error.copy(alpha = 0.08f))
+            .border(1.dp, MiuixTheme.colorScheme.error.copy(alpha = 0.24f), RoundedCornerShape(16.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Text(
+            text = message,
+            style = MiuixTheme.textStyles.body2,
+            color = MiuixTheme.colorScheme.error,
+        )
+    }
+}
+
+@Composable
+fun DialogScrollableColumn(
+    modifier: Modifier = Modifier,
+    fraction: Float = 0.62f,
+    scrollState: ScrollState = rememberScrollState(),
+    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(12.dp),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val maxDialogHeight = if (maxHeight == Dp.Infinity) {
+            420.dp
+        } else {
+            (maxHeight * fraction).coerceAtLeast(260.dp)
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = maxDialogHeight)
+                .verticalScroll(scrollState),
+            verticalArrangement = verticalArrangement,
+            content = content,
+        )
+    }
 }
 
 @Composable

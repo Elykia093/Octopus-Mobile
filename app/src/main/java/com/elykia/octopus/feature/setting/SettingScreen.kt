@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -23,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -31,8 +33,8 @@ import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.SettingItem
 import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.AppPageScaffold
-import com.elykia.octopus.core.designsystem.ErrorPane
-import com.elykia.octopus.core.designsystem.LoadingPane
+import com.elykia.octopus.core.designsystem.ErrorStateCard
+import com.elykia.octopus.core.designsystem.LoadingStateCard
 import com.elykia.octopus.core.designsystem.OctopusBrandMark
 import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
@@ -51,7 +53,7 @@ fun SettingScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var language by remember(uiState.language) { mutableStateOf(uiState.language) }
-    var themeMode by remember(uiState.themeMode) { mutableStateOf(uiState.themeMode) }
+    var themeMode by remember(uiState.themeMode) { mutableIntStateOf(uiState.themeMode) }
     var editingItem by remember { mutableStateOf<SettingItem?>(null) }
 
     val languageLabel = when (language) {
@@ -65,15 +67,18 @@ fun SettingScreen(
         else -> stringResource(R.string.setting_theme_system)
     }
 
-    when {
-        uiState.loading -> LoadingPane(title = stringResource(R.string.setting_title))
-        uiState.error != null -> ErrorPane(message = uiState.error ?: stringResource(R.string.error_title), onRetry = viewModel::refresh)
-        else -> {
-            AppPageScaffold(
-                title = stringResource(R.string.setting_title),
-                contentPadding = contentPadding,
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    AppPageScaffold(
+        title = stringResource(R.string.setting_title),
+        contentPadding = contentPadding,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            when {
+                uiState.loading -> LoadingStateCard(title = stringResource(R.string.setting_title))
+                uiState.error != null -> ErrorStateCard(
+                    message = uiState.error ?: stringResource(R.string.error_title),
+                    onRetry = viewModel::refresh,
+                )
+                else -> {
                     VersionCard(
                         currentVersion = uiState.currentVersion ?: stringResource(R.string.common_unknown),
                         latestVersion = uiState.latestInfo?.tagName ?: stringResource(R.string.common_unknown),
@@ -286,8 +291,9 @@ private fun PreferenceRow(
                 style = MiuixTheme.textStyles.body2,
                 color = OctopusTokens.TextSecondary,
                 modifier = Modifier.weight(0.9f),
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.End,
             )
         }
     }
