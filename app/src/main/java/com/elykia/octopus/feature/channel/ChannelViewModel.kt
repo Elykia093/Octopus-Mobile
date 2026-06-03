@@ -14,6 +14,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import javax.inject.Inject
 
 data class ChannelUiState(
@@ -106,11 +107,16 @@ class ChannelViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             if (_uiState.value.submitting) return@launch
+            val normalizedBaseUrl = baseUrl.trim()
+            if (!hasValidChannelBaseUrl(normalizedBaseUrl)) {
+                _uiState.value = _uiState.value.channelOperationFailed("请输入有效的 HTTPS 渠道地址。")
+                return@launch
+            }
             _uiState.value = _uiState.value.channelOperationStarted()
             val result = repository.fetchChannelModels(
                 ChannelFetchModelRequest(
                     type = type,
-                    baseUrls = baseUrl.trim().takeIf { it.isNotEmpty() }?.let { listOf(BaseUrl(url = it)) } ?: emptyList(),
+                    baseUrls = normalizedBaseUrl.takeIf { it.isNotEmpty() }?.let { listOf(BaseUrl(url = it)) } ?: emptyList(),
                     keys = apiKey.trim().takeIf { it.isNotEmpty() }?.let {
                         listOf(ChannelKeyAddRequest(channelKey = it))
                     } ?: emptyList(),
@@ -181,13 +187,18 @@ class ChannelViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             if (_uiState.value.submitting) return@launch
+            val normalizedBaseUrl = baseUrl.trim()
+            if (!hasValidChannelBaseUrl(normalizedBaseUrl)) {
+                _uiState.value = _uiState.value.channelOperationFailed("请输入有效的 HTTPS 渠道地址。")
+                return@launch
+            }
             _uiState.value = _uiState.value.channelOperationStarted()
             when (val result = repository.createChannel(
                 Channel(
                     name = name.trim(),
                     type = type,
                     enabled = enabled,
-                    baseUrls = baseUrl.trim().takeIf { it.isNotEmpty() }?.let { listOf(BaseUrl(url = it)) } ?: emptyList(),
+                    baseUrls = normalizedBaseUrl.takeIf { it.isNotEmpty() }?.let { listOf(BaseUrl(url = it)) } ?: emptyList(),
                     keys = apiKey.trim().takeIf { it.isNotEmpty() }?.let {
                         listOf(ChannelKey(channelKey = it, channelId = 0))
                     } ?: emptyList(),
@@ -222,6 +233,11 @@ class ChannelViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             if (_uiState.value.submitting) return@launch
+            val normalizedBaseUrl = baseUrl.trim()
+            if (!hasValidChannelBaseUrl(normalizedBaseUrl)) {
+                _uiState.value = _uiState.value.channelOperationFailed("请输入有效的 HTTPS 渠道地址。")
+                return@launch
+            }
             _uiState.value = _uiState.value.channelOperationStarted()
             val existingKey = channel.keys.firstOrNull()
             val trimmedKey = apiKey.trim()
@@ -242,11 +258,6 @@ class ChannelViewModel @Inject constructor(
             } else {
                 emptyList()
             }
-            val keysToDelete = if (existingKey != null && trimmedKey.isEmpty()) {
-                listOf(existingKey.id)
-            } else {
-                emptyList()
-            }
 
             when (val result = repository.updateChannel(
                 ChannelUpdateRequest(
@@ -254,14 +265,14 @@ class ChannelViewModel @Inject constructor(
                     name = name.trim(),
                     type = type,
                     enabled = enabled,
-                    baseUrls = baseUrl.trim().takeIf { it.isNotEmpty() }?.let { listOf(BaseUrl(url = it)) } ?: emptyList(),
+                    baseUrls = normalizedBaseUrl.takeIf { it.isNotEmpty() }?.let { listOf(BaseUrl(url = it)) } ?: emptyList(),
                     model = model.trim(),
                     customModel = customModel.trim(),
                     proxy = proxy,
                     autoSync = autoSync,
                     keysToAdd = keysToAdd,
                     keysToUpdate = keysToUpdate,
-                    keysToDelete = keysToDelete,
+                    keysToDelete = emptyList(),
                 )
             )) {
                 is AppResult.Success -> {
@@ -290,3 +301,12 @@ private fun Channel.toFetchRequest(): ChannelFetchModelRequest = ChannelFetchMod
     matchRegex = matchRegex,
     customHeader = customHeader,
 )
+
+internal fun hasValidChannelBaseUrl(baseUrl: String): Boolean =
+    baseUrl.isBlank() || baseUrl.trim().toHttpUrlOrNull()?.let { url ->
+        url.scheme == "https" &&
+            url.encodedUsername.isBlank() &&
+            url.encodedPassword.isBlank() &&
+            url.encodedQuery == null &&
+            url.encodedFragment == null
+    } == true

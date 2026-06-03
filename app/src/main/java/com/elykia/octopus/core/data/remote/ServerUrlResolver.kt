@@ -5,7 +5,7 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
-private const val DEFAULT_SERVER_URL = "http://127.0.0.1:8080/"
+private const val DEFAULT_SERVER_URL = "https://127.0.0.1:8080/"
 
 internal object ServerUrlResolver {
     private val defaultUrl = DEFAULT_SERVER_URL.toHttpUrl()
@@ -16,7 +16,17 @@ internal object ServerUrlResolver {
             return defaultUrl
         }
 
-        return rawBaseUrl.trimEnd('/').plus("/").toHttpUrlOrNull() ?: defaultUrl
+        return rawBaseUrl.trimEnd('/')
+            .plus("/")
+            .toHttpUrlOrNull()
+            ?.takeIf {
+                it.scheme == "https" &&
+                    it.encodedUsername.isBlank() &&
+                    it.encodedPassword.isBlank() &&
+                    it.encodedQuery == null &&
+                    it.encodedFragment == null
+            }
+            ?: defaultUrl
     }
 
     fun merge(baseUrl: HttpUrl, requestUrl: HttpUrl): HttpUrl {

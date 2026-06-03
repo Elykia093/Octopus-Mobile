@@ -9,25 +9,34 @@ import javax.inject.Singleton
 
 @Singleton
 class SessionManager @Inject constructor() {
-    private val tokenState = MutableStateFlow("")
+    private val authState = MutableStateFlow(AuthState())
     private val unauthorizedState = MutableStateFlow(false)
+    private val securityWarningState = MutableStateFlow<String?>(null)
 
-    val token: Flow<String> = tokenState.asStateFlow()
     val unauthorized: Flow<Boolean> = unauthorizedState.asStateFlow()
+    val securityWarning: Flow<String?> = securityWarningState.asStateFlow()
 
     fun update(authState: AuthState) {
-        tokenState.value = authState.token
+        this.authState.value = authState
         unauthorizedState.value = false
     }
 
     fun clear() {
-        tokenState.value = ""
+        authState.value = AuthState()
         unauthorizedState.value = true
+    }
+
+    fun markSecurityWarning(message: String) {
+        securityWarningState.value = message
     }
 
     fun consumeUnauthorized() {
         unauthorizedState.value = false
     }
 
-    fun currentToken(): String = tokenState.value
+    fun consumeSecurityWarning() {
+        securityWarningState.value = null
+    }
+
+    fun currentAuth(): AuthState = authState.value
 }

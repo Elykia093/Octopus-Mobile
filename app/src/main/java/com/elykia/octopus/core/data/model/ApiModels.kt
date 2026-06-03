@@ -300,7 +300,7 @@ data class ApiKeyItem(
 data class ApiKeyMutationRequest(
     val id: Int = 0,
     val name: String,
-    @SerialName("api_key") val apiKey: String = "",
+    @SerialName("api_key") val apiKey: String? = null,
     val enabled: Boolean = true,
     @SerialName("expire_at") val expireAt: Long = 0,
     @SerialName("max_cost") val maxCost: Double = 0.0,
@@ -357,4 +357,5 @@ data class AuthState(
     val expireAt: String? = null,
     val username: String = "",
     val apiKeyMode: Boolean = false,
+    val serverUrl: String = "",
 )
