@@ -233,6 +233,10 @@ class ChannelViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             if (_uiState.value.submitting) return@launch
+            if (!channel.canUseBasicMobileEditor()) {
+                _uiState.value = _uiState.value.channelOperationFailed("当前移动端仅支持基础渠道编辑，请在 Web 端维护多 Key、多地址或高级配置。")
+                return@launch
+            }
             val normalizedBaseUrl = baseUrl.trim()
             if (!hasValidChannelBaseUrl(normalizedBaseUrl)) {
                 _uiState.value = _uiState.value.channelOperationFailed("请输入有效的 HTTPS 渠道地址。")
@@ -310,3 +314,11 @@ internal fun hasValidChannelBaseUrl(baseUrl: String): Boolean =
             url.encodedQuery == null &&
             url.encodedFragment == null
     } == true
+
+internal fun Channel.canUseBasicMobileEditor(): Boolean =
+    baseUrls.size <= 1 &&
+        keys.size <= 1 &&
+        customHeader.isEmpty() &&
+        channelProxy.isNullOrBlank() &&
+        matchRegex.isNullOrBlank() &&
+        paramOverride.isNullOrBlank()

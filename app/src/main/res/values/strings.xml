@@ -179,6 +179,7 @@
     <string name="channel_fetch_model_summary">Available model names returned by the channel.</string>
     <string name="channel_fetch_model_empty">No model data returned.</string>
     <string name="channel_fetch_model_needs_key">Enter new key to fetch</string>
+    <string name="channel_basic_editor_unsupported">This channel uses advanced configuration. Use the web console to edit multi-key, multi-URL or custom header settings.</string>
 
     <string name="group_title">Group</string>
     <string name="group_search_hint">Search groups</string>
@@ -328,6 +329,8 @@
     <string name="setting_import_confirm_title">Import settings</string>
     <string name="setting_import_confirm_summary">Import %1$s and apply it to the server.</string>
     <string name="setting_refresh_latest_summary">Pull the latest release information only.</string>
+    <string name="setting_refresh_price_confirm_summary">Refresh model prices on the server now. Existing price data may change.</string>
+    <string name="setting_sync_channel_confirm_summary">Sync channel models on the server now. This may update model availability for multiple channels.</string>
 
     <string name="apikey_title">API Keys</string>
     <string name="apikey_empty">No API keys.</string>

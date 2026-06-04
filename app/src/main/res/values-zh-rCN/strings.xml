@@ -179,6 +179,7 @@
     <string name="channel_fetch_model_summary">渠道返回的可用模型名称。</string>
     <string name="channel_fetch_model_empty">没有返回模型数据。</string>
     <string name="channel_fetch_model_needs_key">输入新密钥后抓取</string>
+    <string name="channel_basic_editor_unsupported">该渠道包含高级配置，请在 Web 控制台维护多 Key、多地址或自定义请求头。</string>
 
     <string name="group_title">分组</string>
     <string name="group_search_hint">搜索分组</string>
@@ -346,6 +347,8 @@
     <string name="setting_import_confirm_title">导入设置</string>
     <string name="setting_import_confirm_summary">导入 %1$s 并应用到服务端。</string>
     <string name="setting_refresh_latest_summary">只刷新最新版本信息，不执行更新。</string>
+    <string name="setting_refresh_price_confirm_summary">立即刷新服务端模型价格，现有价格数据可能被更新。</string>
+    <string name="setting_sync_channel_confirm_summary">立即同步服务端渠道模型，可能影响多个渠道的模型可用性。</string>
 
     <string name="apikey_title">API 密钥</string>
     <string name="apikey_empty">暂无 API 密钥。</string>

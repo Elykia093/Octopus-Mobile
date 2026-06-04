@@ -402,6 +402,7 @@ private fun ChannelEditorDialog(
     var proxy by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.proxy ?: false) }
     var autoSync by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.autoSync ?: false) }
     val fetchRequiresNewKey = initialChannel != null && initialChannel.keys.isNotEmpty() && apiKey.isBlank()
+    val basicEditSupported = initialChannel?.canUseBasicMobileEditor() ?: true
     val editorScrollState = rememberScrollState()
 
     OverlayDialog(
@@ -420,13 +421,16 @@ private fun ChannelEditorDialog(
                 operationError?.takeIf { it.isNotBlank() }?.let { error ->
                     OperationErrorCard(message = error)
                 }
+                if (!basicEditSupported) {
+                    OperationErrorCard(message = stringResource(R.string.channel_basic_editor_unsupported))
+                }
                 TextField(
                     value = name,
                     onValueChange = { name = it },
                     label = stringResource(R.string.channel_name_hint),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
-                    enabled = !submitting,
+                    enabled = !submitting && basicEditSupported,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 TextField(
@@ -435,7 +439,7 @@ private fun ChannelEditorDialog(
                     label = stringResource(R.string.channel_base_url_hint),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
-                    enabled = !submitting,
+                    enabled = !submitting && basicEditSupported,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 TextField(
@@ -455,7 +459,10 @@ private fun ChannelEditorDialog(
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     trailingIcon = {
-                        IconButton(onClick = { apiKeyVisible = !apiKeyVisible }, enabled = !submitting) {
+                        IconButton(
+                            onClick = { apiKeyVisible = !apiKeyVisible },
+                            enabled = !submitting && basicEditSupported,
+                        ) {
                             Icon(
                                 imageVector = if (apiKeyVisible) AppMiuixIcons.Info else AppMiuixIcons.ApiKey,
                                 contentDescription = if (apiKeyVisible) {
@@ -466,7 +473,7 @@ private fun ChannelEditorDialog(
                             )
                         }
                     },
-                    enabled = !submitting,
+                    enabled = !submitting && basicEditSupported,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 TextField(
@@ -475,7 +482,7 @@ private fun ChannelEditorDialog(
                     label = stringResource(R.string.channel_model_hint),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
-                    enabled = !submitting,
+                    enabled = !submitting && basicEditSupported,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 TextField(
@@ -484,7 +491,7 @@ private fun ChannelEditorDialog(
                     label = stringResource(R.string.channel_custom_model_hint),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
-                    enabled = !submitting,
+                    enabled = !submitting && basicEditSupported,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
@@ -498,7 +505,7 @@ private fun ChannelEditorDialog(
                 ) {
                     (0..5).forEach { optionType ->
                         ChannelTypeOption(type = optionType, selectedType = type) {
-                            if (!submitting) type = optionType
+                            if (!submitting && basicEditSupported) type = optionType
                         }
                     }
                 }
@@ -508,7 +515,7 @@ private fun ChannelEditorDialog(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(text = stringResource(R.string.channel_enabled_label), style = MiuixTheme.textStyles.main)
-                    Switch(checked = enabled, onCheckedChange = { if (!submitting) enabled = it })
+                    Switch(checked = enabled, onCheckedChange = { if (!submitting && basicEditSupported) enabled = it })
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -516,7 +523,7 @@ private fun ChannelEditorDialog(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(text = stringResource(R.string.channel_proxy_label), style = MiuixTheme.textStyles.main)
-                    Switch(checked = proxy, onCheckedChange = { if (!submitting) proxy = it })
+                    Switch(checked = proxy, onCheckedChange = { if (!submitting && basicEditSupported) proxy = it })
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -524,7 +531,7 @@ private fun ChannelEditorDialog(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(text = stringResource(R.string.channel_auto_sync_label), style = MiuixTheme.textStyles.main)
-                    Switch(checked = autoSync, onCheckedChange = { if (!submitting) autoSync = it })
+                    Switch(checked = autoSync, onCheckedChange = { if (!submitting && basicEditSupported) autoSync = it })
                 }
             }
             Row(
@@ -539,7 +546,7 @@ private fun ChannelEditorDialog(
                             R.string.action_fetch_model
                         },
                     ),
-                    enabled = !submitting && !fetchRequiresNewKey,
+                    enabled = !submitting && basicEditSupported && !fetchRequiresNewKey,
                     onClick = { onFetchModels(type, baseUrl, apiKey, proxy) },
                 )
             }
@@ -554,7 +561,7 @@ private fun ChannelEditorDialog(
                     } else {
                         stringResource(R.string.common_confirm)
                     },
-                    enabled = !submitting && name.isNotBlank(),
+                    enabled = !submitting && basicEditSupported && name.isNotBlank(),
                     onClick = {
                         onConfirm(name.trim(), type, enabled, baseUrl.trim(), apiKey.trim(), model.trim(), customModel.trim(), proxy, autoSync)
                     },

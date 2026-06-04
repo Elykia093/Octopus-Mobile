@@ -74,7 +74,7 @@ fun SettingScreen(
     var language by remember(uiState.language) { mutableStateOf(uiState.language) }
     var themeMode by remember(uiState.themeMode) { mutableIntStateOf(uiState.themeMode) }
     var editingItem by remember { mutableStateOf<SettingItem?>(null) }
-    var confirmUpdate by remember { mutableStateOf(false) }
+    var confirmAction by remember { mutableStateOf<HighImpactSettingAction?>(null) }
     var pendingExportBytes by remember { mutableStateOf<ByteArray?>(null) }
     var pendingImportFile by remember { mutableStateOf<PendingImportFile?>(null) }
 
@@ -208,7 +208,7 @@ fun SettingScreen(
                             title = stringResource(R.string.setting_action_refresh_price),
                             value = uiState.modelLastUpdateTime ?: stringResource(R.string.common_unknown),
                             enabled = !uiState.actionSubmitting,
-                            onClick = viewModel::refreshModelPrice,
+                            onClick = { confirmAction = HighImpactSettingAction.RefreshPrice },
                         )
                         uiState.modelLastUpdateError?.takeIf { it.isNotBlank() }?.let { error ->
                             SettingDivider()
@@ -219,7 +219,7 @@ fun SettingScreen(
                             icon = AppMiuixIcons.Sync,
                             title = stringResource(R.string.setting_action_sync_channel),
                             enabled = !uiState.actionSubmitting,
-                            onClick = viewModel::syncChannelModels,
+                            onClick = { confirmAction = HighImpactSettingAction.SyncChannel },
                         )
                         SettingDivider()
                         PreferenceRow(
@@ -252,7 +252,7 @@ fun SettingScreen(
                             title = stringResource(R.string.action_run_update),
                             value = stringResource(R.string.setting_update_now_summary),
                             enabled = !uiState.actionSubmitting,
-                            onClick = { confirmUpdate = true },
+                            onClick = { confirmAction = HighImpactSettingAction.RunUpdate },
                         )
                     }
                 }
@@ -309,16 +309,22 @@ fun SettingScreen(
         )
     }
 
-    DangerConfirmDialog(
-        visible = confirmUpdate,
-        title = stringResource(R.string.action_run_update),
-        summary = stringResource(R.string.setting_update_now_summary),
-        onConfirm = {
-            confirmUpdate = false
-            viewModel.triggerUpdate()
-        },
-        onDismiss = { confirmUpdate = false },
-    )
+    confirmAction?.let { action ->
+        DangerConfirmDialog(
+            visible = true,
+            title = stringResource(action.titleRes),
+            summary = stringResource(action.summaryRes),
+            onConfirm = {
+                confirmAction = null
+                when (action) {
+                    HighImpactSettingAction.RefreshPrice -> viewModel.refreshModelPrice()
+                    HighImpactSettingAction.SyncChannel -> viewModel.syncChannelModels()
+                    HighImpactSettingAction.RunUpdate -> viewModel.triggerUpdate()
+                }
+            },
+            onDismiss = { confirmAction = null },
+        )
+    }
 
     pendingImportFile?.let { file ->
         DangerConfirmDialog(
@@ -475,6 +481,24 @@ private data class PendingImportFile(
     val fileName: String,
     val content: ByteArray,
 )
+
+private enum class HighImpactSettingAction(
+    val titleRes: Int,
+    val summaryRes: Int,
+) {
+    RefreshPrice(
+        titleRes = R.string.setting_action_refresh_price,
+        summaryRes = R.string.setting_refresh_price_confirm_summary,
+    ),
+    SyncChannel(
+        titleRes = R.string.setting_action_sync_channel,
+        summaryRes = R.string.setting_sync_channel_confirm_summary,
+    ),
+    RunUpdate(
+        titleRes = R.string.action_run_update,
+        summaryRes = R.string.setting_update_now_summary,
+    ),
+}
 
 @Composable
 private fun DataTransferStatusCard(

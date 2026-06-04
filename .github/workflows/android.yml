@@ -60,9 +60,9 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
-      - name: Upload release APK
+      - name: Upload unsigned release APK for verification
         uses: actions/upload-artifact@v4
         with:
-          name: octopus-release
+          name: octopus-release-unsigned-verification
           path: app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error

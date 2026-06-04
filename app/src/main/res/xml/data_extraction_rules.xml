@@ -2,8 +2,10 @@
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="sharedpref" path="octopus_secure_session.xml" />
+        <exclude domain="file" path="datastore/octopus_mobile.preferences_pb" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="octopus_secure_session.xml" />
+        <exclude domain="file" path="datastore/octopus_mobile.preferences_pb" />
     </device-transfer>
 </data-extraction-rules>

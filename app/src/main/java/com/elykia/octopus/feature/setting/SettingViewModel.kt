@@ -52,6 +52,7 @@ data class SettingUiState(
 internal fun SettingUiState.apiKeyOperationStarted(): SettingUiState = copy(
     apiKeySubmitting = true,
     apiKeyOperationError = null,
+    createdApiKey = null,
 )
 
 internal fun SettingUiState.apiKeyOperationSucceeded(): SettingUiState = copy(
@@ -351,13 +352,16 @@ class SettingViewModel @Inject constructor(
                 )
             )) {
                 is AppResult.Success -> {
+                    val visibleCreatedKey = result.data
+                    val hiddenListItem = visibleCreatedKey.copy(apiKey = "")
                     _uiState.value = _uiState.value.copy(
+                        apiKeys = _uiState.value.apiKeys
+                            .filterNot { it.id == visibleCreatedKey.id } + hiddenListItem,
                         apiKeySubmitting = false,
                         apiKeyOperationError = null,
-                        createdApiKey = result.data,
+                        createdApiKey = visibleCreatedKey,
                     )
                     onSuccess()
-                    refresh()
                 }
                 is AppResult.Error -> _uiState.value = _uiState.value.apiKeyOperationFailed(result.message)
             }

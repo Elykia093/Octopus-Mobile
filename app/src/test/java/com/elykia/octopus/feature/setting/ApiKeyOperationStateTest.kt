@@ -19,12 +19,16 @@ class ApiKeyOperationStateTest {
     }
 
     @Test
-    fun apiKeyStartAndSuccessClearPreviousError() {
-        val started = SettingUiState(apiKeyOperationError = "old error")
+    fun apiKeyStartClearsPreviousErrorAndVisibleCreatedKey() {
+        val started = SettingUiState(
+            apiKeyOperationError = "old error",
+            createdApiKey = ApiKeyItem(id = 1, name = "New", apiKey = "sk-created"),
+        )
             .apiKeyOperationStarted()
 
         assertThat(started.apiKeySubmitting).isTrue()
         assertThat(started.apiKeyOperationError).isNull()
+        assertThat(started.createdApiKey).isNull()
 
         val succeeded = started.apiKeyOperationSucceeded()
 

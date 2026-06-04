@@ -237,7 +237,10 @@ fun ApiKeyScreen(
     uiState.createdApiKey?.let { created ->
         CreatedApiKeyDialog(
             item = created,
-            onCopy = { copyApiKey(context, created.apiKey) },
+            onCopy = {
+                copyApiKey(context, created.apiKey)
+                viewModel.dismissCreatedApiKey()
+            },
             onDismiss = viewModel::dismissCreatedApiKey,
         )
     }
