@@ -19,8 +19,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -90,28 +94,46 @@ fun FloatingDockBar(
     modifier: Modifier = Modifier,
     mode: FloatingNavigationBarDisplayMode = FloatingNavigationBarDisplayMode.IconOnly,
 ) {
-    val dockShape = RoundedCornerShape(34.dp)
+    val dockShape = RoundedCornerShape(36.dp)
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val sidePadding = 12.dp
-        val gap = 8.dp
-        val availableItemWidth = (maxWidth - sidePadding * 2f - gap * (items.size - 1).toFloat()) / items.size.toFloat()
-        val itemSize = availableItemWidth.coerceIn(42.dp, if (mode == FloatingNavigationBarDisplayMode.IconOnly) 48.dp else 56.dp)
-        val iconSize = (itemSize * 0.56f).coerceIn(22.dp, 28.dp)
+        if (items.isEmpty()) return@BoxWithConstraints
+
+        val compactDock = items.size >= 6 && maxWidth < 344.dp
+        val ultraCompactDock = items.size >= 6 && maxWidth < 316.dp
+        val sidePadding = when {
+            ultraCompactDock -> 0.dp
+            compactDock -> 4.dp
+            else -> 10.dp
+        }
+        val gap = when {
+            ultraCompactDock -> 0.dp
+            compactDock -> 4.dp
+            else -> 7.dp
+        }
+        val dockMaxWidth = minOf(maxWidth, 352.dp)
+        val availableItemWidth = (dockMaxWidth - sidePadding * 2f - gap * (items.size - 1).toFloat()) / items.size.toFloat()
+        val maxItemSize = if (mode == FloatingNavigationBarDisplayMode.IconOnly) 50.dp else 58.dp
+        val minItemSize = if (availableItemWidth >= 48.dp) 48.dp else availableItemWidth
+        val itemSize = availableItemWidth.coerceIn(minItemSize, maxItemSize)
+        val iconSize = (itemSize * 0.52f).coerceIn(20.dp, 27.dp)
+        val dockWidth = (itemSize * items.size.toFloat() + sidePadding * 2f + gap * (items.size - 1).toFloat())
+            .coerceAtMost(352.dp)
 
         Row(
             modifier = Modifier
                 .align(Alignment.Center)
+                .width(dockWidth)
                 .shadow(
-                    elevation = 10.dp,
+                    elevation = 18.dp,
                     shape = dockShape,
                     clip = false,
-                    ambientColor = Color.Black.copy(alpha = 0.08f),
-                    spotColor = Color.Black.copy(alpha = 0.12f),
+                    ambientColor = Color.Black.copy(alpha = 0.10f),
+                    spotColor = Color.Black.copy(alpha = 0.16f),
                 )
                 .clip(dockShape)
-                .background(OctopusTokens.Card)
+                .background(OctopusTokens.Card.copy(alpha = 0.98f))
                 .border(1.dp, OctopusTokens.Border.copy(alpha = 0.9f), dockShape)
-                .padding(horizontal = sidePadding, vertical = 10.dp),
+                .padding(horizontal = sidePadding, vertical = 9.dp),
             horizontalArrangement = Arrangement.spacedBy(gap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -121,7 +143,7 @@ fun FloatingDockBar(
                     modifier = Modifier
                         .size(itemSize)
                         .clip(CircleShape)
-                        .background(if (selected) OctopusTokens.SelectedNav else Color.Transparent)
+                        .background(if (selected) OctopusTokens.SelectedNav.copy(alpha = 0.92f) else Color.Transparent)
                         .clickable { onSelected(item.key) },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -379,20 +401,29 @@ fun InlineStateCard(
 fun OperationErrorCard(
     message: String,
     modifier: Modifier = Modifier,
+    onDismiss: (() -> Unit)? = null,
 ) {
-    Box(
+    Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(MiuixTheme.colorScheme.error.copy(alpha = 0.08f))
             .border(1.dp, MiuixTheme.colorScheme.error.copy(alpha = 0.24f), RoundedCornerShape(16.dp))
             .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
             text = message,
             style = MiuixTheme.textStyles.body2,
             color = MiuixTheme.colorScheme.error,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
+        if (onDismiss != null) {
+            TextButton(text = stringResource(R.string.action_close), onClick = onDismiss)
+        }
     }
 }
 
@@ -407,13 +438,17 @@ fun DialogScrollableColumn(
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val maxDialogHeight = if (maxHeight == Dp.Infinity) {
             420.dp
+        } else if (maxHeight <= 180.dp) {
+            maxHeight
         } else {
-            (maxHeight * fraction).coerceAtLeast(260.dp)
+            (maxHeight * fraction).coerceIn(180.dp, maxHeight)
         }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = maxDialogHeight)
+                .imePadding()
+                .navigationBarsPadding()
                 .verticalScroll(scrollState),
             verticalArrangement = verticalArrangement,
             content = content,
@@ -932,8 +967,9 @@ fun TrendLineChart(
         Canvas(modifier = Modifier.matchParentSize()) {
             val w = size.width
             val h = size.height
-            val padLeft = 52f
-            val padRight = 52f
+            val compactChart = w < 340.dp.toPx()
+            val padLeft = if (compactChart) 42f else 52f
+            val padRight = if (compactChart) 42f else 52f
             val padTop = 12f
             val padBottom = 28f
             val chartW = w - padLeft - padRight
@@ -952,7 +988,16 @@ fun TrendLineChart(
 
             // X 轴标签
             val androidCanvas = drawContext.canvas.nativeCanvas
+            val labelIndexes = when {
+                entries.size <= 3 -> entries.indices.toSet()
+                compactChart -> setOf(0, entries.lastIndex / 2, entries.lastIndex)
+                chartW < 420.dp.toPx() -> entries.indices.filter { index ->
+                    index == 0 || index == entries.lastIndex || index % 2 == 0
+                }.toSet()
+                else -> entries.indices.toSet()
+            }
             entries.forEachIndexed { index, entry ->
+                if (index !in labelIndexes) return@forEachIndexed
                 val x = padLeft + chartW * index / (entries.size - 1).coerceAtLeast(1)
                 labelPaint.color = textColor.toArgb()
                 labelPaint.textAlign = android.graphics.Paint.Align.CENTER

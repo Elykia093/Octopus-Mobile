@@ -36,8 +36,17 @@ data class SettingUiState(
     val modelLastUpdateTime: String? = null,
     val createdApiKey: ApiKeyItem? = null,
     val error: String? = null,
+    val apiKeyListError: String? = null,
+    val versionInfoError: String? = null,
+    val modelLastUpdateError: String? = null,
     val apiKeySubmitting: Boolean = false,
     val apiKeyOperationError: String? = null,
+    val dataTransferSubmitting: Boolean = false,
+    val dataTransferMessage: String? = null,
+    val dataTransferError: String? = null,
+    val actionSubmitting: Boolean = false,
+    val actionMessage: String? = null,
+    val actionError: String? = null,
 )
 
 internal fun SettingUiState.apiKeyOperationStarted(): SettingUiState = copy(
@@ -53,6 +62,42 @@ internal fun SettingUiState.apiKeyOperationSucceeded(): SettingUiState = copy(
 internal fun SettingUiState.apiKeyOperationFailed(message: String): SettingUiState = copy(
     apiKeySubmitting = false,
     apiKeyOperationError = message,
+)
+
+internal fun SettingUiState.dataTransferStarted(): SettingUiState = copy(
+    dataTransferSubmitting = true,
+    dataTransferMessage = null,
+    dataTransferError = null,
+)
+
+internal fun SettingUiState.dataTransferSucceeded(message: String): SettingUiState = copy(
+    dataTransferSubmitting = false,
+    dataTransferMessage = message,
+    dataTransferError = null,
+)
+
+internal fun SettingUiState.dataTransferFailed(message: String): SettingUiState = copy(
+    dataTransferSubmitting = false,
+    dataTransferMessage = null,
+    dataTransferError = message,
+)
+
+internal fun SettingUiState.actionStarted(): SettingUiState = copy(
+    actionSubmitting = true,
+    actionMessage = null,
+    actionError = null,
+)
+
+internal fun SettingUiState.actionSucceeded(message: String): SettingUiState = copy(
+    actionSubmitting = false,
+    actionMessage = message,
+    actionError = null,
+)
+
+internal fun SettingUiState.actionFailed(message: String): SettingUiState = copy(
+    actionSubmitting = false,
+    actionMessage = null,
+    actionError = message,
 )
 
 @HiltViewModel
@@ -83,28 +128,50 @@ class SettingViewModel @Inject constructor(
             if (settings is AppResult.Success) {
                 val config = configDeferred.await()
                 val auth = authDeferred.await()
+                val apiKeys = apiKeysDeferred.await()
+                val latest = latestDeferred.await()
+                val version = versionDeferred.await()
+                val modelTime = modelTimeDeferred.await()
                 _uiState.value = SettingUiState(
                     loading = false,
                     settings = settings.data,
                     sections = settings.data.toSections(),
-                    apiKeys = (apiKeysDeferred.await() as? AppResult.Success)?.data.orEmpty(),
-                    latestInfo = (latestDeferred.await() as? AppResult.Success)?.data,
-                    currentVersion = (versionDeferred.await() as? AppResult.Success)?.data,
-                    modelLastUpdateTime = (modelTimeDeferred.await() as? AppResult.Success)?.data,
+                    apiKeys = apiKeys.dataOrPrevious(previous.apiKeys),
+                    latestInfo = latest.dataOrPreviousNullable(previous.latestInfo),
+                    currentVersion = version.dataOrPreviousNullable(previous.currentVersion),
+                    modelLastUpdateTime = modelTime.dataOrPreviousNullable(previous.modelLastUpdateTime),
                     username = auth.username,
                     language = config.language,
                     themeMode = config.themeMode,
                     createdApiKey = _uiState.value.createdApiKey,
+                    apiKeyListError = apiKeys.errorMessageOrNull(),
+                    versionInfoError = latest.errorMessageOrNull() ?: version.errorMessageOrNull(),
+                    modelLastUpdateError = modelTime.errorMessageOrNull(),
                     apiKeySubmitting = previous.apiKeySubmitting,
                     apiKeyOperationError = previous.apiKeyOperationError,
+                    dataTransferSubmitting = previous.dataTransferSubmitting,
+                    dataTransferMessage = previous.dataTransferMessage,
+                    dataTransferError = previous.dataTransferError,
+                    actionSubmitting = previous.actionSubmitting,
+                    actionMessage = previous.actionMessage,
+                    actionError = previous.actionError,
                 )
             } else {
                 _uiState.value = SettingUiState(
                     loading = false,
                     error = (settings as AppResult.Error).message,
                     createdApiKey = previous.createdApiKey,
+                    apiKeyListError = previous.apiKeyListError,
+                    versionInfoError = previous.versionInfoError,
+                    modelLastUpdateError = previous.modelLastUpdateError,
                     apiKeySubmitting = previous.apiKeySubmitting,
                     apiKeyOperationError = previous.apiKeyOperationError,
+                    dataTransferSubmitting = previous.dataTransferSubmitting,
+                    dataTransferMessage = previous.dataTransferMessage,
+                    dataTransferError = previous.dataTransferError,
+                    actionSubmitting = previous.actionSubmitting,
+                    actionMessage = previous.actionMessage,
+                    actionError = previous.actionError,
                 )
             }
         }
@@ -112,48 +179,140 @@ class SettingViewModel @Inject constructor(
 
     fun refreshLatestInfo() {
         viewModelScope.launch {
+            if (_uiState.value.actionSubmitting) return@launch
+            _uiState.value = _uiState.value.actionStarted()
             val latest = dashboardRepository.latestInfo()
             val current = dashboardRepository.currentVersion()
-            _uiState.value = _uiState.value.copy(
-                latestInfo = (latest as? AppResult.Success)?.data ?: _uiState.value.latestInfo,
-                currentVersion = (current as? AppResult.Success)?.data ?: _uiState.value.currentVersion,
-            )
+            val latestData = (latest as? AppResult.Success)?.data
+            val currentData = (current as? AppResult.Success)?.data
+            if (latestData != null || currentData != null) {
+                _uiState.value = _uiState.value.actionSucceeded("版本信息已刷新。").copy(
+                    latestInfo = latestData ?: _uiState.value.latestInfo,
+                    currentVersion = currentData ?: _uiState.value.currentVersion,
+                )
+            } else {
+                _uiState.value = _uiState.value.actionFailed(
+                    (latest as? AppResult.Error)?.message
+                        ?: (current as? AppResult.Error)?.message
+                        ?: "刷新版本信息失败。",
+                )
+            }
         }
     }
 
     fun updateSetting(key: String, value: String) {
         viewModelScope.launch {
-            appRepository.saveSetting(SettingItem(key, value))
-            refresh()
+            if (_uiState.value.actionSubmitting) return@launch
+            _uiState.value = _uiState.value.actionStarted()
+            when (val result = appRepository.saveSetting(SettingItem(key, value))) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.actionSucceeded("设置已保存。")
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.actionFailed(result.message)
+            }
         }
     }
 
     fun updateAppearance(language: String, themeMode: Int) {
         viewModelScope.launch {
-            appRepository.saveAppearance(language, themeMode)
-            refresh()
+            if (_uiState.value.actionSubmitting) return@launch
+            _uiState.value = _uiState.value.actionStarted()
+            when (val result = appRepository.saveAppearance(language, themeMode)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.actionSucceeded("外观设置已保存。")
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.actionFailed(result.message)
+            }
         }
     }
 
     fun triggerUpdate() {
         viewModelScope.launch {
-            dashboardRepository.triggerUpdate()
-            refresh()
+            if (_uiState.value.actionSubmitting) return@launch
+            _uiState.value = _uiState.value.actionStarted()
+            when (val result = dashboardRepository.triggerUpdate()) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.actionSucceeded(result.data.ifBlank { "更新任务已触发。" })
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.actionFailed(result.message)
+            }
         }
     }
 
     fun refreshModelPrice() {
         viewModelScope.launch {
-            dashboardRepository.refreshModelPrice()
-            refresh()
+            if (_uiState.value.actionSubmitting) return@launch
+            _uiState.value = _uiState.value.actionStarted()
+            when (val result = dashboardRepository.refreshModelPrice()) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.actionSucceeded(result.data?.takeIf { it.isNotBlank() } ?: "模型价格已刷新。")
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.actionFailed(result.message)
+            }
         }
     }
 
     fun syncChannelModels() {
         viewModelScope.launch {
-            dashboardRepository.syncChannelModels()
-            refresh()
+            if (_uiState.value.actionSubmitting) return@launch
+            _uiState.value = _uiState.value.actionStarted()
+            when (val result = dashboardRepository.syncChannelModels()) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.actionSucceeded(result.data?.takeIf { it.isNotBlank() } ?: "渠道模型已同步。")
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.actionFailed(result.message)
+            }
         }
+    }
+
+    fun exportData(onReady: (ByteArray) -> Unit) {
+        viewModelScope.launch {
+            if (_uiState.value.dataTransferSubmitting) return@launch
+            _uiState.value = _uiState.value.dataTransferStarted()
+            when (val result = dashboardRepository.exportData(includeLogs = false, includeStats = false)) {
+                is AppResult.Success -> runCatching { onReady(result.data) }
+                    .onFailure { exception ->
+                        _uiState.value = _uiState.value.dataTransferFailed(exception.message ?: "启动导出失败。")
+                    }
+                is AppResult.Error -> _uiState.value = _uiState.value.dataTransferFailed(result.message)
+            }
+        }
+    }
+
+    fun importData(fileName: String, content: ByteArray) {
+        viewModelScope.launch {
+            if (_uiState.value.dataTransferSubmitting) return@launch
+            _uiState.value = _uiState.value.dataTransferStarted()
+            when (val result = dashboardRepository.importData(fileName, content)) {
+                is AppResult.Success -> {
+                    val rows = result.data.rowsAffected.values.sum()
+                    _uiState.value = _uiState.value.dataTransferSucceeded("导入完成，更新 $rows 行。")
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.dataTransferFailed(result.message)
+            }
+        }
+    }
+
+    fun markDataTransferSucceeded(message: String) {
+        _uiState.value = _uiState.value.dataTransferSucceeded(message)
+    }
+
+    fun markDataTransferFailed(message: String) {
+        _uiState.value = _uiState.value.dataTransferFailed(message)
+    }
+
+    fun clearDataTransferStatus() {
+        _uiState.value = _uiState.value.copy(dataTransferMessage = null, dataTransferError = null)
+    }
+
+    fun clearActionStatus() {
+        _uiState.value = _uiState.value.copy(actionMessage = null, actionError = null)
     }
 
     fun setApiKeyEnabled(item: ApiKeyItem, enabled: Boolean) {
@@ -244,6 +403,21 @@ class SettingViewModel @Inject constructor(
             }
         }
     }
+}
+
+internal fun <T> AppResult<T>.dataOrPrevious(previous: T): T = when (this) {
+    is AppResult.Success -> data
+    is AppResult.Error -> previous
+}
+
+internal fun <T> AppResult<T>.dataOrPreviousNullable(previous: T?): T? = when (this) {
+    is AppResult.Success -> data
+    is AppResult.Error -> previous
+}
+
+internal fun AppResult<*>.errorMessageOrNull(): String? = when (this) {
+    is AppResult.Success -> null
+    is AppResult.Error -> message
 }
 
 private fun List<SettingItem>.toSections(): List<SettingSection> {

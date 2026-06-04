@@ -6,6 +6,7 @@ import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.data.local.PreferenceStore
 import com.elykia.octopus.core.data.local.SessionManager
 import com.elykia.octopus.core.data.repository.AppRepository
+import com.elykia.octopus.core.data.repository.SESSION_CLEAR_FAILED_MESSAGE
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,11 +20,13 @@ import javax.inject.Inject
 class AppViewModel @Inject constructor(
     private val appRepository: AppRepository,
     preferenceStore: PreferenceStore,
-    sessionManager: SessionManager,
+    private val sessionManager: SessionManager,
 ) : ViewModel() {
     private val bootstrapState = MutableStateFlow<LaunchState>(LaunchState.Loading)
+    private val securityMessageState = MutableStateFlow<String?>(null)
 
     val launchState: StateFlow<LaunchState> = bootstrapState
+    val securityMessage: StateFlow<String?> = securityMessageState
     val themeMode: StateFlow<Int> = preferenceStore.serverConfig
         .combine(sessionManager.unauthorized) { config, unauthorized ->
             if (unauthorized) {
@@ -36,6 +39,14 @@ class AppViewModel @Inject constructor(
 
     init {
         bootstrap()
+        viewModelScope.launch {
+            sessionManager.securityWarning.collect { message ->
+                if (!message.isNullOrBlank()) {
+                    securityMessageState.value = message
+                    sessionManager.consumeSecurityWarning()
+                }
+            }
+        }
     }
 
     fun bootstrap() {
@@ -57,6 +68,9 @@ class AppViewModel @Inject constructor(
                 }
 
                 is AppResult.Error -> {
+                    if (result.message == SESSION_CLEAR_FAILED_MESSAGE) {
+                        securityMessageState.value = result.message
+                    }
                     bootstrapState.value = LaunchState.NeedLogin(config)
                 }
             }
@@ -73,8 +87,19 @@ class AppViewModel @Inject constructor(
 
     fun logout() {
         viewModelScope.launch {
-            appRepository.logout()
-            bootstrap()
+            when (val result = appRepository.logout()) {
+                is AppResult.Success -> {
+                    securityMessageState.value = null
+                    bootstrap()
+                }
+                is AppResult.Error -> {
+                    securityMessageState.value = result.message
+                }
+            }
         }
+    }
+
+    fun clearSecurityMessage() {
+        securityMessageState.value = null
     }
 }

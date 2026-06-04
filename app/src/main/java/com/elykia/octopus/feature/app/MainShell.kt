@@ -28,6 +28,8 @@ import top.yukonga.miuix.kmp.basic.FloatingNavigationBarDisplayMode
 @Composable
 fun MainShell(
     onLogout: () -> Unit,
+    securityMessage: String? = null,
+    onClearSecurityMessage: () -> Unit = {},
 ) {
     var currentTab by rememberSaveable { mutableStateOf(MainTab.Home) }
 
@@ -44,7 +46,7 @@ fun MainShell(
             FloatingDockBar(
                 modifier = Modifier
                     .navigationBarsPadding()
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                    .padding(horizontal = 4.dp, vertical = 14.dp),
                 items = dockItems,
                 selectedKey = currentTab.route,
                 onSelected = { route -> currentTab = MainTab.entries.first { it.route == route } },
@@ -55,7 +57,12 @@ fun MainShell(
         val contentPadding = mainContentPadding(padding)
         PageContainer {
             when (currentTab) {
-                MainTab.Home -> HomeScreen(contentPadding = contentPadding, onLogout = onLogout)
+                MainTab.Home -> HomeScreen(
+                    contentPadding = contentPadding,
+                    onLogout = onLogout,
+                    securityMessage = securityMessage,
+                    onClearSecurityMessage = onClearSecurityMessage,
+                )
                 MainTab.Channel -> ChannelScreen(contentPadding = contentPadding)
                 MainTab.Group -> GroupScreen(contentPadding = contentPadding)
                 MainTab.ApiKey -> ApiKeyScreen(contentPadding = contentPadding)

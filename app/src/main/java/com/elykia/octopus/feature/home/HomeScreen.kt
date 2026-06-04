@@ -1,12 +1,15 @@
 package com.elykia.octopus.feature.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -38,6 +41,7 @@ import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.LoadingStateCard
 import com.elykia.octopus.core.designsystem.OctopusTones
 import com.elykia.octopus.core.designsystem.OctopusTokens
+import com.elykia.octopus.core.designsystem.OperationErrorCard
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.ProgressToneBar
 import com.elykia.octopus.core.designsystem.RankBadge
@@ -57,6 +61,8 @@ import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 fun HomeScreen(
     contentPadding: PaddingValues,
     onLogout: () -> Unit = {},
+    securityMessage: String? = null,
+    onClearSecurityMessage: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -99,6 +105,9 @@ fun HomeScreen(
         contentPadding = contentPadding,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            securityMessage?.takeIf { it.isNotBlank() }?.let { message ->
+                OperationErrorCard(message = message, onDismiss = onClearSecurityMessage)
+            }
             when {
                 uiState.loading -> LoadingStateCard(title = stringResource(R.string.home_title))
                 uiState.error != null -> ErrorStateCard(
@@ -110,20 +119,13 @@ fun HomeScreen(
                     summary = stringResource(R.string.home_empty),
                 )
                 else -> {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ToolbarChip(
-                            text = stringResource(R.string.home_scope_today),
-                            selected = showToday,
-                            onClick = { showToday = true },
-                        )
-                        ToolbarChip(
-                            text = stringResource(R.string.home_scope_total),
-                            selected = !showToday,
-                            onClick = { showToday = false },
-                        )
+                    uiState.partialErrors().forEach { error ->
+                        OperationErrorCard(message = error)
                     }
                     DashboardOverviewSection(
                         snapshot = snapshot,
+                        showToday = showToday,
+                        onScopeChange = { showToday = it },
                     )
                     DashboardTrendSection(daily = uiState.daily)
                     DashboardRankingSection(
@@ -140,150 +142,216 @@ fun HomeScreen(
 @Composable
 private fun DashboardOverviewSection(
     snapshot: StatsSnapshot,
+    showToday: Boolean,
+    onScopeChange: (Boolean) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        DashboardOverviewCard(
-            title = stringResource(R.string.home_total_title),
-            icon = AppMiuixIcons.Request,
-            accent = OctopusTokens.Accent,
-            metrics = listOf(
-                OverviewMetric(
-                    icon = AppMiuixIcons.Request,
-                    label = stringResource(R.string.home_total_requests),
-                    value = formatCount(snapshot.requestCount),
-                ),
-                OverviewMetric(
-                    icon = AppMiuixIcons.Time,
-                    label = stringResource(R.string.home_total_wait_time),
-                    value = formatDurationMs(snapshot.waitValue),
-                ),
-            ),
+        DashboardHeroCard(
+            snapshot = snapshot,
+            showToday = showToday,
+            onScopeChange = onScopeChange,
         )
-        DashboardOverviewCard(
-            title = stringResource(R.string.home_all_title),
-            icon = AppMiuixIcons.Total,
-            accent = OctopusTokens.Accent,
-            metrics = listOf(
-                OverviewMetric(
-                    icon = AppMiuixIcons.Token,
-                    label = stringResource(R.string.home_total_tokens),
-                    value = formatCount(snapshot.tokenValue),
-                ),
-                OverviewMetric(
-                    icon = AppMiuixIcons.Cost,
-                    label = stringResource(R.string.home_total_cost),
-                    value = formatMoney(snapshot.costValue),
-                ),
-            ),
-        )
-        DashboardOverviewCard(
-            title = stringResource(R.string.home_input_title),
-            icon = AppMiuixIcons.ArrowDown,
-            accent = OctopusTokens.Accent,
-            metrics = listOf(
-                OverviewMetric(
-                    icon = AppMiuixIcons.ArrowDown,
-                    label = stringResource(R.string.home_input_tokens),
-                    value = formatCount(snapshot.inputToken),
-                ),
-                OverviewMetric(
-                    icon = AppMiuixIcons.Cost,
-                    label = stringResource(R.string.home_input_cost),
-                    value = formatMoney(snapshot.inputCost),
-                ),
-            ),
-        )
-        DashboardOverviewCard(
-            title = stringResource(R.string.home_output_title),
-            icon = AppMiuixIcons.ArrowUp,
-            accent = OctopusTokens.Accent,
-            metrics = listOf(
-                OverviewMetric(
-                    icon = AppMiuixIcons.ArrowUp,
-                    label = stringResource(R.string.home_output_tokens),
-                    value = formatCount(snapshot.outputToken),
-                ),
-                OverviewMetric(
-                    icon = AppMiuixIcons.Cost,
-                    label = stringResource(R.string.home_output_cost),
-                    value = formatMoney(snapshot.outputCost),
-                ),
-            ),
-        )
+        DashboardBreakdownCard(snapshot = snapshot)
     }
 }
 
 @Composable
-private fun DashboardOverviewCard(
-    title: String,
-    icon: ImageVector,
-    accent: Color,
-    metrics: List<OverviewMetric>,
+private fun DashboardHeroCard(
+    snapshot: StatsSnapshot,
+    showToday: Boolean,
+    onScopeChange: (Boolean) -> Unit,
 ) {
     AppListCard(
-        padding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
+        padding = PaddingValues(horizontal = 20.dp, vertical = 22.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(OctopusTokens.PrimarySoft),
-                    contentAlignment = Alignment.Center,
+        Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = title,
-                        tint = accent,
-                        modifier = Modifier.size(22.dp),
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(OctopusTokens.PrimarySoft),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = AppMiuixIcons.Total,
+                            contentDescription = stringResource(R.string.home_all_title),
+                            tint = OctopusTokens.Accent,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.home_all_title),
+                            style = MiuixTheme.textStyles.title3,
+                            fontWeight = FontWeight.Bold,
+                            color = OctopusTokens.TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = stringResource(if (showToday) R.string.home_scope_today else R.string.home_scope_total),
+                            style = MiuixTheme.textStyles.body2,
+                            color = OctopusTokens.TextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ToolbarChip(
+                        text = stringResource(R.string.home_scope_today),
+                        selected = showToday,
+                        onClick = { onScopeChange(true) },
+                    )
+                    ToolbarChip(
+                        text = stringResource(R.string.home_scope_total),
+                        selected = !showToday,
+                        onClick = { onScopeChange(false) },
                     )
                 }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = title,
-                    style = MiuixTheme.textStyles.main,
-                    fontWeight = FontWeight.SemiBold,
+                    text = stringResource(R.string.home_total_cost),
+                    style = MiuixTheme.textStyles.body2,
+                    color = OctopusTokens.TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = formatMoney(snapshot.costValue),
+                    style = MiuixTheme.textStyles.title1,
+                    fontWeight = FontWeight.Bold,
                     color = OctopusTokens.TextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
                 )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                metrics.forEach { metric ->
-                    OverviewMetricLine(metric = metric, accent = accent)
+
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (maxWidth < 280.dp) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        DashboardMetricTile(
+                            icon = AppMiuixIcons.Request,
+                            label = stringResource(R.string.home_total_requests),
+                            value = formatCount(snapshot.requestCount),
+                            accent = OctopusTones.Request,
+                        )
+                        DashboardMetricTile(
+                            icon = AppMiuixIcons.Token,
+                            label = stringResource(R.string.home_total_tokens),
+                            value = formatCount(snapshot.tokenValue),
+                            accent = OctopusTones.Token,
+                        )
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        DashboardMetricTile(
+                            icon = AppMiuixIcons.Request,
+                            label = stringResource(R.string.home_total_requests),
+                            value = formatCount(snapshot.requestCount),
+                            accent = OctopusTones.Request,
+                            modifier = Modifier.weight(1f),
+                        )
+                        DashboardMetricTile(
+                            icon = AppMiuixIcons.Token,
+                            label = stringResource(R.string.home_total_tokens),
+                            value = formatCount(snapshot.tokenValue),
+                            accent = OctopusTones.Token,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
+            DashboardMetricTile(
+                icon = AppMiuixIcons.Time,
+                label = stringResource(R.string.home_total_wait_time),
+                value = formatDurationMs(snapshot.waitValue),
+                accent = OctopusTones.Orange,
+            )
         }
     }
 }
 
 @Composable
-private fun OverviewMetricLine(
-    metric: OverviewMetric,
+private fun DashboardBreakdownCard(
+    snapshot: StatsSnapshot,
+) {
+    AppListCard(padding = PaddingValues(horizontal = 18.dp, vertical = 18.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = stringResource(R.string.home_total_title),
+                style = MiuixTheme.textStyles.title3,
+                fontWeight = FontWeight.SemiBold,
+                color = OctopusTokens.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            DashboardBreakdownLine(
+                icon = AppMiuixIcons.ArrowDown,
+                title = stringResource(R.string.home_input_title),
+                tokenLabel = stringResource(R.string.home_input_tokens),
+                tokenValue = formatCount(snapshot.inputToken),
+                costValue = formatMoney(snapshot.inputCost),
+                accent = OctopusTokens.Accent,
+            )
+            DashboardBreakdownLine(
+                icon = AppMiuixIcons.ArrowUp,
+                title = stringResource(R.string.home_output_title),
+                tokenLabel = stringResource(R.string.home_output_tokens),
+                tokenValue = formatCount(snapshot.outputToken),
+                costValue = formatMoney(snapshot.outputCost),
+                accent = OctopusTones.Orange,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DashboardMetricTile(
+    icon: ImageVector,
+    label: String,
+    value: String,
     accent: Color,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(OctopusTokens.Muted.copy(alpha = 0.72f))
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.72f), RoundedCornerShape(20.dp))
+            .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(46.dp)
-                .clip(RoundedCornerShape(15.dp))
-                .background(OctopusTokens.PrimarySoft),
+                .size(36.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(accent.copy(alpha = 0.13f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = metric.icon,
-                contentDescription = metric.label,
+                imageVector = icon,
+                contentDescription = label,
                 tint = accent,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(20.dp),
             )
         }
         Column(
@@ -291,21 +359,85 @@ private fun OverviewMetricLine(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
-                text = metric.label,
-                style = MiuixTheme.textStyles.body1,
+                text = label,
+                style = MiuixTheme.textStyles.body2,
                 color = OctopusTokens.TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = metric.value,
-                style = MiuixTheme.textStyles.title1,
-                fontWeight = FontWeight.Medium,
+                text = value,
+                style = MiuixTheme.textStyles.main,
+                fontWeight = FontWeight.SemiBold,
                 color = OctopusTokens.TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
+    }
+}
+
+@Composable
+private fun DashboardBreakdownLine(
+    icon: ImageVector,
+    title: String,
+    tokenLabel: String,
+    tokenValue: String,
+    costValue: String,
+    accent: Color,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(OctopusTokens.Muted.copy(alpha = 0.64f))
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.68f), RoundedCornerShape(20.dp))
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(accent.copy(alpha = 0.13f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = accent,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                text = title,
+                style = MiuixTheme.textStyles.main,
+                fontWeight = FontWeight.SemiBold,
+                color = OctopusTokens.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = "$tokenLabel · $tokenValue",
+                style = MiuixTheme.textStyles.body2,
+                color = OctopusTokens.TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Text(
+            text = costValue,
+            style = MiuixTheme.textStyles.main,
+            fontWeight = FontWeight.SemiBold,
+            color = accent,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -488,12 +620,6 @@ private data class RankContent(
     val subtitle: String,
     val value: String,
     val progress: Float,
-)
-
-private data class OverviewMetric(
-    val icon: ImageVector,
-    val label: String,
-    val value: String,
 )
 
 private data class StatsSnapshot(

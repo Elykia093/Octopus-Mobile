@@ -3,6 +3,8 @@ package com.elykia.octopus.feature.apikey
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.os.Build
+import android.os.PersistableBundle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
@@ -37,10 +40,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.ApiKeyItem
+import com.elykia.octopus.core.designsystem.AppLazyPageScaffold
 import com.elykia.octopus.core.designsystem.AppInfoChip
 import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.AppMetricRow
-import com.elykia.octopus.core.designsystem.AppPageScaffold
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
 import com.elykia.octopus.core.designsystem.DialogScrollableColumn
 import com.elykia.octopus.core.designsystem.ErrorStateCard
@@ -50,6 +53,8 @@ import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.OperationErrorCard
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
+import com.elykia.octopus.core.designsystem.SecureVisibleWindow
+import com.elykia.octopus.core.designsystem.SoftIconTile
 import com.elykia.octopus.core.designsystem.formatMoney
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import com.elykia.octopus.feature.setting.SettingViewModel
@@ -80,13 +85,12 @@ fun ApiKeyScreen(
         .filter { item ->
             searchTerm.isBlank() ||
                 item.name.contains(searchTerm, ignoreCase = true) ||
-                item.apiKey.contains(searchTerm, ignoreCase = true) ||
                 item.supportedModels.orEmpty().contains(searchTerm, ignoreCase = true)
         }
         .sortedByDescending { it.enabled }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        AppPageScaffold(
+        AppLazyPageScaffold(
             title = stringResource(R.string.apikey_title),
             actions = {
                 PageActionButton(
@@ -110,47 +114,58 @@ fun ApiKeyScreen(
             },
             contentPadding = contentPadding,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                when {
-                    uiState.loading -> LoadingStateCard(title = stringResource(R.string.apikey_title))
-                    uiState.error != null -> ErrorStateCard(
+            when {
+                uiState.loading -> item {
+                    LoadingStateCard(title = stringResource(R.string.apikey_title))
+                }
+                uiState.error != null -> item {
+                    ErrorStateCard(
                         message = uiState.error ?: stringResource(R.string.error_title),
                         onRetry = viewModel::refresh,
                     )
-                    else -> {
-                        if (uiState.apiKeys.isNotEmpty() && searchVisible) {
+                }
+                else -> {
+                    if (uiState.apiKeys.isNotEmpty() && searchVisible) {
+                        item {
                             SearchField(
                                 value = searchTerm,
                                 onValueChange = { searchTerm = it },
                                 hint = stringResource(R.string.setting_apikey_title),
                             )
                         }
-                        if (!showCreateDialog && editingItem == null) {
-                            uiState.apiKeyOperationError?.takeIf { it.isNotBlank() }?.let { error ->
-                                OperationErrorCard(message = error)
-                            }
+                    }
+                    if (!showCreateDialog && editingItem == null) {
+                        uiState.apiKeyListError?.takeIf { it.isNotBlank() }?.let { error ->
+                            item { OperationErrorCard(message = error) }
                         }
-                        when {
-                            uiState.apiKeys.isEmpty() -> InlineEmptyCard(
+                        uiState.apiKeyOperationError?.takeIf { it.isNotBlank() }?.let { error ->
+                            item { OperationErrorCard(message = error) }
+                        }
+                    }
+                    when {
+                        uiState.apiKeys.isEmpty() -> item {
+                            InlineEmptyCard(
                                 title = stringResource(R.string.apikey_title),
                                 summary = stringResource(R.string.apikey_empty),
                             )
-                            keys.isEmpty() -> InlineEmptyCard(
+                        }
+                        keys.isEmpty() -> item {
+                            InlineEmptyCard(
                                 title = stringResource(R.string.empty_title),
                                 summary = stringResource(R.string.apikey_search_empty),
                             )
-                            else -> keys.forEach { item ->
-                                ApiKeyRow(
-                                    item = item,
-                                    submitting = uiState.apiKeySubmitting,
-                                    onToggle = { viewModel.setApiKeyEnabled(item, it) },
-                                    onEdit = {
-                                        viewModel.clearApiKeyOperationError()
-                                        editingItem = item
-                                    },
-                                    onDelete = { deletingId = item.id },
-                                )
-                            }
+                        }
+                        else -> items(keys, key = { it.id }) { item ->
+                            ApiKeyRow(
+                                item = item,
+                                submitting = uiState.apiKeySubmitting,
+                                onToggle = { viewModel.setApiKeyEnabled(item, it) },
+                                onEdit = {
+                                    viewModel.clearApiKeyOperationError()
+                                    editingItem = item
+                                },
+                                onDelete = { deletingId = item.id },
+                            )
                         }
                     }
                 }
@@ -249,6 +264,10 @@ private fun ApiKeyRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                SoftIconTile(
+                    icon = AppMiuixIcons.ApiKey,
+                    contentDescription = item.name,
+                )
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -270,6 +289,13 @@ private fun ApiKeyRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
                 ApiKeyStatusPill(
                     enabled = item.enabled,
                     clickable = !submitting,
@@ -348,10 +374,56 @@ private fun ApiKeyStatusPill(
     }
 }
 
-private fun String.maskApiKey(): String = when {
-    length <= 12 -> this
+internal fun String.maskApiKey(): String = when {
+    isBlank() -> ""
+    length <= 4 -> "****"
+    length <= 12 -> take(2) + "..." + takeLast(2)
     else -> take(8) + "..." + takeLast(4)
 }
+
+internal enum class ApiKeyEditorValidationIssue {
+    InvalidExpireAt,
+    InvalidMaxCost,
+}
+
+internal data class ApiKeyEditorValues(
+    val expireAt: Long,
+    val maxCost: Double,
+)
+
+internal fun parseApiKeyEditorValues(
+    expireAt: String,
+    maxCost: String,
+): Result<ApiKeyEditorValues> {
+    val parsedExpireAt = parseOptionalNonNegativeLong(expireAt)
+        ?: return Result.failure(ApiKeyEditorValidationException(ApiKeyEditorValidationIssue.InvalidExpireAt))
+    val parsedMaxCost = parseOptionalNonNegativeFiniteDouble(maxCost)
+        ?: return Result.failure(ApiKeyEditorValidationException(ApiKeyEditorValidationIssue.InvalidMaxCost))
+
+    return Result.success(
+        ApiKeyEditorValues(
+            expireAt = parsedExpireAt,
+            maxCost = parsedMaxCost,
+        ),
+    )
+}
+
+private fun parseOptionalNonNegativeLong(value: String): Long? {
+    val trimmed = value.trim()
+    if (trimmed.isBlank()) return 0L
+    return trimmed.toLongOrNull()?.takeIf { it >= 0L }
+}
+
+private fun parseOptionalNonNegativeFiniteDouble(value: String): Double? {
+    val trimmed = value.trim()
+    if (trimmed.isBlank()) return 0.0
+    val number = trimmed.toDoubleOrNull() ?: return null
+    return number.takeIf { it >= 0.0 && !it.isNaN() && !it.isInfinite() }
+}
+
+internal class ApiKeyEditorValidationException(
+    val issue: ApiKeyEditorValidationIssue,
+) : IllegalArgumentException(issue.name)
 
 @Composable
 private fun List<String>.modelSummary(): String {
@@ -373,6 +445,8 @@ private fun CreatedApiKeyDialog(
     onCopy: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    SecureVisibleWindow()
+
     OverlayDialog(
         show = true,
         title = stringResource(R.string.apikey_created_title),
@@ -401,7 +475,10 @@ private fun CreatedApiKeyDialog(
                     icon = AppMiuixIcons.Time,
                 )
                 AppInfoChip(
-                    text = item.maxCost?.let(::formatMoney) ?: stringResource(R.string.common_unknown),
+                    text = item.maxCost
+                        ?.takeIf { it > 0.0 }
+                        ?.let(::formatMoney)
+                        ?: stringResource(R.string.apikey_cost_unlimited),
                     icon = AppMiuixIcons.Cost,
                 )
             }
@@ -433,6 +510,7 @@ private fun ApiKeyEditorDialog(
     var maxCost by remember(initialItem?.id, visible) { mutableStateOf(initialItem?.maxCost?.toString().orEmpty()) }
     var supportedModels by remember(initialItem?.id, visible) { mutableStateOf(initialItem?.supportedModels.orEmpty()) }
     var enabled by remember(initialItem?.id, visible) { mutableStateOf(initialItem?.enabled ?: true) }
+    var validationIssue by remember(initialItem?.id, visible) { mutableStateOf<ApiKeyEditorValidationIssue?>(null) }
     val editorScrollState = rememberScrollState()
 
     OverlayDialog(
@@ -462,7 +540,10 @@ private fun ApiKeyEditorDialog(
                 )
                 TextField(
                     value = maxCost,
-                    onValueChange = { maxCost = it },
+                    onValueChange = {
+                        maxCost = it
+                        validationIssue = null
+                    },
                     label = stringResource(R.string.apikey_max_cost_hint),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
@@ -472,7 +553,10 @@ private fun ApiKeyEditorDialog(
                 )
                 TextField(
                     value = expireAt,
-                    onValueChange = { expireAt = it },
+                    onValueChange = {
+                        expireAt = it
+                        validationIssue = null
+                    },
                     label = stringResource(R.string.apikey_expire_at_hint),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
@@ -480,11 +564,16 @@ private fun ApiKeyEditorDialog(
                     enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                validationIssue?.let { issue ->
+                    OperationErrorCard(message = apiKeyEditorValidationMessage(issue))
+                }
                 TextField(
                     value = supportedModels,
                     onValueChange = { supportedModels = it },
                     label = stringResource(R.string.apikey_supported_models_hint),
                     useLabelAsPlaceholder = true,
+                    singleLine = false,
+                    maxLines = 3,
                     enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -511,10 +600,18 @@ private fun ApiKeyEditorDialog(
                     enabled = !submitting && name.isNotBlank(),
                     colors = ButtonDefaults.textButtonColorsPrimary(),
                     onClick = {
+                        val parsedValues = parseApiKeyEditorValues(
+                            expireAt = expireAt,
+                            maxCost = maxCost,
+                        ).getOrElse { exception ->
+                            validationIssue = (exception as? ApiKeyEditorValidationException)?.issue
+                                ?: ApiKeyEditorValidationIssue.InvalidMaxCost
+                            return@TextButton
+                        }
                         onConfirm(
                             name.trim(),
-                            expireAt.toLongOrNull() ?: 0L,
-                            maxCost.toDoubleOrNull() ?: 0.0,
+                            parsedValues.expireAt,
+                            parsedValues.maxCost,
                             supportedModels.trim(),
                             enabled,
                         )
@@ -525,7 +622,25 @@ private fun ApiKeyEditorDialog(
     }
 }
 
+@Composable
+private fun apiKeyEditorValidationMessage(issue: ApiKeyEditorValidationIssue): String = when (issue) {
+    ApiKeyEditorValidationIssue.InvalidExpireAt -> stringResource(R.string.apikey_invalid_expire_at)
+    ApiKeyEditorValidationIssue.InvalidMaxCost -> stringResource(R.string.apikey_invalid_max_cost)
+}
+
 private fun copyApiKey(context: Context, value: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
-    clipboard.setPrimaryClip(ClipData.newPlainText("api_key", value))
+    val clip = ClipData.newPlainText("api_key", value).apply {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            description.extras = PersistableBundle().apply {
+                putBoolean("android.content.extra.IS_SENSITIVE", true)
+            }
+        }
+    }
+    clipboard.setPrimaryClip(clip)
+    android.os.Handler(context.mainLooper).postDelayed({
+        if (clipboard.primaryClip?.getItemAt(0)?.text?.toString() == value) {
+            clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+        }
+    }, 60_000L)
 }

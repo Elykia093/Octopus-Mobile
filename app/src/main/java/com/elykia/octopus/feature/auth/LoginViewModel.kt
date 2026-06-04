@@ -57,8 +57,17 @@ class LoginViewModel @Inject constructor(
 
     fun submit(onSuccess: () -> Unit) {
         viewModelScope.launch {
+            if (_uiState.value.isLoading) return@launch
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val state = _uiState.value
+            val days = parseLoginExpireDays(state.expireDays)
+            if (days == null) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "请输入 1 到 3650 之间的令牌天数。",
+                )
+                return@launch
+            }
 
             // 如果需要先保存服务器地址
             if (state.showServerField) {
@@ -72,7 +81,6 @@ class LoginViewModel @Inject constructor(
             }
 
             // 登录
-            val days = state.expireDays.toIntOrNull() ?: 7
             when (val result = appRepository.login(state.username, state.password, days)) {
                 is AppResult.Success -> {
                     _uiState.value = _uiState.value.copy(isLoading = false)
@@ -85,3 +93,8 @@ class LoginViewModel @Inject constructor(
         }
     }
 }
+
+internal fun parseLoginExpireDays(value: String): Int? =
+    value.trim().toIntOrNull()?.takeIf { it in 1..MAX_LOGIN_EXPIRE_DAYS }
+
+private const val MAX_LOGIN_EXPIRE_DAYS = 3650

@@ -24,6 +24,7 @@ fun OctopusApp(
 ) {
     val navController = rememberNavController()
     val launchState by appViewModel.launchState.collectAsStateWithLifecycle()
+    val securityMessage by appViewModel.securityMessage.collectAsStateWithLifecycle()
     val themeMode by appViewModel.themeMode.collectAsStateWithLifecycle()
     val backStackEntry by navController.currentBackStackEntryAsState()
 
@@ -63,6 +64,7 @@ fun OctopusApp(
                             viewModel = viewModel,
                             showServerField = true,
                             currentServerUrl = "",
+                            securityMessage = securityMessage,
                             onLoggedIn = appViewModel::onLoggedIn,
                         )
                     }
@@ -73,12 +75,17 @@ fun OctopusApp(
                             viewModel = viewModel,
                             showServerField = false,
                             currentServerUrl = (launchState as LaunchState.NeedLogin).config.baseUrl,
+                            securityMessage = securityMessage,
                             onLoggedIn = appViewModel::onLoggedIn,
                         )
                     }
 
                     is LaunchState.Ready -> {
-                        MainShell(onLogout = appViewModel::logout)
+                        MainShell(
+                            onLogout = appViewModel::logout,
+                            securityMessage = securityMessage,
+                            onClearSecurityMessage = appViewModel::clearSecurityMessage,
+                        )
                     }
                 }
             }
@@ -95,12 +102,17 @@ fun OctopusApp(
                     viewModel = viewModel,
                     showServerField = showServer,
                     currentServerUrl = serverUrl,
+                    securityMessage = securityMessage,
                     onLoggedIn = appViewModel::onLoggedIn,
                 )
             }
 
             composable(OctopusDestination.Main.route) {
-                MainShell(onLogout = appViewModel::logout)
+                MainShell(
+                    onLogout = appViewModel::logout,
+                    securityMessage = securityMessage,
+                    onClearSecurityMessage = appViewModel::clearSecurityMessage,
+                )
             }
         }
     }

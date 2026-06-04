@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,14 +31,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.RelayLog
+import com.elykia.octopus.core.designsystem.AppLazyPageScaffold
 import com.elykia.octopus.core.designsystem.AppListCard
-import com.elykia.octopus.core.designsystem.AppPageScaffold
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
 import com.elykia.octopus.core.designsystem.ErrorStateCard
 import com.elykia.octopus.core.designsystem.InlineEmptyCard
 import com.elykia.octopus.core.designsystem.LoadingStateCard
 import com.elykia.octopus.core.designsystem.OctopusTones
 import com.elykia.octopus.core.designsystem.OctopusTokens
+import com.elykia.octopus.core.designsystem.OperationErrorCard
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
 import com.elykia.octopus.core.designsystem.ToolbarChip
@@ -70,7 +71,7 @@ fun LogScreen(
             log.actualModelName.contains(searchTerm, ignoreCase = true)
     }
 
-    AppPageScaffold(
+    AppLazyPageScaffold(
         title = stringResource(R.string.log_title),
         actions = {
             PageActionButton(
@@ -85,46 +86,72 @@ fun LogScreen(
             PageActionButton(
                 icon = AppMiuixIcons.Delete,
                 contentDescription = stringResource(R.string.log_toolbar_clear),
-                enabled = !uiState.loading && uiState.error == null && uiState.logs.isNotEmpty(),
+                enabled = !uiState.loading && uiState.error == null && uiState.logs.isNotEmpty() && !uiState.clearing,
                 onClick = { confirmClear = true },
             )
         },
         contentPadding = contentPadding,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            when {
-                uiState.loading -> LoadingStateCard(title = stringResource(R.string.log_title))
-                uiState.error != null -> ErrorStateCard(
+        when {
+            uiState.loading -> item {
+                LoadingStateCard(title = stringResource(R.string.log_title))
+            }
+            uiState.error != null -> item {
+                ErrorStateCard(
                     message = uiState.error ?: stringResource(R.string.error_title),
                     onRetry = viewModel::refresh,
                 )
-                else -> {
-                    if (uiState.logs.isNotEmpty() && searchVisible) {
+            }
+            else -> {
+                if (uiState.logs.isNotEmpty() && searchVisible) {
+                    item {
                         SearchField(
                             value = searchTerm,
                             onValueChange = { searchTerm = it },
                             hint = stringResource(R.string.log_search_hint),
                         )
                     }
-                    when {
-                        uiState.logs.isEmpty() -> InlineEmptyCard(
+                }
+                uiState.clearError?.takeIf { it.isNotBlank() }?.let { clearError ->
+                    item {
+                        OperationErrorCard(message = clearError)
+                    }
+                }
+                when {
+                    uiState.logs.isEmpty() -> item {
+                        InlineEmptyCard(
                             title = stringResource(R.string.log_title),
                             summary = stringResource(R.string.log_empty),
                         )
-                        logs.isEmpty() -> InlineEmptyCard(
+                    }
+                    logs.isEmpty() -> item {
+                        InlineEmptyCard(
                             title = stringResource(R.string.empty_title),
                             summary = stringResource(R.string.log_search_empty),
                         )
-                        else -> {
-                            logs.forEach { log ->
-                                LogRow(log = log)
+                    }
+                    else -> {
+                        items(logs, key = { it.id }) { log ->
+                            LogRow(log = log)
+                        }
+                        uiState.pagingError?.let { pagingError ->
+                            item {
+                                OperationErrorCard(message = pagingError)
                             }
-                            if (uiState.hasMore) {
+                        }
+                        if (uiState.hasMore) {
+                            item {
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                                     ToolbarChip(
-                                        text = stringResource(R.string.action_load_more),
+                                        text = stringResource(
+                                            when {
+                                                uiState.loadingMore -> R.string.common_loading
+                                                uiState.pagingError != null -> R.string.common_retry
+                                                else -> R.string.action_load_more
+                                            },
+                                        ),
                                         selected = false,
-                                        onClick = viewModel::loadMore,
+                                        onClick = if (uiState.loadingMore) null else viewModel::loadMore,
                                     )
                                 }
                             }
@@ -170,57 +197,47 @@ private fun LogRow(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 LogRouteHeader(log = log)
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        LogMetricLine(
-                            icon = AppMiuixIcons.Time,
-                            label = stringResource(R.string.log_metric_time),
-                            value = formatLogTime(log.time),
-                            color = OctopusTokens.Accent,
-                        )
-                        LogMetricLine(
-                            icon = AppMiuixIcons.Toggle,
-                            label = stringResource(R.string.log_metric_total_time),
-                            value = formatDurationMs(log.useTime.toLong()),
-                            color = OctopusTokens.TextSecondary,
-                        )
-                        LogMetricLine(
-                            icon = AppMiuixIcons.ArrowUp,
-                            label = stringResource(R.string.log_metric_output),
-                            value = formatCount(log.outputTokens.toLong()),
-                            color = OctopusTokens.TextSecondary,
-                        )
-                    }
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        LogMetricLine(
-                            icon = AppMiuixIcons.Success,
-                            label = stringResource(R.string.log_metric_first_token),
-                            value = formatDurationMs(log.ftut.toLong()),
-                            color = OctopusTones.Orange,
-                        )
-                        LogMetricLine(
-                            icon = AppMiuixIcons.ArrowDown,
-                            label = stringResource(R.string.log_metric_input),
-                            value = formatCount(log.inputTokens.toLong()),
-                            color = OctopusTokens.TextSecondary,
-                        )
-                        LogMetricLine(
-                            icon = AppMiuixIcons.Cost,
-                            label = stringResource(R.string.log_metric_cost),
-                            value = formatMoney(log.cost),
-                            color = OctopusTokens.Accent,
-                            emphasize = true,
-                        )
-                    }
+                    LogMetricLine(
+                        icon = AppMiuixIcons.Time,
+                        label = stringResource(R.string.log_metric_time),
+                        value = formatLogTime(log.time),
+                        color = OctopusTokens.Accent,
+                    )
+                    LogMetricLine(
+                        icon = AppMiuixIcons.Success,
+                        label = stringResource(R.string.log_metric_first_token),
+                        value = formatDurationMs(log.ftut.toLong()),
+                        color = OctopusTones.Orange,
+                    )
+                    LogMetricLine(
+                        icon = AppMiuixIcons.Toggle,
+                        label = stringResource(R.string.log_metric_total_time),
+                        value = formatDurationMs(log.useTime.toLong()),
+                        color = OctopusTokens.TextSecondary,
+                    )
+                    LogMetricLine(
+                        icon = AppMiuixIcons.ArrowDown,
+                        label = stringResource(R.string.log_metric_input),
+                        value = formatCount(log.inputTokens.toLong()),
+                        color = OctopusTokens.TextSecondary,
+                    )
+                    LogMetricLine(
+                        icon = AppMiuixIcons.ArrowUp,
+                        label = stringResource(R.string.log_metric_output),
+                        value = formatCount(log.outputTokens.toLong()),
+                        color = OctopusTokens.TextSecondary,
+                    )
+                    LogMetricLine(
+                        icon = AppMiuixIcons.Cost,
+                        label = stringResource(R.string.log_metric_cost),
+                        value = formatMoney(log.cost),
+                        color = OctopusTokens.Accent,
+                        emphasize = true,
+                    )
                 }
                 if (hasError) {
                     Text(
@@ -245,9 +262,9 @@ private fun LogProviderMark(
     Box(
         modifier = Modifier
             .size(54.dp)
-            .clip(CircleShape)
-            .background(if (hasError) color.copy(alpha = 0.12f) else color)
-            .border(1.dp, color.copy(alpha = 0.35f), CircleShape),
+            .clip(RoundedCornerShape(18.dp))
+            .background(color.copy(alpha = if (hasError) 0.12f else 0.16f))
+            .border(1.dp, color.copy(alpha = 0.32f), RoundedCornerShape(18.dp)),
         contentAlignment = Alignment.Center,
     ) {
         if (hasError) {
@@ -262,7 +279,7 @@ private fun LogProviderMark(
                 text = label.firstOrNull()?.uppercaseChar()?.toString() ?: "#",
                 style = MiuixTheme.textStyles.title3,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = color,
             )
         }
     }
@@ -276,20 +293,19 @@ private fun LogRouteHeader(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        Text(
+            text = log.requestModelName.ifBlank { stringResource(R.string.common_unknown) },
+            style = MiuixTheme.textStyles.main,
+            fontWeight = FontWeight.SemiBold,
+            color = OctopusTokens.TextPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = log.requestModelName.ifBlank { stringResource(R.string.common_unknown) },
-                style = MiuixTheme.textStyles.main,
-                fontWeight = FontWeight.SemiBold,
-                color = OctopusTokens.TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
             Icon(
                 imageVector = AppMiuixIcons.ArrowRight,
                 contentDescription = null,

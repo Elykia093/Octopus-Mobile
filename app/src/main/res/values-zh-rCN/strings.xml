@@ -61,6 +61,8 @@
     <string name="login_label_apikey">API 密钥</string>
     <string name="login_placeholder_apikey">sk-...</string>
     <string name="login_label_expire_days">令牌天数</string>
+    <string name="login_action_show_password">显示密码</string>
+    <string name="login_action_hide_password">隐藏密码</string>
     <string name="login_submit">登录</string>
     <string name="login_submitting">登录中…</string>
 
@@ -164,6 +166,7 @@
     <string name="channel_base_url_hint">https://api.example.com</string>
     <string name="channel_api_key_label">接口密钥</string>
     <string name="channel_api_key_hint">请输入渠道密钥</string>
+    <string name="channel_api_key_replace_hint">留空则保留现有密钥</string>
     <string name="channel_model_label">模型</string>
     <string name="channel_model_hint">例如 gpt-4.1</string>
     <string name="channel_custom_model_label">自定义模型</string>
@@ -173,7 +176,9 @@
     <string name="channel_auto_sync_label">自动同步</string>
     <string name="channel_enabled_label">启用状态</string>
     <string name="channel_fetch_model_title">抓取到的模型</string>
+    <string name="channel_fetch_model_summary">渠道返回的可用模型名称。</string>
     <string name="channel_fetch_model_empty">没有返回模型数据。</string>
+    <string name="channel_fetch_model_needs_key">输入新密钥后抓取</string>
 
     <string name="group_title">分组</string>
     <string name="group_search_hint">搜索分组</string>
@@ -227,6 +232,9 @@
     <string name="group_item_channel_summary">ID %1$d · %2$s</string>
     <string name="group_item_model_display">模型 %1$s</string>
     <string name="group_item_channel_fallback">渠道 %1$d</string>
+    <string name="group_invalid_timeout">请输入有效的非负超时时间。</string>
+    <string name="group_invalid_keep_time">请输入有效的非负会话保持时间。</string>
+    <string name="group_invalid_max_retries">请输入有效的正整数最大重试次数。</string>
 
     <string name="model_title">价格</string>
     <string name="model_search_hint">搜索模型</string>
@@ -324,7 +332,19 @@
     <string name="setting_theme_dark">深色</string>
     <string name="setting_action_refresh_price">刷新价格</string>
     <string name="setting_action_sync_channel">同步渠道</string>
+    <string name="setting_action_export_data">导出设置</string>
+    <string name="setting_action_import_data">导入设置</string>
     <string name="setting_update_now_summary">立即执行服务端自更新流程。</string>
+    <string name="setting_export_default_summary">仅导出设置，不包含日志和统计。</string>
+    <string name="setting_import_summary">从本机导入 JSON 备份。</string>
+    <string name="setting_export_success">设置导出已保存。</string>
+    <string name="setting_export_failed">导出失败。</string>
+    <string name="setting_export_cancelled">已取消导出。</string>
+    <string name="setting_import_failed">导入失败。</string>
+    <string name="setting_import_cancelled">已取消导入。</string>
+    <string name="setting_import_too_large">导入文件过大，请选择 20 MB 以内的文件。</string>
+    <string name="setting_import_confirm_title">导入设置</string>
+    <string name="setting_import_confirm_summary">导入 %1$s 并应用到服务端。</string>
     <string name="setting_refresh_latest_summary">只刷新最新版本信息，不执行更新。</string>
 
     <string name="apikey_title">API 密钥</string>
@@ -353,10 +373,13 @@
     <string name="apikey_created_value_label">生成的密钥</string>
     <string name="apikey_expire_summary">过期时间 %1$s</string>
     <string name="apikey_expire_never">永不过期</string>
+    <string name="apikey_invalid_expire_at">请输入有效的非负过期时间。</string>
+    <string name="apikey_invalid_max_cost">请输入有效的非负最大费用。</string>
 
     <string name="setting_edit_title">编辑设置</string>
     <string name="setting_edit_hint">请输入新值</string>
     <string name="setting_edit_invalid_number">请输入有效的数字。</string>
+    <string name="setting_edit_invalid_cors">请输入有效的 CORS Origin。</string>
 
     <string name="apikey_fallback_name">密钥 #%1$d</string>
     <string name="empty_title">暂无数据</string>

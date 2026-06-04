@@ -27,6 +27,12 @@ data class HomeUiState(
     val apiKeys: List<ApiKeyItem> = emptyList(),
     val apiKeyStats: List<StatsApiKeyEntry> = emptyList(),
     val error: String? = null,
+    val todayError: String? = null,
+    val dailyError: String? = null,
+    val hourlyError: String? = null,
+    val channelListError: String? = null,
+    val apiKeyListError: String? = null,
+    val apiKeyStatsError: String? = null,
 )
 
 @HiltViewModel
@@ -42,7 +48,8 @@ class HomeViewModel @Inject constructor(
 
     fun refresh() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(loading = true, error = null)
+            val previous = _uiState.value
+            _uiState.value = previous.copy(loading = true, error = null)
             val todayDeferred = async { repository.todayStats() }
             val totalDeferred = async { repository.totalStats() }
             val dailyDeferred = async { repository.dailyStats() }
@@ -59,20 +66,74 @@ class HomeViewModel @Inject constructor(
             val apiKeysResult = apiKeysDeferred.await()
             val apiKeyStatsResult = apiKeyStatsDeferred.await()
 
-            if (totalResult is AppResult.Success) {
-                _uiState.value = HomeUiState(
-                    loading = false,
-                    today = (todayResult as? AppResult.Success)?.data,
-                    total = totalResult.data,
-                    daily = (dailyResult as? AppResult.Success)?.data.orEmpty(),
-                    hourly = (hourlyResult as? AppResult.Success)?.data.orEmpty(),
-                    channels = (channelsResult as? AppResult.Success)?.data.orEmpty(),
-                    apiKeys = (apiKeysResult as? AppResult.Success)?.data.orEmpty(),
-                    apiKeyStats = (apiKeyStatsResult as? AppResult.Success)?.data.orEmpty(),
-                )
-            } else {
-                _uiState.value = HomeUiState(loading = false, error = (totalResult as AppResult.Error).message)
-            }
+            _uiState.value = buildHomeRefreshState(
+                previous = previous,
+                todayResult = todayResult,
+                totalResult = totalResult,
+                dailyResult = dailyResult,
+                hourlyResult = hourlyResult,
+                channelsResult = channelsResult,
+                apiKeysResult = apiKeysResult,
+                apiKeyStatsResult = apiKeyStatsResult,
+            )
         }
     }
+}
+
+internal fun buildHomeRefreshState(
+    previous: HomeUiState,
+    todayResult: AppResult<StatsDaily>,
+    totalResult: AppResult<StatsTotal>,
+    dailyResult: AppResult<List<StatsDaily>>,
+    hourlyResult: AppResult<List<StatsHourly>>,
+    channelsResult: AppResult<List<Channel>>,
+    apiKeysResult: AppResult<List<ApiKeyItem>>,
+    apiKeyStatsResult: AppResult<List<StatsApiKeyEntry>>,
+): HomeUiState {
+    return when (totalResult) {
+        is AppResult.Success -> HomeUiState(
+            loading = false,
+            today = todayResult.dataOrPreviousNullable(previous.today),
+            total = totalResult.data,
+            daily = dailyResult.dataOrPrevious(previous.daily),
+            hourly = hourlyResult.dataOrPrevious(previous.hourly),
+            channels = channelsResult.dataOrPrevious(previous.channels),
+            apiKeys = apiKeysResult.dataOrPrevious(previous.apiKeys),
+            apiKeyStats = apiKeyStatsResult.dataOrPrevious(previous.apiKeyStats),
+            todayError = todayResult.errorMessageOrNull(),
+            dailyError = dailyResult.errorMessageOrNull(),
+            hourlyError = hourlyResult.errorMessageOrNull(),
+            channelListError = channelsResult.errorMessageOrNull(),
+            apiKeyListError = apiKeysResult.errorMessageOrNull(),
+            apiKeyStatsError = apiKeyStatsResult.errorMessageOrNull(),
+        )
+        is AppResult.Error -> HomeUiState(
+            loading = false,
+            error = totalResult.message,
+        )
+    }
+}
+
+internal fun HomeUiState.partialErrors(): List<String> = listOfNotNull(
+    todayError,
+    dailyError,
+    hourlyError,
+    channelListError,
+    apiKeyListError,
+    apiKeyStatsError,
+).distinct()
+
+private fun <T> AppResult<T>.dataOrPrevious(previous: T): T = when (this) {
+    is AppResult.Success -> data
+    is AppResult.Error -> previous
+}
+
+private fun <T> AppResult<T>.dataOrPreviousNullable(previous: T?): T? = when (this) {
+    is AppResult.Success -> data
+    is AppResult.Error -> previous
+}
+
+private fun AppResult<*>.errorMessageOrNull(): String? = when (this) {
+    is AppResult.Success -> null
+    is AppResult.Error -> message
 }

@@ -102,4 +102,80 @@ class GroupUpdateRequestBuilderTest {
 
         assertThat(request.maxRetries).isEqualTo(3)
     }
+
+    @Test
+    fun parseGroupEditorValuesTreatsBlankOptionalFieldsAsDefaults() {
+        val result = parseGroupEditorValues(
+            firstTokenTimeOut = "",
+            sessionKeepTime = " ",
+            retryEnabled = true,
+            maxRetries = "",
+        )
+
+        assertThat(result.isSuccess).isTrue()
+        assertThat(result.getOrThrow().firstTokenTimeOut).isEqualTo(0)
+        assertThat(result.getOrThrow().sessionKeepTime).isEqualTo(0)
+        assertThat(result.getOrThrow().maxRetries).isEqualTo(3)
+    }
+
+    @Test
+    fun parseGroupEditorValuesAcceptsNonNegativeTimeoutsAndPositiveRetries() {
+        val result = parseGroupEditorValues(
+            firstTokenTimeOut = "30",
+            sessionKeepTime = "120",
+            retryEnabled = true,
+            maxRetries = "5",
+        )
+
+        assertThat(result.isSuccess).isTrue()
+        assertThat(result.getOrThrow().firstTokenTimeOut).isEqualTo(30)
+        assertThat(result.getOrThrow().sessionKeepTime).isEqualTo(120)
+        assertThat(result.getOrThrow().maxRetries).isEqualTo(5)
+    }
+
+    @Test
+    fun parseGroupEditorValuesRejectsInvalidTimeouts() {
+        val negative = parseGroupEditorValues("-1", "0", true, "3")
+        val text = parseGroupEditorValues("soon", "0", true, "3")
+
+        assertThat((negative.exceptionOrNull() as GroupEditorValidationException).issue)
+            .isEqualTo(GroupEditorValidationIssue.InvalidFirstTokenTimeout)
+        assertThat((text.exceptionOrNull() as GroupEditorValidationException).issue)
+            .isEqualTo(GroupEditorValidationIssue.InvalidFirstTokenTimeout)
+    }
+
+    @Test
+    fun parseGroupEditorValuesRejectsInvalidKeepTime() {
+        val negative = parseGroupEditorValues("0", "-1", true, "3")
+        val text = parseGroupEditorValues("0", "later", true, "3")
+
+        assertThat((negative.exceptionOrNull() as GroupEditorValidationException).issue)
+            .isEqualTo(GroupEditorValidationIssue.InvalidSessionKeepTime)
+        assertThat((text.exceptionOrNull() as GroupEditorValidationException).issue)
+            .isEqualTo(GroupEditorValidationIssue.InvalidSessionKeepTime)
+    }
+
+    @Test
+    fun parseGroupEditorValuesRejectsInvalidMaxRetriesOnlyWhenRetryIsEnabled() {
+        val zero = parseGroupEditorValues("0", "0", true, "0")
+        val text = parseGroupEditorValues("0", "0", true, "many")
+        val disabled = parseGroupEditorValues("0", "0", false, "many")
+
+        assertThat((zero.exceptionOrNull() as GroupEditorValidationException).issue)
+            .isEqualTo(GroupEditorValidationIssue.InvalidMaxRetries)
+        assertThat((text.exceptionOrNull() as GroupEditorValidationException).issue)
+            .isEqualTo(GroupEditorValidationIssue.InvalidMaxRetries)
+        assertThat(disabled.isSuccess).isTrue()
+        assertThat(disabled.getOrThrow().maxRetries).isEqualTo(3)
+    }
+
+    @Test
+    fun parseGroupItemNonNegativeIntRejectsInvalidValues() {
+        assertThat(parseGroupItemNonNegativeInt("0")).isEqualTo(0)
+        assertThat(parseGroupItemNonNegativeInt("42")).isEqualTo(42)
+        assertThat(parseGroupItemNonNegativeInt("-1")).isNull()
+        assertThat(parseGroupItemNonNegativeInt("1.5")).isNull()
+        assertThat(parseGroupItemNonNegativeInt("abc")).isNull()
+        assertThat(parseGroupItemNonNegativeInt("")).isNull()
+    }
 }

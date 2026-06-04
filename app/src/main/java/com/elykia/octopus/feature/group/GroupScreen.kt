@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
@@ -38,9 +39,9 @@ import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.Group
 import com.elykia.octopus.core.data.model.GroupItem
+import com.elykia.octopus.core.designsystem.AppLazyPageScaffold
 import com.elykia.octopus.core.designsystem.AppInfoChip
 import com.elykia.octopus.core.designsystem.AppListCard
-import com.elykia.octopus.core.designsystem.AppPageScaffold
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
 import com.elykia.octopus.core.designsystem.DialogScrollableColumn
 import com.elykia.octopus.core.designsystem.ErrorStateCard
@@ -54,6 +55,7 @@ import com.elykia.octopus.core.designsystem.OperationErrorCard
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
 import com.elykia.octopus.core.designsystem.SelectableListCard
+import com.elykia.octopus.core.designsystem.SoftIconTile
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -97,7 +99,7 @@ fun GroupScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        AppPageScaffold(
+        AppLazyPageScaffold(
             title = stringResource(R.string.group_title),
             actions = {
                 PageActionButton(
@@ -121,48 +123,62 @@ fun GroupScreen(
             },
             contentPadding = contentPadding,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                when {
-                    uiState.loading -> LoadingStateCard(title = stringResource(R.string.group_title))
-                    uiState.error != null -> ErrorStateCard(
+            when {
+                uiState.loading -> item {
+                    LoadingStateCard(title = stringResource(R.string.group_title))
+                }
+                uiState.error != null -> item {
+                    ErrorStateCard(
                         message = uiState.error ?: stringResource(R.string.error_title),
                         onRetry = viewModel::refresh,
                     )
-                    else -> {
-                        if (uiState.groups.isNotEmpty() && searchVisible) {
+                }
+                else -> {
+                    if (uiState.groups.isNotEmpty() && searchVisible) {
+                        item {
                             SearchField(
                                 value = searchTerm,
                                 onValueChange = { searchTerm = it },
                                 hint = stringResource(R.string.group_search_hint),
                             )
                         }
-                        if (!showCreateDialog && editingGroup == null) {
-                            uiState.operationError?.takeIf { it.isNotBlank() }?.let { error ->
-                                OperationErrorCard(message = error)
-                            }
+                    }
+                    if (!showCreateDialog && editingGroup == null) {
+                        uiState.channelListError?.takeIf { it.isNotBlank() }?.let { error ->
+                            item { OperationErrorCard(message = error) }
                         }
-                        when {
-                            uiState.groups.isEmpty() -> InlineEmptyCard(
+                        uiState.modelChannelError?.takeIf { it.isNotBlank() }?.let { error ->
+                            item { OperationErrorCard(message = error) }
+                        }
+                        uiState.operationError?.takeIf { it.isNotBlank() }?.let { error ->
+                            item { OperationErrorCard(message = error) }
+                        }
+                    }
+                    when {
+                        uiState.groups.isEmpty() -> item {
+                            InlineEmptyCard(
                                 title = stringResource(R.string.group_title),
                                 summary = stringResource(R.string.group_empty),
                             )
-                            groups.isEmpty() -> InlineEmptyCard(
+                        }
+                        groups.isEmpty() -> item {
+                            InlineEmptyCard(
                                 title = stringResource(R.string.empty_title),
                                 summary = stringResource(R.string.group_search_empty),
                             )
-                            else -> groups.forEach { group ->
-                                GroupRow(
-                                    group = group,
-                                    expanded = expanded[group.id] == true,
-                                    submitting = uiState.submitting,
-                                    onToggleExpanded = { expanded[group.id] = !(expanded[group.id] == true) },
-                                    onEdit = {
-                                        viewModel.clearOperationError()
-                                        editingGroup = group
-                                    },
-                                    onDelete = { deletingId = group.id },
-                                )
-                            }
+                        }
+                        else -> items(groups, key = { it.id }) { group ->
+                            GroupRow(
+                                group = group,
+                                expanded = expanded[group.id] == true,
+                                submitting = uiState.submitting,
+                                onToggleExpanded = { expanded[group.id] = !(expanded[group.id] == true) },
+                                onEdit = {
+                                    viewModel.clearOperationError()
+                                    editingGroup = group
+                                },
+                                onDelete = { deletingId = group.id },
+                            )
                         }
                     }
                 }
@@ -247,6 +263,11 @@ private fun GroupRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                SoftIconTile(
+                    icon = AppMiuixIcons.Group,
+                    contentDescription = group.name,
+                    tint = OctopusTones.groupMode(group.mode),
+                )
                 Text(
                     text = group.name.ifBlank { stringResource(R.string.group_unnamed) },
                     style = MiuixTheme.textStyles.title3,
@@ -276,16 +297,23 @@ private fun GroupRow(
                 }
             }
 
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                listOf(1, 2, 3, 4).forEach { mode ->
-                    ModeOptionPill(
-                        text = groupModeName(mode),
-                        selected = group.mode == mode,
-                        modifier = Modifier.weight(1f),
-                    )
+                listOf(1, 2, 3, 4).chunked(2).forEach { rowModes ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        rowModes.forEach { mode ->
+                            ModeOptionPill(
+                                text = groupModeName(mode),
+                                selected = group.mode == mode,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
                 }
             }
 
@@ -294,10 +322,10 @@ private fun GroupRow(
                     .fillMaxWidth()
                     .heightIn(min = 96.dp)
                     .clip(RoundedCornerShape(GroupInnerRadius))
-                    .background(OctopusTokens.Card)
+                    .background(OctopusTokens.Muted.copy(alpha = 0.58f))
                     .border(
                         width = 1.dp,
-                        color = OctopusTokens.Border,
+                        color = OctopusTokens.Border.copy(alpha = 0.72f),
                         shape = RoundedCornerShape(GroupInnerRadius),
                     )
                     .padding(10.dp),
@@ -403,8 +431,8 @@ private fun GroupItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GroupItemRadius))
-            .background(OctopusTokens.Muted)
-            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.7f), RoundedCornerShape(GroupItemRadius))
+            .background(OctopusTokens.Card.copy(alpha = 0.82f))
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.62f), RoundedCornerShape(GroupItemRadius))
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -469,6 +497,63 @@ private fun groupModeName(mode: Int): String = when (mode) {
     else -> stringResource(R.string.group_mode_unknown, mode)
 }
 
+internal enum class GroupEditorValidationIssue {
+    InvalidFirstTokenTimeout,
+    InvalidSessionKeepTime,
+    InvalidMaxRetries,
+}
+
+internal data class GroupEditorValues(
+    val firstTokenTimeOut: Int,
+    val sessionKeepTime: Int,
+    val maxRetries: Int,
+)
+
+internal fun parseGroupEditorValues(
+    firstTokenTimeOut: String,
+    sessionKeepTime: String,
+    retryEnabled: Boolean,
+    maxRetries: String,
+): Result<GroupEditorValues> {
+    val parsedTimeout = parseOptionalNonNegativeInt(firstTokenTimeOut)
+        ?: return Result.failure(GroupEditorValidationException(GroupEditorValidationIssue.InvalidFirstTokenTimeout))
+    val parsedKeepTime = parseOptionalNonNegativeInt(sessionKeepTime)
+        ?: return Result.failure(GroupEditorValidationException(GroupEditorValidationIssue.InvalidSessionKeepTime))
+    val parsedMaxRetries = if (retryEnabled) {
+        parseOptionalPositiveInt(maxRetries, defaultValue = 3)
+            ?: return Result.failure(GroupEditorValidationException(GroupEditorValidationIssue.InvalidMaxRetries))
+    } else {
+        3
+    }
+
+    return Result.success(
+        GroupEditorValues(
+            firstTokenTimeOut = parsedTimeout,
+            sessionKeepTime = parsedKeepTime,
+            maxRetries = parsedMaxRetries,
+        ),
+    )
+}
+
+private fun parseOptionalNonNegativeInt(value: String): Int? {
+    val trimmed = value.trim()
+    if (trimmed.isBlank()) return 0
+    return trimmed.toIntOrNull()?.takeIf { it >= 0 }
+}
+
+private fun parseOptionalPositiveInt(value: String, defaultValue: Int): Int? {
+    val trimmed = value.trim()
+    if (trimmed.isBlank()) return defaultValue
+    return trimmed.toIntOrNull()?.takeIf { it > 0 }
+}
+
+internal class GroupEditorValidationException(
+    val issue: GroupEditorValidationIssue,
+) : IllegalArgumentException(issue.name)
+
+internal fun parseGroupItemNonNegativeInt(value: String): Int? =
+    value.trim().toIntOrNull()?.takeIf { it >= 0 }
+
 @Composable
 private fun GroupEditorDialog(
     visible: Boolean,
@@ -498,6 +583,7 @@ private fun GroupEditorDialog(
     var maxRetries by remember(initialGroup?.id, visible) {
         mutableStateOf((initialGroup?.maxRetries?.takeIf { it > 0 } ?: 3).toString())
     }
+    var validationIssue by remember(initialGroup?.id, visible) { mutableStateOf<GroupEditorValidationIssue?>(null) }
     var showChannelPicker by remember(initialGroup?.id, visible) { mutableStateOf(false) }
     val items = remember(initialGroup?.id, visible) {
         mutableStateListOf<GroupItem>().apply { addAll(initialGroup?.items.orEmpty().sortedBy { it.priority }) }
@@ -564,7 +650,10 @@ private fun GroupEditorDialog(
                 )
                 TextField(
                     value = firstTokenTimeOut,
-                    onValueChange = { firstTokenTimeOut = it },
+                    onValueChange = {
+                        firstTokenTimeOut = it
+                        validationIssue = null
+                    },
                     label = stringResource(R.string.group_timeout_label),
                     singleLine = true,
                     enabled = !submitting,
@@ -573,7 +662,10 @@ private fun GroupEditorDialog(
                 )
                 TextField(
                     value = sessionKeepTime,
-                    onValueChange = { sessionKeepTime = it },
+                    onValueChange = {
+                        sessionKeepTime = it
+                        validationIssue = null
+                    },
                     label = stringResource(R.string.group_keep_time_label),
                     singleLine = true,
                     enabled = !submitting,
@@ -591,17 +683,31 @@ private fun GroupEditorDialog(
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                     )
-                    Switch(checked = retryEnabled, onCheckedChange = { if (!submitting) retryEnabled = it })
+                    Switch(
+                        checked = retryEnabled,
+                        onCheckedChange = {
+                            if (!submitting) {
+                                retryEnabled = it
+                                validationIssue = null
+                            }
+                        },
+                    )
                 }
                 TextField(
                     value = maxRetries,
-                    onValueChange = { maxRetries = it },
+                    onValueChange = {
+                        maxRetries = it
+                        validationIssue = null
+                    },
                     label = stringResource(R.string.group_max_retries_label),
                     singleLine = true,
                     enabled = !submitting && retryEnabled,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                 )
+                validationIssue?.let { issue ->
+                    OperationErrorCard(message = groupEditorValidationMessage(issue))
+                }
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
@@ -673,14 +779,24 @@ private fun GroupEditorDialog(
                     },
                     enabled = !submitting && name.isNotBlank() && hasValidItems,
                     onClick = {
+                        val parsedValues = parseGroupEditorValues(
+                            firstTokenTimeOut = firstTokenTimeOut,
+                            sessionKeepTime = sessionKeepTime,
+                            retryEnabled = retryEnabled,
+                            maxRetries = maxRetries,
+                        ).getOrElse { exception ->
+                            validationIssue = (exception as? GroupEditorValidationException)?.issue
+                                ?: GroupEditorValidationIssue.InvalidFirstTokenTimeout
+                            return@TextButton
+                        }
                         onConfirm(
                             name.trim(),
                             mode,
                             matchRegex.trim(),
-                            firstTokenTimeOut.toIntOrNull() ?: 0,
-                            sessionKeepTime.toIntOrNull() ?: 0,
+                            parsedValues.firstTokenTimeOut,
+                            parsedValues.sessionKeepTime,
                             retryEnabled,
-                            maxRetries.toIntOrNull()?.takeIf { it > 0 } ?: 3,
+                            parsedValues.maxRetries,
                             items.toList(),
                         )
                     },
@@ -706,6 +822,13 @@ private fun GroupEditorDialog(
         },
         onDismiss = { showChannelPicker = false },
     )
+}
+
+@Composable
+private fun groupEditorValidationMessage(issue: GroupEditorValidationIssue): String = when (issue) {
+    GroupEditorValidationIssue.InvalidFirstTokenTimeout -> stringResource(R.string.group_invalid_timeout)
+    GroupEditorValidationIssue.InvalidSessionKeepTime -> stringResource(R.string.group_invalid_keep_time)
+    GroupEditorValidationIssue.InvalidMaxRetries -> stringResource(R.string.group_invalid_max_retries)
 }
 
 @Composable
@@ -738,7 +861,11 @@ private fun GroupItemEditorRow(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextField(
                     value = item.priority.toString(),
-                    onValueChange = { onChange(item.copy(priority = it.toIntOrNull() ?: 0)) },
+                    onValueChange = { value ->
+                        parseGroupItemNonNegativeInt(value)?.let { priority ->
+                            onChange(item.copy(priority = priority))
+                        }
+                    },
                     label = stringResource(R.string.group_item_priority_hint),
                     singleLine = true,
                     enabled = enabled,
@@ -747,7 +874,11 @@ private fun GroupItemEditorRow(
                 )
                 TextField(
                     value = item.weight.toString(),
-                    onValueChange = { onChange(item.copy(weight = it.toIntOrNull() ?: 0)) },
+                    onValueChange = { value ->
+                        parseGroupItemNonNegativeInt(value)?.let { weight ->
+                            onChange(item.copy(weight = weight))
+                        }
+                    },
                     label = stringResource(R.string.group_item_weight_hint),
                     singleLine = true,
                     enabled = enabled,

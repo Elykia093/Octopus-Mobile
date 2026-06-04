@@ -2,6 +2,7 @@ package com.elykia.octopus.feature.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -34,8 +36,12 @@ import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.OctopusBrandMark
 import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.PageContainer
+import com.elykia.octopus.core.designsystem.SecureVisibleWindow
+import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -45,10 +51,15 @@ fun LoginScreen(
     viewModel: LoginViewModel,
     showServerField: Boolean,
     currentServerUrl: String,
+    securityMessage: String? = null,
     onLoggedIn: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
+
+    if (uiState.password.isNotBlank()) {
+        SecureVisibleWindow()
+    }
 
     LaunchedEffect(showServerField, currentServerUrl) {
         viewModel.initFromConfig(hasServer = !showServerField, currentUrl = currentServerUrl)
@@ -109,7 +120,7 @@ fun LoginScreen(
                     TextField(
                         value = uiState.password,
                         onValueChange = viewModel::updatePassword,
-                        label = stringResource(R.string.login_placeholder_password),
+                        label = stringResource(R.string.login_label_password),
                         useLabelAsPlaceholder = true,
                         singleLine = true,
                         visualTransformation = if (uiState.passwordVisible) {
@@ -117,6 +128,28 @@ fun LoginScreen(
                         } else {
                             PasswordVisualTransformation()
                         },
+                        trailingIcon = {
+                            IconButton(onClick = { viewModel.updatePasswordVisible(!uiState.passwordVisible) }) {
+                                Icon(
+                                    imageVector = if (uiState.passwordVisible) AppMiuixIcons.Info else AppMiuixIcons.ApiKey,
+                                    contentDescription = if (uiState.passwordVisible) {
+                                        stringResource(R.string.login_action_hide_password)
+                                    } else {
+                                        stringResource(R.string.login_action_show_password)
+                                    },
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
+                    TextField(
+                        value = uiState.expireDays,
+                        onValueChange = viewModel::updateExpireDays,
+                        label = stringResource(R.string.login_label_expire_days),
+                        useLabelAsPlaceholder = true,
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
                     )
 
@@ -139,6 +172,9 @@ fun LoginScreen(
 
             uiState.error?.let { errorMsg ->
                 ErrorStrip(message = errorMsg)
+            }
+            securityMessage?.takeIf { it.isNotBlank() }?.let { message ->
+                ErrorStrip(message = message)
             }
         }
     }

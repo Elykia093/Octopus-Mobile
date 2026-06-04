@@ -13,7 +13,7 @@ sealed class OctopusDestination(val route: String) {
 
 enum class MainTab(
     val route: String,
-    @StringRes val titleRes: Int,
+    @param:StringRes val titleRes: Int,
     val icon: ImageVector,
 ) {
     Home("home", R.string.nav_home, AppMiuixIcons.Home),

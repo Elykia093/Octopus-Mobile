@@ -1,7 +1,14 @@
 package com.elykia.octopus.feature.setting
 
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,34 +24,44 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.SettingItem
+import com.elykia.octopus.core.designsystem.AppLazyPageScaffold
 import com.elykia.octopus.core.designsystem.AppListCard
-import com.elykia.octopus.core.designsystem.AppPageScaffold
+import com.elykia.octopus.core.designsystem.DangerConfirmDialog
 import com.elykia.octopus.core.designsystem.ErrorStateCard
 import com.elykia.octopus.core.designsystem.LoadingStateCard
 import com.elykia.octopus.core.designsystem.OctopusBrandMark
 import com.elykia.octopus.core.designsystem.OctopusTokens
+import com.elykia.octopus.core.designsystem.OperationErrorCard
+import com.elykia.octopus.core.designsystem.SoftIconTile
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
-import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import java.io.ByteArrayOutputStream
+import java.io.IOException
 
 @Composable
 fun SettingScreen(
@@ -52,9 +69,58 @@ fun SettingScreen(
     viewModel: SettingViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var language by remember(uiState.language) { mutableStateOf(uiState.language) }
     var themeMode by remember(uiState.themeMode) { mutableIntStateOf(uiState.themeMode) }
     var editingItem by remember { mutableStateOf<SettingItem?>(null) }
+    var confirmUpdate by remember { mutableStateOf(false) }
+    var pendingExportBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var pendingImportFile by remember { mutableStateOf<PendingImportFile?>(null) }
+
+    val exportCancelled = stringResource(R.string.setting_export_cancelled)
+    val exportFailed = stringResource(R.string.setting_export_failed)
+    val exportSuccess = stringResource(R.string.setting_export_success)
+    val importCancelled = stringResource(R.string.setting_import_cancelled)
+    val importFailed = stringResource(R.string.setting_import_failed)
+    val importTooLarge = stringResource(R.string.setting_import_too_large)
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        val bytes = pendingExportBytes
+        pendingExportBytes = null
+        if (uri == null || bytes == null) {
+            viewModel.markDataTransferFailed(exportCancelled)
+            return@rememberLauncherForActivityResult
+        }
+        scope.launch {
+            writeBytesToUri(context, uri, bytes)
+                .onSuccess { viewModel.markDataTransferSucceeded(exportSuccess) }
+                .onFailure { viewModel.markDataTransferFailed(exportFailed) }
+        }
+    }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri == null) {
+            viewModel.markDataTransferFailed(importCancelled)
+            return@rememberLauncherForActivityResult
+        }
+        scope.launch {
+            readBytesFromUri(context, uri)
+                .onSuccess { bytes ->
+                    pendingImportFile = PendingImportFile(
+                        fileName = displayNameForUri(context, uri),
+                        content = bytes,
+                    )
+                }
+                .onFailure { error ->
+                    viewModel.markDataTransferFailed(
+                        if (error is ImportFileTooLargeException) importTooLarge else importFailed,
+                    )
+                }
+        }
+    }
 
     val languageLabel = when (language) {
         "zh-CN" -> stringResource(R.string.setting_language_zh_cn)
@@ -67,36 +133,46 @@ fun SettingScreen(
         else -> stringResource(R.string.setting_theme_system)
     }
 
-    AppPageScaffold(
+    AppLazyPageScaffold(
         title = stringResource(R.string.setting_title),
         contentPadding = contentPadding,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            when {
-                uiState.loading -> LoadingStateCard(title = stringResource(R.string.setting_title))
-                uiState.error != null -> ErrorStateCard(
+        when {
+            uiState.loading -> item {
+                LoadingStateCard(title = stringResource(R.string.setting_title))
+            }
+            uiState.error != null -> item {
+                ErrorStateCard(
                     message = uiState.error ?: stringResource(R.string.error_title),
                     onRetry = viewModel::refresh,
                 )
-                else -> {
+            }
+            else -> {
+                item {
                     VersionCard(
                         currentVersion = uiState.currentVersion ?: stringResource(R.string.common_unknown),
                         latestVersion = uiState.latestInfo?.tagName ?: stringResource(R.string.common_unknown),
                         publishedAt = uiState.latestInfo?.publishedAt,
                     )
+                }
+                uiState.versionInfoError?.takeIf { it.isNotBlank() }?.let { error ->
+                    item { OperationErrorCard(message = error) }
+                }
 
+                item {
                     SettingSectionCard(title = stringResource(R.string.setting_preferences_title)) {
                         PreferenceRow(
                             icon = AppMiuixIcons.Setting,
                             title = stringResource(R.string.setting_language_label),
                             value = languageLabel,
+                            enabled = !uiState.actionSubmitting,
                             onClick = {
-                                language = when (language) {
+                                val nextLanguage = when (language) {
                                     "system" -> "zh-CN"
                                     "zh-CN" -> "en"
                                     else -> "system"
                                 }
-                                viewModel.updateAppearance(language, themeMode)
+                                viewModel.updateAppearance(nextLanguage, themeMode)
                             },
                         )
                         SettingDivider()
@@ -104,22 +180,26 @@ fun SettingScreen(
                             icon = AppMiuixIcons.Toggle,
                             title = stringResource(R.string.setting_theme_label),
                             value = themeLabel,
+                            enabled = !uiState.actionSubmitting,
                             onClick = {
-                                themeMode = when (themeMode) {
+                                val nextThemeMode = when (themeMode) {
                                     0 -> 1
                                     1 -> 2
                                     else -> 0
                                 }
-                                viewModel.updateAppearance(language, themeMode)
+                                viewModel.updateAppearance(language, nextThemeMode)
                             },
                         )
                     }
+                }
 
+                item {
                     SettingSectionCard(title = stringResource(R.string.setting_actions_title)) {
                         PreferenceRow(
                             icon = AppMiuixIcons.Refresh,
                             title = stringResource(R.string.action_check_update),
                             value = uiState.latestInfo?.tagName ?: stringResource(R.string.common_unknown),
+                            enabled = !uiState.actionSubmitting,
                             onClick = viewModel::refreshLatestInfo,
                         )
                         SettingDivider()
@@ -127,22 +207,85 @@ fun SettingScreen(
                             icon = AppMiuixIcons.Cost,
                             title = stringResource(R.string.setting_action_refresh_price),
                             value = uiState.modelLastUpdateTime ?: stringResource(R.string.common_unknown),
+                            enabled = !uiState.actionSubmitting,
                             onClick = viewModel::refreshModelPrice,
                         )
+                        uiState.modelLastUpdateError?.takeIf { it.isNotBlank() }?.let { error ->
+                            SettingDivider()
+                            OperationErrorCard(message = error)
+                        }
                         SettingDivider()
                         PreferenceRow(
                             icon = AppMiuixIcons.Sync,
                             title = stringResource(R.string.setting_action_sync_channel),
+                            enabled = !uiState.actionSubmitting,
                             onClick = viewModel::syncChannelModels,
                         )
+                        SettingDivider()
+                        PreferenceRow(
+                            icon = AppMiuixIcons.ArrowDown,
+                            title = stringResource(R.string.setting_action_export_data),
+                            value = stringResource(R.string.setting_export_default_summary),
+                            enabled = !uiState.dataTransferSubmitting,
+                            onClick = {
+                                viewModel.clearDataTransferStatus()
+                                viewModel.exportData { bytes ->
+                                    pendingExportBytes = bytes
+                                    exportLauncher.launch("octopus-settings.json")
+                                }
+                            },
+                        )
+                        SettingDivider()
+                        PreferenceRow(
+                            icon = AppMiuixIcons.ArrowUp,
+                            title = stringResource(R.string.setting_action_import_data),
+                            value = stringResource(R.string.setting_import_summary),
+                            enabled = !uiState.dataTransferSubmitting,
+                            onClick = {
+                                viewModel.clearDataTransferStatus()
+                                importLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
+                            },
+                        )
+                        SettingDivider()
+                        PreferenceRow(
+                            icon = AppMiuixIcons.ArrowDown,
+                            title = stringResource(R.string.action_run_update),
+                            value = stringResource(R.string.setting_update_now_summary),
+                            enabled = !uiState.actionSubmitting,
+                            onClick = { confirmUpdate = true },
+                        )
                     }
+                }
 
-                    val serverItems = uiState.sections.flatMap { it.items }
+                uiState.actionMessage?.let { message ->
+                    item {
+                        DataTransferStatusCard(message = message, isError = false, onDismiss = viewModel::clearActionStatus)
+                    }
+                }
+                uiState.actionError?.let { message ->
+                    item {
+                        DataTransferStatusCard(message = message, isError = true, onDismiss = viewModel::clearActionStatus)
+                    }
+                }
+                uiState.dataTransferMessage?.let { message ->
+                    item {
+                        DataTransferStatusCard(message = message, isError = false, onDismiss = viewModel::clearDataTransferStatus)
+                    }
+                }
+                uiState.dataTransferError?.let { message ->
+                    item {
+                        DataTransferStatusCard(message = message, isError = true, onDismiss = viewModel::clearDataTransferStatus)
+                    }
+                }
+
+                val serverItems = uiState.sections.flatMap { it.items }
+                item {
                     SettingSectionCard(title = stringResource(R.string.setting_server_title)) {
                         serverItems.forEachIndexed { index, item ->
                             if (index > 0) SettingDivider()
                             SettingItemRow(
                                 item = item,
+                                enabled = !uiState.actionSubmitting,
                                 onEdit = { editingItem = item },
                                 onToggle = { checked ->
                                     viewModel.updateSetting(item.key, if (checked) "true" else "false")
@@ -163,6 +306,30 @@ fun SettingScreen(
                 viewModel.updateSetting(item.key, newValue)
                 editingItem = null
             },
+        )
+    }
+
+    DangerConfirmDialog(
+        visible = confirmUpdate,
+        title = stringResource(R.string.action_run_update),
+        summary = stringResource(R.string.setting_update_now_summary),
+        onConfirm = {
+            confirmUpdate = false
+            viewModel.triggerUpdate()
+        },
+        onDismiss = { confirmUpdate = false },
+    )
+
+    pendingImportFile?.let { file ->
+        DangerConfirmDialog(
+            visible = true,
+            title = stringResource(R.string.setting_import_confirm_title),
+            summary = stringResource(R.string.setting_import_confirm_summary, file.fileName),
+            onConfirm = {
+                pendingImportFile = null
+                viewModel.importData(file.fileName, file.content)
+            },
+            onDismiss = { pendingImportFile = null },
         )
     }
 }
@@ -265,36 +432,71 @@ private fun PreferenceRow(
     icon: ImageVector,
     title: String,
     value: String? = null,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
+            .clip(RoundedCornerShape(18.dp))
+            .background(OctopusTokens.Muted.copy(alpha = 0.48f))
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.44f), RoundedCornerShape(18.dp))
+            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 10.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         SettingIconBox(icon = icon)
-        Text(
-            text = title,
-            style = MiuixTheme.textStyles.main,
-            color = OctopusTokens.TextPrimary,
+        Column(
             modifier = Modifier.weight(1f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (value != null) {
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
             Text(
-                text = value,
-                style = MiuixTheme.textStyles.body2,
-                color = OctopusTokens.TextSecondary,
-                modifier = Modifier.weight(0.9f),
-                maxLines = 2,
+                text = title,
+                style = MiuixTheme.textStyles.main,
+                color = if (enabled) OctopusTokens.TextPrimary else OctopusTokens.TextSecondary,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.End,
             )
+            if (value != null) {
+                Text(
+                    text = value,
+                    style = MiuixTheme.textStyles.body2,
+                    color = OctopusTokens.TextSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+private data class PendingImportFile(
+    val fileName: String,
+    val content: ByteArray,
+)
+
+@Composable
+private fun DataTransferStatusCard(
+    message: String,
+    isError: Boolean,
+    onDismiss: () -> Unit,
+) {
+    AppListCard(padding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = message,
+                style = MiuixTheme.textStyles.body2,
+                color = if (isError) MiuixTheme.colorScheme.error else OctopusTokens.TextPrimary,
+                modifier = Modifier.weight(1f),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+            TextButton(text = stringResource(R.string.action_close), onClick = onDismiss)
         }
     }
 }
@@ -302,6 +504,7 @@ private fun PreferenceRow(
 @Composable
 private fun SettingItemRow(
     item: SettingItem,
+    enabled: Boolean,
     onEdit: () -> Unit,
     onToggle: (Boolean) -> Unit,
 ) {
@@ -310,6 +513,7 @@ private fun SettingItemRow(
             icon = AppMiuixIcons.Log,
             title = settingItemTitle(item.key),
             checked = item.value == "true",
+            enabled = enabled,
             onCheckedChange = onToggle,
         )
     } else {
@@ -317,6 +521,7 @@ private fun SettingItemRow(
             icon = settingItemIcon(item.key),
             title = settingItemTitle(item.key),
             value = item.value.ifBlank { stringResource(R.string.common_unknown) },
+            enabled = enabled,
             onClick = onEdit,
         )
     }
@@ -326,20 +531,11 @@ private fun SettingItemRow(
 private fun SettingIconBox(
     icon: ImageVector,
 ) {
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(OctopusTokens.PrimarySoft),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = OctopusTokens.Accent,
-            modifier = Modifier.size(20.dp),
-        )
-    }
+    SoftIconTile(
+        icon = icon,
+        contentDescription = null,
+        modifier = Modifier.size(38.dp),
+    )
 }
 
 @Composable
@@ -347,12 +543,16 @@ private fun SwitchRow(
     icon: ImageVector,
     title: String,
     checked: Boolean,
+    enabled: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
+            .clip(RoundedCornerShape(18.dp))
+            .background(OctopusTokens.Muted.copy(alpha = 0.48f))
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.44f), RoundedCornerShape(18.dp))
+            .padding(horizontal = 10.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -360,12 +560,12 @@ private fun SwitchRow(
         Text(
             text = title,
             style = MiuixTheme.textStyles.main,
-            color = OctopusTokens.TextPrimary,
+            color = if (enabled) OctopusTokens.TextPrimary else OctopusTokens.TextSecondary,
             modifier = Modifier.weight(1f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(checked = checked, onCheckedChange = { if (enabled) onCheckedChange(it) })
     }
 }
 
@@ -407,6 +607,62 @@ private val NUMERIC_KEYS = setOf(
     "circuit_breaker_max_cooldown",
 )
 
+internal enum class SettingValidationIssue {
+    InvalidNumber,
+    InvalidUrl,
+    InvalidCors,
+}
+
+internal fun validateSettingValue(key: String, value: String): SettingValidationIssue? = when (key) {
+    in NUMERIC_KEYS -> {
+        val number = value.trim().toIntOrNull()
+        val range = when (key) {
+            "stats_save_interval" -> 1..1440
+            "model_info_update_interval" -> 1..8760
+            "sync_llm_interval" -> 1..8760
+            "relay_log_keep_period" -> 1..3650
+            "circuit_breaker_threshold" -> 1..1000
+            "circuit_breaker_cooldown" -> 1..86400
+            "circuit_breaker_max_cooldown" -> 1..604800
+            else -> 1..Int.MAX_VALUE
+        }
+        if (number == null || number !in range) SettingValidationIssue.InvalidNumber else null
+    }
+    "proxy_url" -> if (value.isBlank() || value.isValidSettingUrl()) null else SettingValidationIssue.InvalidUrl
+    "cors_allow_origins" -> if (value.isBlank() || value.hasValidCorsOrigins()) null else SettingValidationIssue.InvalidCors
+    else -> null
+}
+
+private fun String.isValidSettingUrl(): Boolean {
+    val url = trim().toHttpUrlOrNull() ?: return false
+    return url.scheme in setOf("http", "https") &&
+        url.encodedUsername.isBlank() &&
+        url.encodedPassword.isBlank()
+}
+
+private fun String.hasValidCorsOrigins(): Boolean =
+    split(',')
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+        .all { it == "*" || it.isValidCorsOrigin() }
+
+private fun String.isValidCorsOrigin(): Boolean {
+    val url = toHttpUrlOrNull() ?: return false
+    return url.scheme in setOf("http", "https") &&
+        url.encodedUsername.isBlank() &&
+        url.encodedPassword.isBlank() &&
+        url.encodedPath == "/" &&
+        url.encodedQuery == null &&
+        url.encodedFragment == null
+}
+
+@Composable
+private fun settingValidationMessage(issue: SettingValidationIssue): String = when (issue) {
+    SettingValidationIssue.InvalidNumber -> stringResource(R.string.setting_edit_invalid_number)
+    SettingValidationIssue.InvalidUrl -> stringResource(R.string.message_invalid_url)
+    SettingValidationIssue.InvalidCors -> stringResource(R.string.setting_edit_invalid_cors)
+}
+
 @Composable
 private fun SettingEditDialog(
     item: SettingItem,
@@ -415,6 +671,7 @@ private fun SettingEditDialog(
 ) {
     val isNumeric = item.key in NUMERIC_KEYS
     var editValue by remember { mutableStateOf(item.value) }
+    var validationIssue by remember(item.key) { mutableStateOf<SettingValidationIssue?>(null) }
 
     OverlayDialog(
         show = true,
@@ -428,14 +685,27 @@ private fun SettingEditDialog(
             )
             TextField(
                 value = editValue,
-                onValueChange = { editValue = it },
+                onValueChange = {
+                    editValue = it
+                    validationIssue = null
+                },
                 label = stringResource(R.string.setting_edit_hint),
                 useLabelAsPlaceholder = true,
-                singleLine = true,
+                singleLine = isNumeric,
+                maxLines = if (isNumeric) 1 else 4,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = if (isNumeric) KeyboardType.Number else KeyboardType.Text,
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 12.dp),
             )
+            validationIssue?.let { issue ->
+                OperationErrorCard(
+                    message = settingValidationMessage(issue),
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -446,11 +716,71 @@ private fun SettingEditDialog(
                 TextButton(
                     text = stringResource(R.string.common_confirm),
                     onClick = {
-                        if (isNumeric && editValue.toDoubleOrNull() == null) return@TextButton
-                        onConfirm(editValue)
+                        val issue = validateSettingValue(item.key, editValue)
+                        if (issue != null) {
+                            validationIssue = issue
+                            return@TextButton
+                        }
+                        onConfirm(editValue.trim())
                     },
                 )
             }
         }
     }
 }
+
+private suspend fun writeBytesToUri(
+    context: Context,
+    uri: Uri,
+    bytes: ByteArray,
+): Result<Unit> = withContext(Dispatchers.IO) {
+    runCatching {
+        val stream = context.contentResolver.openOutputStream(uri)
+            ?: throw IOException("Cannot open destination file.")
+        stream.use { it.write(bytes) }
+    }
+}
+
+private suspend fun readBytesFromUri(
+    context: Context,
+    uri: Uri,
+): Result<ByteArray> = withContext(Dispatchers.IO) {
+    runCatching {
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            val output = ByteArrayOutputStream()
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            var total = 0
+            while (true) {
+                val read = input.read(buffer)
+                if (read == -1) break
+                total += read
+                if (total > MAX_IMPORT_FILE_BYTES) {
+                    throw ImportFileTooLargeException()
+                }
+                output.write(buffer, 0, read)
+            }
+            output.toByteArray()
+        } ?: throw IOException("Cannot open import file.")
+    }
+}
+
+private fun displayNameForUri(
+    context: Context,
+    uri: Uri,
+): String {
+    val projection = arrayOf(OpenableColumns.DISPLAY_NAME)
+    val name = context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+        val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+        if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
+    }
+    return name
+        ?.replace(Regex("""[\\/:*?"<>|\p{Cntrl}]"""), "_")
+        ?.trim()
+        ?.take(80)
+        ?.takeIf { it.isNotBlank() }
+        ?: "octopus-import.json"
+}
+
+private const val MAX_IMPORT_FILE_BYTES = 20 * 1024 * 1024
+
+private class ImportFileTooLargeException : IOException()

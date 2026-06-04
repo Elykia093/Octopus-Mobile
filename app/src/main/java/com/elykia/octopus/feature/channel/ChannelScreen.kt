@@ -3,6 +3,7 @@ package com.elykia.octopus.feature.channel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,15 +27,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.Channel
+import com.elykia.octopus.core.designsystem.AppLazyPageScaffold
 import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.AppMetricRow
-import com.elykia.octopus.core.designsystem.AppPageScaffold
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
 import com.elykia.octopus.core.designsystem.DialogScrollableColumn
 import com.elykia.octopus.core.designsystem.ErrorStateCard
@@ -44,6 +49,8 @@ import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.OperationErrorCard
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
+import com.elykia.octopus.core.designsystem.SecureVisibleWindow
+import com.elykia.octopus.core.designsystem.SoftIconTile
 import com.elykia.octopus.core.designsystem.ToolbarChip
 import com.elykia.octopus.core.designsystem.formatCount
 import com.elykia.octopus.core.designsystem.formatMoney
@@ -81,7 +88,7 @@ fun ChannelScreen(
         .sortedByDescending { it.enabled }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        AppPageScaffold(
+        AppLazyPageScaffold(
             title = stringResource(R.string.channel_title),
             actions = {
                 PageActionButton(
@@ -105,47 +112,55 @@ fun ChannelScreen(
             },
             contentPadding = contentPadding,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                when {
-                    uiState.loading -> LoadingStateCard(title = stringResource(R.string.channel_title))
-                    uiState.error != null -> ErrorStateCard(
+            when {
+                uiState.loading -> item {
+                    LoadingStateCard(title = stringResource(R.string.channel_title))
+                }
+                uiState.error != null -> item {
+                    ErrorStateCard(
                         message = uiState.error ?: stringResource(R.string.error_title),
                         onRetry = viewModel::refresh,
                     )
-                    else -> {
-                        if (uiState.channels.isNotEmpty() && searchVisible) {
+                }
+                else -> {
+                    if (uiState.channels.isNotEmpty() && searchVisible) {
+                        item {
                             SearchField(
                                 value = searchTerm,
                                 onValueChange = { searchTerm = it },
                                 hint = stringResource(R.string.channel_search_hint),
                             )
                         }
-                        if (!showCreateDialog && editingChannel == null) {
-                            uiState.operationError?.takeIf { it.isNotBlank() }?.let { error ->
-                                OperationErrorCard(message = error)
-                            }
+                    }
+                    if (!showCreateDialog && editingChannel == null) {
+                        uiState.operationError?.takeIf { it.isNotBlank() }?.let { error ->
+                            item { OperationErrorCard(message = error) }
                         }
-                        when {
-                            uiState.channels.isEmpty() -> InlineEmptyCard(
+                    }
+                    when {
+                        uiState.channels.isEmpty() -> item {
+                            InlineEmptyCard(
                                 title = stringResource(R.string.channel_title),
                                 summary = stringResource(R.string.channel_empty),
                             )
-                            channels.isEmpty() -> InlineEmptyCard(
+                        }
+                        channels.isEmpty() -> item {
+                            InlineEmptyCard(
                                 title = stringResource(R.string.empty_title),
                                 summary = stringResource(R.string.channel_search_empty),
                             )
-                            else -> channels.forEach { channel ->
-                                ChannelRow(
-                                    channel = channel,
-                                    submitting = uiState.submitting,
-                                    onToggle = { viewModel.setEnabled(channel.id, it) },
-                                    onEdit = {
-                                        viewModel.clearOperationError()
-                                        editingChannel = channel
-                                    },
-                                    onDelete = { deletingId = channel.id },
-                                )
-                            }
+                        }
+                        else -> items(channels, key = { it.id }) { channel ->
+                            ChannelRow(
+                                channel = channel,
+                                submitting = uiState.submitting,
+                                onToggle = { viewModel.setEnabled(channel.id, it) },
+                                onEdit = {
+                                    viewModel.clearOperationError()
+                                    editingChannel = channel
+                                },
+                                onDelete = { deletingId = channel.id },
+                            )
                         }
                     }
                 }
@@ -246,6 +261,11 @@ private fun ChannelRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                SoftIconTile(
+                    icon = AppMiuixIcons.Channel,
+                    contentDescription = channel.name,
+                    tint = OctopusTones.channelType(channel.type),
+                )
                 Text(
                     text = channel.name.ifBlank { stringResource(R.string.channel_fallback_name, channel.id) },
                     style = MiuixTheme.textStyles.title3,
@@ -255,6 +275,13 @@ private fun ChannelRow(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
                 StatusPill(
                     enabled = channel.enabled,
                     clickable = !submitting,
@@ -358,6 +385,8 @@ private fun ChannelEditorDialog(
 ) {
     if (!visible) return
 
+    SecureVisibleWindow()
+
     var name by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.name.orEmpty()) }
     var type by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.type ?: 0) }
     var enabled by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.enabled ?: true) }
@@ -365,12 +394,14 @@ private fun ChannelEditorDialog(
         mutableStateOf(initialChannel?.baseUrls?.firstOrNull()?.url.orEmpty())
     }
     var apiKey by remember(initialChannel?.id, visible) {
-        mutableStateOf(initialChannel?.keys?.firstOrNull()?.channelKey.orEmpty())
+        mutableStateOf("")
     }
+    var apiKeyVisible by remember(initialChannel?.id, visible) { mutableStateOf(false) }
     var model by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.model.orEmpty()) }
     var customModel by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.customModel.orEmpty()) }
     var proxy by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.proxy ?: false) }
     var autoSync by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.autoSync ?: false) }
+    val fetchRequiresNewKey = initialChannel != null && initialChannel.keys.isNotEmpty() && apiKey.isBlank()
     val editorScrollState = rememberScrollState()
 
     OverlayDialog(
@@ -410,9 +441,31 @@ private fun ChannelEditorDialog(
                 TextField(
                     value = apiKey,
                     onValueChange = { apiKey = it },
-                    label = stringResource(R.string.channel_api_key_hint),
+                    label = if (initialChannel == null) {
+                        stringResource(R.string.channel_api_key_hint)
+                    } else {
+                        stringResource(R.string.channel_api_key_replace_hint)
+                    },
                     useLabelAsPlaceholder = true,
                     singleLine = true,
+                    visualTransformation = if (apiKeyVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = {
+                        IconButton(onClick = { apiKeyVisible = !apiKeyVisible }, enabled = !submitting) {
+                            Icon(
+                                imageVector = if (apiKeyVisible) AppMiuixIcons.Info else AppMiuixIcons.ApiKey,
+                                contentDescription = if (apiKeyVisible) {
+                                    stringResource(R.string.login_action_hide_password)
+                                } else {
+                                    stringResource(R.string.login_action_show_password)
+                                },
+                            )
+                        }
+                    },
                     enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -476,13 +529,24 @@ private fun ChannelEditorDialog(
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.Start,
             ) {
                 TextButton(
-                    text = stringResource(R.string.action_fetch_model),
-                    enabled = !submitting,
+                    text = stringResource(
+                        if (fetchRequiresNewKey) {
+                            R.string.channel_fetch_model_needs_key
+                        } else {
+                            R.string.action_fetch_model
+                        },
+                    ),
+                    enabled = !submitting && !fetchRequiresNewKey,
                     onClick = { onFetchModels(type, baseUrl, apiKey, proxy) },
                 )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
                 TextButton(text = stringResource(R.string.common_cancel), enabled = !submitting, onClick = onDismiss)
                 TextButton(
                     text = if (submitting) {
@@ -524,18 +588,39 @@ private fun ChannelFetchResultDialog(
     OverlayDialog(
         show = visible,
         title = stringResource(R.string.channel_fetch_model_title),
-        summary = if (models.isNotEmpty()) {
-            models.joinToString(", ")
-        } else {
-            stringResource(R.string.channel_fetch_model_empty)
-        },
+        summary = stringResource(R.string.channel_fetch_model_summary),
         onDismissRequest = onDismiss,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            TextButton(text = stringResource(R.string.action_close), onClick = onDismiss)
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (models.isEmpty()) {
+                InlineEmptyCard(
+                    title = stringResource(R.string.channel_fetch_model_title),
+                    summary = stringResource(R.string.channel_fetch_model_empty),
+                )
+            } else {
+                DialogScrollableColumn(fraction = 0.48f) {
+                    models.forEach { model ->
+                        Text(
+                            text = model,
+                            style = MiuixTheme.textStyles.body2,
+                            color = OctopusTokens.TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(OctopusTokens.Muted.copy(alpha = 0.64f))
+                                .padding(horizontal = 12.dp, vertical = 9.dp),
+                        )
+                    }
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(text = stringResource(R.string.action_close), onClick = onDismiss)
+            }
         }
     }
 }

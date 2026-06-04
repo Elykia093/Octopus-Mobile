@@ -21,6 +21,8 @@ data class GroupUiState(
     val channels: List<Channel> = emptyList(),
     val modelChannels: List<LlmChannel> = emptyList(),
     val error: String? = null,
+    val channelListError: String? = null,
+    val modelChannelError: String? = null,
     val submitting: Boolean = false,
     val operationError: String? = null,
 )
@@ -38,24 +40,17 @@ class GroupViewModel @Inject constructor(
 
     fun refresh() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(loading = true, error = null)
+            val previous = _uiState.value
+            _uiState.value = previous.copy(loading = true, error = null)
             val groupsDeferred = async { repository.groups() }
             val channelsDeferred = async { repository.channels() }
             val modelChannelsDeferred = async { repository.modelChannels() }
-            when (val result = groupsDeferred.await()) {
-                is AppResult.Success -> {
-                    val channels = (channelsDeferred.await() as? AppResult.Success)?.data.orEmpty()
-                    val modelChannels = (modelChannelsDeferred.await() as? AppResult.Success)?.data.orEmpty()
-                    _uiState.value = _uiState.value.copy(
-                        loading = false,
-                        groups = result.data,
-                        channels = channels,
-                        modelChannels = modelChannels,
-                        error = null,
-                    )
-                }
-                is AppResult.Error -> _uiState.value = _uiState.value.copy(loading = false, error = result.message)
-            }
+            _uiState.value = buildGroupRefreshState(
+                previous = previous,
+                groupsResult = groupsDeferred.await(),
+                channelsResult = channelsDeferred.await(),
+                modelChannelsResult = modelChannelsDeferred.await(),
+            )
         }
     }
 
@@ -159,4 +154,35 @@ class GroupViewModel @Inject constructor(
             }
         }
     }
+}
+
+internal fun buildGroupRefreshState(
+    previous: GroupUiState,
+    groupsResult: AppResult<List<Group>>,
+    channelsResult: AppResult<List<Channel>>,
+    modelChannelsResult: AppResult<List<LlmChannel>>,
+): GroupUiState = when (groupsResult) {
+    is AppResult.Success -> previous.copy(
+        loading = false,
+        groups = groupsResult.data,
+        channels = channelsResult.dataOrPrevious(previous.channels),
+        modelChannels = modelChannelsResult.dataOrPrevious(previous.modelChannels),
+        error = null,
+        channelListError = channelsResult.errorMessageOrNull(),
+        modelChannelError = modelChannelsResult.errorMessageOrNull(),
+    )
+    is AppResult.Error -> previous.copy(
+        loading = false,
+        error = groupsResult.message,
+    )
+}
+
+private fun <T> AppResult<T>.dataOrPrevious(previous: T): T = when (this) {
+    is AppResult.Success -> data
+    is AppResult.Error -> previous
+}
+
+private fun AppResult<*>.errorMessageOrNull(): String? = when (this) {
+    is AppResult.Success -> null
+    is AppResult.Error -> message
 }
