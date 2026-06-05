@@ -16,7 +16,7 @@ fun OctopusBrandMark(
     size: Dp = 40.dp,
 ) {
     Image(
-        painter = painterResource(id = R.drawable.octopus_logo),
+        painter = painterResource(id = R.drawable.octopus_mark),
         contentDescription = null,
         modifier = modifier
             .size(size)
