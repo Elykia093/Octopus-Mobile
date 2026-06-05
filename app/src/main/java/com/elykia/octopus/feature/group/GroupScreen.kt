@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,6 +58,7 @@ import com.elykia.octopus.core.designsystem.SearchField
 import com.elykia.octopus.core.designsystem.SelectableListCard
 import com.elykia.octopus.core.designsystem.SoftIconTile
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
+import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Switch
@@ -77,6 +79,7 @@ fun GroupScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var deletingId by remember { mutableStateOf<Int?>(null) }
+    var showBatchDeleteConfirm by remember { mutableStateOf(false) }
     var searchTerm by remember { mutableStateOf("") }
     var searchVisible by remember { mutableStateOf(false) }
     var editingGroupId by remember { mutableStateOf<Int?>(null) }
@@ -101,26 +104,51 @@ fun GroupScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         AppLazyPageScaffold(
-            title = stringResource(R.string.group_title),
+            title = if (uiState.selectionMode) {
+                "已选 ${uiState.selectedIds.size} 项"
+            } else {
+                stringResource(R.string.group_title)
+            },
             actions = {
-                PageActionButton(
-                    icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
-                    contentDescription = stringResource(R.string.action_open_search),
-                    enabled = !uiState.loading && !uiState.shouldShowPageError(),
-                    onClick = {
-                        searchVisible = !searchVisible
-                        if (!searchVisible) searchTerm = ""
-                    },
-                )
-                PageActionButton(
-                    icon = AppMiuixIcons.Add,
-                    contentDescription = stringResource(R.string.action_create),
-                    enabled = !uiState.loading && !uiState.shouldShowPageError() && !uiState.submitting,
-                    onClick = {
-                        viewModel.clearOperationError()
-                        showCreateDialog = true
-                    },
-                )
+                if (uiState.selectionMode) {
+                    PageActionButton(
+                        icon = AppMiuixIcons.Close,
+                        contentDescription = "退出选择",
+                        enabled = !uiState.submitting,
+                        onClick = { viewModel.exitSelectionMode() },
+                    )
+                    PageActionButton(
+                        icon = AppMiuixIcons.Check,
+                        contentDescription = "全选",
+                        enabled = !uiState.submitting,
+                        onClick = { viewModel.selectAll() },
+                    )
+                } else {
+                    PageActionButton(
+                        icon = AppMiuixIcons.More,
+                        contentDescription = "批量操作",
+                        enabled = !uiState.loading && !uiState.shouldShowPageError() && uiState.groups.isNotEmpty(),
+                        onClick = { viewModel.enterSelectionMode() },
+                    )
+                    PageActionButton(
+                        icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
+                        contentDescription = stringResource(R.string.action_open_search),
+                        enabled = !uiState.loading && !uiState.shouldShowPageError(),
+                        onClick = {
+                            searchVisible = !searchVisible
+                            if (!searchVisible) searchTerm = ""
+                        },
+                    )
+                    PageActionButton(
+                        icon = AppMiuixIcons.Add,
+                        contentDescription = stringResource(R.string.action_create),
+                        enabled = !uiState.loading && !uiState.shouldShowPageError() && !uiState.submitting,
+                        onClick = {
+                            viewModel.clearOperationError()
+                            showCreateDialog = true
+                        },
+                    )
+                }
             },
             contentPadding = contentPadding,
         ) {
@@ -176,12 +204,15 @@ fun GroupScreen(
                                 group = group,
                                 expanded = expanded[group.id] == true,
                                 submitting = uiState.submitting,
+                                selectionMode = uiState.selectionMode,
+                                isSelected = group.id in uiState.selectedIds,
                                 onToggleExpanded = { expanded[group.id] = !(expanded[group.id] == true) },
                                 onEdit = {
                                     viewModel.clearOperationError()
                                     editingGroupId = group.id
                                 },
                                 onDelete = { deletingId = group.id },
+                                onSelect = { viewModel.toggleSelection(group.id) },
                             )
                         }
                     }
@@ -246,6 +277,45 @@ fun GroupScreen(
             }
         },
     )
+
+    // 批量操作底部工具栏
+    if (uiState.selectionMode && uiState.selectedIds.isNotEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(contentPadding),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(OctopusTokens.Card.copy(alpha = 0.95f))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(
+                    text = "删除",
+                    enabled = !uiState.submitting,
+                    onClick = { showBatchDeleteConfirm = true },
+                )
+            }
+        }
+    }
+
+    // 批量删除确认对话框
+    DangerConfirmDialog(
+        visible = showBatchDeleteConfirm,
+        title = "批量删除分组",
+        summary = "确定要删除选中的 ${uiState.selectedIds.size} 个分组吗？此操作不可撤销。",
+        onConfirm = {
+            viewModel.batchDelete()
+            showBatchDeleteConfirm = false
+        },
+        onDismiss = { showBatchDeleteConfirm = false },
+    )
 }
 
 internal fun resolveEditingGroup(
@@ -258,9 +328,12 @@ private fun GroupRow(
     group: Group,
     expanded: Boolean,
     submitting: Boolean,
+    selectionMode: Boolean,
+    isSelected: Boolean,
     onToggleExpanded: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onSelect: () -> Unit,
 ) {
     val sortedItems = group.items.sortedBy { it.priority }
     val visibleItems = if (expanded) sortedItems else sortedItems.take(4)
@@ -272,6 +345,13 @@ private fun GroupRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                if (selectionMode) {
+                    Checkbox(
+                        state = if (isSelected) ToggleableState.On else ToggleableState.Off,
+                        onClick = { onSelect() },
+                        enabled = !submitting,
+                    )
+                }
                 SoftIconTile(
                     icon = AppMiuixIcons.Group,
                     contentDescription = group.name,
@@ -286,22 +366,24 @@ private fun GroupRow(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    IconButton(onClick = onEdit, enabled = !submitting) {
-                        Icon(
-                            imageVector = AppMiuixIcons.Create,
-                            contentDescription = stringResource(R.string.action_edit),
-                            tint = OctopusTokens.TextSecondary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                    IconButton(onClick = onDelete, enabled = !submitting) {
-                        Icon(
-                            imageVector = AppMiuixIcons.Delete,
-                            contentDescription = stringResource(R.string.common_delete),
-                            tint = OctopusTokens.TextSecondary,
-                            modifier = Modifier.size(18.dp),
-                        )
+                if (!selectionMode) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        IconButton(onClick = onEdit, enabled = !submitting) {
+                            Icon(
+                                imageVector = AppMiuixIcons.Create,
+                                contentDescription = stringResource(R.string.action_edit),
+                                tint = OctopusTokens.TextSecondary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        IconButton(onClick = onDelete, enabled = !submitting) {
+                            Icon(
+                                imageVector = AppMiuixIcons.Delete,
+                                contentDescription = stringResource(R.string.common_delete),
+                                tint = OctopusTokens.TextSecondary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -416,7 +498,7 @@ private fun ModeOptionPill(
             text = text,
             style = MiuixTheme.textStyles.body2,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-            color = if (selected) Color.White else OctopusTokens.TextPrimary,
+            color = if (selected) OctopusTokens.OnAccent else OctopusTokens.TextPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -464,12 +546,12 @@ private fun GroupItemRow(
             modifier = Modifier
                 .size(24.dp)
                 .clip(RoundedCornerShape(999.dp))
-                .background(OctopusTones.Orange.copy(alpha = 0.72f)),
+                .background(OctopusTones.Orange),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = modelName.firstOrNull()?.uppercaseChar()?.toString() ?: "#",
-                color = Color.White,
+                color = OctopusTokens.OnAccent,
                 style = MiuixTheme.textStyles.body2,
                 fontWeight = FontWeight.Bold,
             )

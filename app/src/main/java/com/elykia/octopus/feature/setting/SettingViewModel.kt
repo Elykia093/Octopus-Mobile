@@ -47,6 +47,9 @@ data class SettingUiState(
     val actionSubmitting: Boolean = false,
     val actionMessage: String? = null,
     val actionError: String? = null,
+    val apiKeySelectionMode: Boolean = false,
+    val selectedApiKeyIds: Set<Int> = emptySet(),
+    val batchApiKeyOperationProgress: String? = null,
 )
 
 internal fun SettingUiState.shouldShowSettingsPageError(): Boolean =
@@ -379,6 +382,103 @@ class SettingViewModel @Inject constructor(
                 }
                 is AppResult.Error -> _uiState.value = _uiState.value.apiKeyOperationFailed(result.message)
             }
+        }
+    }
+
+    fun enterApiKeySelectionMode() {
+        _uiState.value = _uiState.value.copy(apiKeySelectionMode = true, selectedApiKeyIds = emptySet())
+    }
+
+    fun exitApiKeySelectionMode() {
+        _uiState.value = _uiState.value.copy(apiKeySelectionMode = false, selectedApiKeyIds = emptySet())
+    }
+
+    fun toggleApiKeySelection(id: Int) {
+        val currentSelected = _uiState.value.selectedApiKeyIds
+        _uiState.value = _uiState.value.copy(
+            selectedApiKeyIds = if (id in currentSelected) {
+                currentSelected - id
+            } else {
+                currentSelected + id
+            }
+        )
+    }
+
+    fun selectAllApiKeys() {
+        _uiState.value = _uiState.value.copy(
+            selectedApiKeyIds = _uiState.value.apiKeys.map { it.id }.toSet()
+        )
+    }
+
+    fun batchDeleteApiKeys(onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            if (_uiState.value.apiKeySubmitting) return@launch
+            val selectedIds = _uiState.value.selectedApiKeyIds
+            if (selectedIds.isEmpty()) return@launch
+
+            _uiState.value = _uiState.value.apiKeyOperationStarted()
+            var successCount = 0
+            var failCount = 0
+
+            selectedIds.forEachIndexed { index, id ->
+                _uiState.value = _uiState.value.copy(
+                    batchApiKeyOperationProgress = "删除中 ${index + 1}/${selectedIds.size}..."
+                )
+                when (dashboardRepository.deleteApiKey(id)) {
+                    is AppResult.Success -> successCount++
+                    is AppResult.Error -> failCount++
+                }
+            }
+
+            _uiState.value = _uiState.value.copy(
+                apiKeySubmitting = false,
+                batchApiKeyOperationProgress = null,
+                apiKeySelectionMode = false,
+                selectedApiKeyIds = emptySet(),
+                apiKeyOperationError = if (failCount > 0) {
+                    "批量删除完成：成功 $successCount 个，失败 $failCount 个"
+                } else null
+            )
+            refresh()
+            onComplete()
+        }
+    }
+
+    fun batchSetApiKeysEnabled(enabled: Boolean, onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            if (_uiState.value.apiKeySubmitting) return@launch
+            val selectedIds = _uiState.value.selectedApiKeyIds
+            if (selectedIds.isEmpty()) return@launch
+
+            _uiState.value = _uiState.value.apiKeyOperationStarted()
+            var successCount = 0
+            var failCount = 0
+
+            val apiKeysMap = _uiState.value.apiKeys.associateBy { it.id }
+            selectedIds.forEachIndexed { index, id ->
+                _uiState.value = _uiState.value.copy(
+                    batchApiKeyOperationProgress = "${if (enabled) "启用" else "禁用"}中 ${index + 1}/${selectedIds.size}..."
+                )
+                val apiKey = apiKeysMap[id]
+                if (apiKey != null) {
+                    when (dashboardRepository.updateApiKey(apiKey.copy(enabled = enabled))) {
+                        is AppResult.Success -> successCount++
+                        is AppResult.Error -> failCount++
+                    }
+                }
+            }
+
+            _uiState.value = _uiState.value.copy(
+                apiKeySubmitting = false,
+                batchApiKeyOperationProgress = null,
+                apiKeySelectionMode = false,
+                selectedApiKeyIds = emptySet(),
+                apiKeyOperationError = if (failCount > 0) {
+                    "批量操作完成：成功 $successCount 个，失败 $failCount 个"
+                } else null
+            )
+            refresh()
+            onComplete()
         }
     }
 }

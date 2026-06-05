@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -60,6 +61,7 @@ import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import com.elykia.octopus.feature.setting.SettingViewModel
 import com.elykia.octopus.feature.setting.shouldShowApiKeyPageError
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Switch
@@ -68,6 +70,10 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+private enum class BatchAction {
+    DELETE, ENABLE, DISABLE
+}
 
 @Composable
 fun ApiKeyScreen(
@@ -79,6 +85,8 @@ fun ApiKeyScreen(
     var searchTerm by remember { mutableStateOf("") }
     var searchVisible by remember { mutableStateOf(false) }
     var deletingId by remember { mutableStateOf<Int?>(null) }
+    var showBatchDeleteConfirm by remember { mutableStateOf(false) }
+    var batchAction by remember { mutableStateOf<BatchAction?>(null) }
     var editingItem by remember { mutableStateOf<ApiKeyItem?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
 
@@ -92,26 +100,51 @@ fun ApiKeyScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         AppLazyPageScaffold(
-            title = stringResource(R.string.apikey_title),
+            title = if (uiState.apiKeySelectionMode) {
+                "已选 ${uiState.selectedApiKeyIds.size} 项"
+            } else {
+                stringResource(R.string.apikey_title)
+            },
             actions = {
-                PageActionButton(
-                    icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
-                    contentDescription = stringResource(R.string.action_open_search),
-                    enabled = !uiState.loading && !uiState.shouldShowApiKeyPageError(),
-                    onClick = {
-                        searchVisible = !searchVisible
-                        if (!searchVisible) searchTerm = ""
-                    },
-                )
-                PageActionButton(
-                    icon = AppMiuixIcons.Add,
-                    contentDescription = stringResource(R.string.action_create),
-                    enabled = !uiState.loading && !uiState.shouldShowApiKeyPageError() && !uiState.apiKeySubmitting,
-                    onClick = {
-                        viewModel.clearApiKeyOperationError()
-                        showCreateDialog = true
-                    },
-                )
+                if (uiState.apiKeySelectionMode) {
+                    PageActionButton(
+                        icon = AppMiuixIcons.Close,
+                        contentDescription = "退出选择",
+                        enabled = !uiState.apiKeySubmitting,
+                        onClick = { viewModel.exitApiKeySelectionMode() },
+                    )
+                    PageActionButton(
+                        icon = AppMiuixIcons.Check,
+                        contentDescription = "全选",
+                        enabled = !uiState.apiKeySubmitting,
+                        onClick = { viewModel.selectAllApiKeys() },
+                    )
+                } else {
+                    PageActionButton(
+                        icon = AppMiuixIcons.More,
+                        contentDescription = "批量操作",
+                        enabled = !uiState.loading && !uiState.shouldShowApiKeyPageError() && uiState.apiKeys.isNotEmpty(),
+                        onClick = { viewModel.enterApiKeySelectionMode() },
+                    )
+                    PageActionButton(
+                        icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
+                        contentDescription = stringResource(R.string.action_open_search),
+                        enabled = !uiState.loading && !uiState.shouldShowApiKeyPageError(),
+                        onClick = {
+                            searchVisible = !searchVisible
+                            if (!searchVisible) searchTerm = ""
+                        },
+                    )
+                    PageActionButton(
+                        icon = AppMiuixIcons.Add,
+                        contentDescription = stringResource(R.string.action_create),
+                        enabled = !uiState.loading && !uiState.shouldShowApiKeyPageError() && !uiState.apiKeySubmitting,
+                        onClick = {
+                            viewModel.clearApiKeyOperationError()
+                            showCreateDialog = true
+                        },
+                    )
+                }
             },
             contentPadding = contentPadding,
         ) {
@@ -163,12 +196,16 @@ fun ApiKeyScreen(
                             ApiKeyRow(
                                 item = item,
                                 submitting = uiState.apiKeySubmitting,
+                                selectionMode = uiState.apiKeySelectionMode,
+                                isSelected = item.id in uiState.selectedApiKeyIds,
                                 onToggle = { viewModel.setApiKeyEnabled(item, it) },
                                 onEdit = {
                                     viewModel.clearApiKeyOperationError()
                                     editingItem = item
                                 },
                                 onDelete = { deletingId = item.id },
+                                onSelect = { viewModel.toggleApiKeySelection(item.id) },
+                                onCopy = { copyApiKey(context, item.apiKey) },
                             )
                         }
                     }
@@ -248,15 +285,108 @@ fun ApiKeyScreen(
             onDismiss = viewModel::dismissCreatedApiKey,
         )
     }
+
+    // 批量操作底部工具栏
+    if (uiState.apiKeySelectionMode && uiState.selectedApiKeyIds.isNotEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(contentPadding),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(OctopusTokens.Card.copy(alpha = 0.95f))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(
+                    text = "启用",
+                    enabled = !uiState.apiKeySubmitting,
+                    onClick = { batchAction = BatchAction.ENABLE },
+                )
+                TextButton(
+                    text = "禁用",
+                    enabled = !uiState.apiKeySubmitting,
+                    onClick = { batchAction = BatchAction.DISABLE },
+                )
+                TextButton(
+                    text = "删除",
+                    enabled = !uiState.apiKeySubmitting,
+                    onClick = { showBatchDeleteConfirm = true },
+                )
+            }
+        }
+    }
+
+    // 批量删除确认对话框
+    DangerConfirmDialog(
+        visible = showBatchDeleteConfirm,
+        title = "批量删除 API Key",
+        summary = "确定要删除选中的 ${uiState.selectedApiKeyIds.size} 个 API Key 吗？此操作不可撤销。",
+        onConfirm = {
+            viewModel.batchDeleteApiKeys()
+            showBatchDeleteConfirm = false
+        },
+        onDismiss = { showBatchDeleteConfirm = false },
+    )
+
+    // 批量启用/禁用确认
+    if (batchAction != null) {
+        val isEnable = batchAction == BatchAction.ENABLE
+        OverlayDialog(
+            show = true,
+            title = if (isEnable) "批量启用" else "批量禁用",
+            summary = "确定要${if (isEnable) "启用" else "禁用"}选中的 ${uiState.selectedApiKeyIds.size} 个 API Key 吗？",
+            onDismissRequest = { if (!uiState.apiKeySubmitting) batchAction = null },
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                uiState.batchApiKeyOperationProgress?.let { progress ->
+                    Text(
+                        text = progress,
+                        style = MiuixTheme.textStyles.body2,
+                        color = OctopusTokens.TextSecondary,
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(
+                        text = "取消",
+                        enabled = !uiState.apiKeySubmitting,
+                        onClick = { batchAction = null },
+                    )
+                    TextButton(
+                        text = if (uiState.apiKeySubmitting) "处理中..." else "确定",
+                        enabled = !uiState.apiKeySubmitting,
+                        onClick = {
+                            viewModel.batchSetApiKeysEnabled(isEnable) {
+                                batchAction = null
+                            }
+                        },
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
 private fun ApiKeyRow(
     item: ApiKeyItem,
     submitting: Boolean,
+    selectionMode: Boolean,
+    isSelected: Boolean,
     onToggle: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onSelect: () -> Unit,
+    onCopy: () -> Unit,
 ) {
     val supportedModels = item.supportedModels
         ?.split(',')
@@ -271,6 +401,13 @@ private fun ApiKeyRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                if (selectionMode) {
+                    Checkbox(
+                        state = if (isSelected) ToggleableState.On else ToggleableState.Off,
+                        onClick = { onSelect() },
+                        enabled = !submitting,
+                    )
+                }
                 SoftIconTile(
                     icon = AppMiuixIcons.ApiKey,
                     contentDescription = item.name,
@@ -305,25 +442,27 @@ private fun ApiKeyRow(
             ) {
                 ApiKeyStatusPill(
                     enabled = item.enabled,
-                    clickable = !submitting,
+                    clickable = !submitting && !selectionMode,
                     onClick = { onToggle(!item.enabled) },
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    IconButton(onClick = onEdit, enabled = !submitting) {
-                        Icon(
-                            imageVector = AppMiuixIcons.Create,
-                            contentDescription = stringResource(R.string.action_edit),
-                            tint = OctopusTokens.TextSecondary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                    IconButton(onClick = onDelete, enabled = !submitting) {
-                        Icon(
-                            imageVector = AppMiuixIcons.Delete,
-                            contentDescription = stringResource(R.string.common_delete),
-                            tint = OctopusTokens.TextSecondary,
-                            modifier = Modifier.size(18.dp),
-                        )
+                if (!selectionMode) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        IconButton(onClick = onEdit, enabled = !submitting) {
+                            Icon(
+                                imageVector = AppMiuixIcons.Create,
+                                contentDescription = stringResource(R.string.action_edit),
+                                tint = OctopusTokens.TextSecondary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        IconButton(onClick = onDelete, enabled = !submitting) {
+                            Icon(
+                                imageVector = AppMiuixIcons.Delete,
+                                contentDescription = stringResource(R.string.common_delete),
+                                tint = OctopusTokens.TextSecondary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -374,7 +513,7 @@ private fun ApiKeyStatusPill(
     ) {
         Text(
             text = stringResource(if (enabled) R.string.apikey_enabled_summary else R.string.apikey_disabled_summary),
-            color = if (enabled) Color.White else OctopusTokens.TextSecondary,
+            color = if (enabled) OctopusTokens.OnAccent else OctopusTokens.TextSecondary,
             style = MiuixTheme.textStyles.body2,
             fontWeight = FontWeight.SemiBold,
         )

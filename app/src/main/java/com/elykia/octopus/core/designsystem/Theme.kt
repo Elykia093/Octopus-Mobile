@@ -12,6 +12,7 @@ import top.yukonga.miuix.kmp.theme.ThemeController
 
 private data class OctopusPalette(
     val accent: Color,
+    val onAccent: Color,
     val canvas: Color,
     val card: Color,
     val muted: Color,
@@ -27,6 +28,7 @@ private data class OctopusPalette(
 
 private val LightOctopusPalette = OctopusPalette(
     accent = Color(0xFF5BA567),
+    onAccent = Color(0xFFFFFFFF),
     canvas = Color(0xFFEEECE4),
     card = Color(0xFFFEFCFA),
     muted = Color(0xFFF1EFE8),
@@ -42,6 +44,7 @@ private val LightOctopusPalette = OctopusPalette(
 
 private val DarkOctopusPalette = OctopusPalette(
     accent = Color(0xFF82C98A),
+    onAccent = Color(0xFF1A2B1D),
     canvas = Color(0xFF171A16),
     card = Color(0xFF23261F),
     muted = Color(0xFF2B2E27),
@@ -61,6 +64,8 @@ object OctopusTokens {
     val SeedColor = Color(0xFF559A62)
     val Accent: Color
         @Composable get() = LocalOctopusPalette.current.accent
+    val OnAccent: Color
+        @Composable get() = LocalOctopusPalette.current.onAccent
     val Canvas: Color
         @Composable get() = LocalOctopusPalette.current.canvas
     val Card: Color

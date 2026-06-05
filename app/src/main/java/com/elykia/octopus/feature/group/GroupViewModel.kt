@@ -25,6 +25,9 @@ data class GroupUiState(
     val modelChannelError: String? = null,
     val submitting: Boolean = false,
     val operationError: String? = null,
+    val selectionMode: Boolean = false,
+    val selectedIds: Set<Int> = emptySet(),
+    val batchOperationProgress: String? = null,
 )
 
 internal fun GroupUiState.shouldShowPageError(): Boolean =
@@ -59,6 +62,65 @@ class GroupViewModel @Inject constructor(
 
     fun clearOperationError() {
         _uiState.value = _uiState.value.copy(operationError = null)
+    }
+
+    fun enterSelectionMode() {
+        _uiState.value = _uiState.value.copy(selectionMode = true, selectedIds = emptySet())
+    }
+
+    fun exitSelectionMode() {
+        _uiState.value = _uiState.value.copy(selectionMode = false, selectedIds = emptySet())
+    }
+
+    fun toggleSelection(id: Int) {
+        val currentSelected = _uiState.value.selectedIds
+        _uiState.value = _uiState.value.copy(
+            selectedIds = if (id in currentSelected) {
+                currentSelected - id
+            } else {
+                currentSelected + id
+            }
+        )
+    }
+
+    fun selectAll() {
+        _uiState.value = _uiState.value.copy(
+            selectedIds = _uiState.value.groups.map { it.id }.toSet()
+        )
+    }
+
+    fun batchDelete(onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            if (_uiState.value.submitting) return@launch
+            val selectedIds = _uiState.value.selectedIds
+            if (selectedIds.isEmpty()) return@launch
+
+            _uiState.value = _uiState.value.copy(submitting = true, operationError = null)
+            var successCount = 0
+            var failCount = 0
+
+            selectedIds.forEachIndexed { index, id ->
+                _uiState.value = _uiState.value.copy(
+                    batchOperationProgress = "删除中 ${index + 1}/${selectedIds.size}..."
+                )
+                when (repository.deleteGroup(id)) {
+                    is AppResult.Success -> successCount++
+                    is AppResult.Error -> failCount++
+                }
+            }
+
+            _uiState.value = _uiState.value.copy(
+                submitting = false,
+                batchOperationProgress = null,
+                selectionMode = false,
+                selectedIds = emptySet(),
+                operationError = if (failCount > 0) {
+                    "批量删除完成：成功 $successCount 个，失败 $failCount 个"
+                } else null
+            )
+            refresh()
+            onComplete()
+        }
     }
 
     fun delete(id: Int) {

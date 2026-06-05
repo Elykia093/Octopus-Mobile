@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -55,6 +56,7 @@ import com.elykia.octopus.core.designsystem.ToolbarChip
 import com.elykia.octopus.core.designsystem.formatCount
 import com.elykia.octopus.core.designsystem.formatMoney
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
+import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Switch
@@ -64,6 +66,10 @@ import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+private enum class BatchAction {
+    DELETE, ENABLE, DISABLE
+}
+
 @Composable
 fun ChannelScreen(
     contentPadding: PaddingValues,
@@ -71,6 +77,8 @@ fun ChannelScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var deletingId by remember { mutableStateOf<Int?>(null) }
+    var showBatchDeleteConfirm by remember { mutableStateOf(false) }
+    var batchAction by remember { mutableStateOf<BatchAction?>(null) }
     var searchTerm by remember { mutableStateOf("") }
     var searchVisible by remember { mutableStateOf(false) }
     var editingChannelId by remember { mutableStateOf<Int?>(null) }
@@ -90,26 +98,51 @@ fun ChannelScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         AppLazyPageScaffold(
-            title = stringResource(R.string.channel_title),
+            title = if (uiState.selectionMode) {
+                "已选 ${uiState.selectedIds.size} 项"
+            } else {
+                stringResource(R.string.channel_title)
+            },
             actions = {
-                PageActionButton(
-                    icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
-                    contentDescription = stringResource(R.string.action_open_search),
-                    enabled = !uiState.loading && !uiState.shouldShowPageError(),
-                    onClick = {
-                        searchVisible = !searchVisible
-                        if (!searchVisible) searchTerm = ""
-                    },
-                )
-                PageActionButton(
-                    icon = AppMiuixIcons.Add,
-                    contentDescription = stringResource(R.string.action_create),
-                    enabled = !uiState.loading && !uiState.shouldShowPageError() && !uiState.submitting,
-                    onClick = {
-                        viewModel.clearOperationError()
-                        showCreateDialog = true
-                    },
-                )
+                if (uiState.selectionMode) {
+                    PageActionButton(
+                        icon = AppMiuixIcons.Close,
+                        contentDescription = "退出选择",
+                        enabled = !uiState.submitting,
+                        onClick = { viewModel.exitSelectionMode() },
+                    )
+                    PageActionButton(
+                        icon = AppMiuixIcons.Check,
+                        contentDescription = "全选",
+                        enabled = !uiState.submitting,
+                        onClick = { viewModel.selectAll() },
+                    )
+                } else {
+                    PageActionButton(
+                        icon = AppMiuixIcons.More,
+                        contentDescription = "批量操作",
+                        enabled = !uiState.loading && !uiState.shouldShowPageError() && uiState.channels.isNotEmpty(),
+                        onClick = { viewModel.enterSelectionMode() },
+                    )
+                    PageActionButton(
+                        icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
+                        contentDescription = stringResource(R.string.action_open_search),
+                        enabled = !uiState.loading && !uiState.shouldShowPageError(),
+                        onClick = {
+                            searchVisible = !searchVisible
+                            if (!searchVisible) searchTerm = ""
+                        },
+                    )
+                    PageActionButton(
+                        icon = AppMiuixIcons.Add,
+                        contentDescription = stringResource(R.string.action_create),
+                        enabled = !uiState.loading && !uiState.shouldShowPageError() && !uiState.submitting,
+                        onClick = {
+                            viewModel.clearOperationError()
+                            showCreateDialog = true
+                        },
+                    )
+                }
             },
             contentPadding = contentPadding,
         ) {
@@ -158,12 +191,15 @@ fun ChannelScreen(
                             ChannelRow(
                                 channel = channel,
                                 submitting = uiState.submitting,
+                                selectionMode = uiState.selectionMode,
+                                isSelected = channel.id in uiState.selectedIds,
                                 onToggle = { viewModel.setEnabled(channel.id, it) },
                                 onEdit = {
                                     viewModel.clearOperationError()
                                     editingChannelId = channel.id
                                 },
                                 onDelete = { deletingId = channel.id },
+                                onSelect = { viewModel.toggleSelection(channel.id) },
                             )
                         }
                     }
@@ -244,6 +280,95 @@ fun ChannelScreen(
             viewModel.clearFetchedModels()
         },
     )
+
+    // 批量操作底部工具栏
+    if (uiState.selectionMode && uiState.selectedIds.isNotEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(contentPadding),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(OctopusTokens.Card.copy(alpha = 0.95f))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(
+                    text = "启用",
+                    enabled = !uiState.submitting,
+                    onClick = { batchAction = BatchAction.ENABLE },
+                )
+                TextButton(
+                    text = "禁用",
+                    enabled = !uiState.submitting,
+                    onClick = { batchAction = BatchAction.DISABLE },
+                )
+                TextButton(
+                    text = "删除",
+                    enabled = !uiState.submitting,
+                    onClick = { showBatchDeleteConfirm = true },
+                )
+            }
+        }
+    }
+
+    // 批量删除确认对话框
+    DangerConfirmDialog(
+        visible = showBatchDeleteConfirm,
+        title = "批量删除渠道",
+        summary = "确定要删除选中的 ${uiState.selectedIds.size} 个渠道吗？此操作不可撤销。",
+        onConfirm = {
+            viewModel.batchDelete()
+            showBatchDeleteConfirm = false
+        },
+        onDismiss = { showBatchDeleteConfirm = false },
+    )
+
+    // 批量启用/禁用确认
+    if (batchAction != null) {
+        val isEnable = batchAction == BatchAction.ENABLE
+        OverlayDialog(
+            show = true,
+            title = if (isEnable) "批量启用" else "批量禁用",
+            summary = "确定要${if (isEnable) "启用" else "禁用"}选中的 ${uiState.selectedIds.size} 个渠道吗？",
+            onDismissRequest = { if (!uiState.submitting) batchAction = null },
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                uiState.batchOperationProgress?.let { progress ->
+                    Text(
+                        text = progress,
+                        style = MiuixTheme.textStyles.body2,
+                        color = OctopusTokens.TextSecondary,
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(
+                        text = "取消",
+                        enabled = !uiState.submitting,
+                        onClick = { batchAction = null },
+                    )
+                    TextButton(
+                        text = if (uiState.submitting) "处理中..." else "确定",
+                        enabled = !uiState.submitting,
+                        onClick = {
+                            viewModel.batchSetEnabled(isEnable) {
+                                batchAction = null
+                            }
+                        },
+                    )
+                }
+            }
+        }
+    }
 }
 
 internal fun resolveEditingChannel(
@@ -255,9 +380,12 @@ internal fun resolveEditingChannel(
 private fun ChannelRow(
     channel: Channel,
     submitting: Boolean,
+    selectionMode: Boolean,
+    isSelected: Boolean,
     onToggle: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onSelect: () -> Unit,
 ) {
     val stats = channel.stats
     val requestCount = (stats?.requestSuccess ?: 0L) + (stats?.requestFailed ?: 0L)
@@ -270,6 +398,13 @@ private fun ChannelRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                if (selectionMode) {
+                    Checkbox(
+                        state = if (isSelected) ToggleableState.On else ToggleableState.Off,
+                        onClick = { onSelect() },
+                        enabled = !submitting,
+                    )
+                }
                 SoftIconTile(
                     icon = AppMiuixIcons.Channel,
                     contentDescription = channel.name,
@@ -293,25 +428,27 @@ private fun ChannelRow(
             ) {
                 StatusPill(
                     enabled = channel.enabled,
-                    clickable = !submitting,
+                    clickable = !submitting && !selectionMode,
                     onClick = { onToggle(!channel.enabled) },
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    IconButton(onClick = onEdit, enabled = !submitting) {
-                        Icon(
-                            imageVector = AppMiuixIcons.Create,
-                            contentDescription = stringResource(R.string.action_edit),
-                            tint = OctopusTokens.TextSecondary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                    IconButton(onClick = onDelete, enabled = !submitting) {
-                        Icon(
-                            imageVector = AppMiuixIcons.Delete,
-                            contentDescription = stringResource(R.string.common_delete),
-                            tint = OctopusTokens.TextSecondary,
-                            modifier = Modifier.size(18.dp),
-                        )
+                if (!selectionMode) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        IconButton(onClick = onEdit, enabled = !submitting) {
+                            Icon(
+                                imageVector = AppMiuixIcons.Create,
+                                contentDescription = stringResource(R.string.action_edit),
+                                tint = OctopusTokens.TextSecondary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        IconButton(onClick = onDelete, enabled = !submitting) {
+                            Icon(
+                                imageVector = AppMiuixIcons.Delete,
+                                contentDescription = stringResource(R.string.common_delete),
+                                tint = OctopusTokens.TextSecondary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -349,14 +486,14 @@ private fun StatusPill(
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(if (enabled) OctopusTokens.Accent else OctopusTones.Gray.copy(alpha = 0.18f))
+            .background(if (enabled) OctopusTokens.Accent else OctopusTokens.Muted)
             .then(if (clickable) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 14.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = stringResource(if (enabled) R.string.common_enabled else R.string.common_disabled),
-            color = if (enabled) Color.White else OctopusTokens.TextSecondary,
+            color = if (enabled) OctopusTokens.OnAccent else OctopusTokens.TextSecondary,
             style = MiuixTheme.textStyles.body2,
             fontWeight = FontWeight.SemiBold,
         )
