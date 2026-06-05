@@ -9,6 +9,18 @@ import org.junit.Test
 
 class GroupStateTest {
     @Test
+    fun pageErrorOnlyShowsWhenGroupRefreshFailsWithoutCachedGroups() {
+        assertThat(GroupUiState(error = "groups failed").shouldShowPageError()).isTrue()
+
+        assertThat(
+            GroupUiState(
+                groups = listOf(Group(id = 1, name = "old", mode = 1)),
+                error = "groups failed",
+            ).shouldShowPageError()
+        ).isFalse()
+    }
+
+    @Test
     fun partialRefreshFailureKeepsPreviousCandidatesAndExposesErrors() {
         val previousChannels = listOf(Channel(id = 1, name = "OpenAI", type = 1))
         val previousModelChannels = listOf(
@@ -47,5 +59,37 @@ class GroupStateTest {
         assertThat(state.loading).isFalse()
         assertThat(state.error).isEqualTo("groups failed")
         assertThat(state.groups).containsExactly(Group(id = 1, name = "old", mode = 1))
+    }
+
+    @Test
+    fun groupFailureStillUpdatesRecoveredCandidatesAndClearsPartialErrors() {
+        val recoveredChannels = listOf(Channel(id = 2, name = "Recovered", type = 1))
+        val recoveredModelChannels = listOf(
+            LlmChannel(name = "gpt-recovered", enabled = true, channelId = 2, channelName = "Recovered"),
+        )
+        val previous = GroupUiState(
+            groups = listOf(Group(id = 1, name = "old", mode = 1)),
+            channels = listOf(Channel(id = 1, name = "Stale", type = 1)),
+            modelChannels = listOf(
+                LlmChannel(name = "gpt-stale", enabled = true, channelId = 1, channelName = "Stale"),
+            ),
+            channelListError = "old channels failed",
+            modelChannelError = "old models failed",
+        )
+
+        val state = buildGroupRefreshState(
+            previous = previous,
+            groupsResult = AppResult.Error("groups failed"),
+            channelsResult = AppResult.Success(recoveredChannels),
+            modelChannelsResult = AppResult.Success(recoveredModelChannels),
+        )
+
+        assertThat(state.loading).isFalse()
+        assertThat(state.error).isEqualTo("groups failed")
+        assertThat(state.groups).isEqualTo(previous.groups)
+        assertThat(state.channels).isEqualTo(recoveredChannels)
+        assertThat(state.modelChannels).isEqualTo(recoveredModelChannels)
+        assertThat(state.channelListError).isNull()
+        assertThat(state.modelChannelError).isNull()
     }
 }

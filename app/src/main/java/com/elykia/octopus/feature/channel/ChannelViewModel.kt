@@ -26,6 +26,9 @@ data class ChannelUiState(
     val operationError: String? = null,
 )
 
+internal fun ChannelUiState.shouldShowPageError(): Boolean =
+    error != null && channels.isEmpty()
+
 internal fun ChannelUiState.channelOperationStarted(): ChannelUiState = copy(
     submitting = true,
     operationError = null,
@@ -314,6 +317,17 @@ internal fun hasValidChannelBaseUrl(baseUrl: String): Boolean =
             url.encodedQuery == null &&
             url.encodedFragment == null
     } == true
+
+internal fun canSubmitChannelEditor(
+    name: String,
+    baseUrl: String,
+    submitting: Boolean,
+    basicEditSupported: Boolean,
+): Boolean =
+    !submitting &&
+        basicEditSupported &&
+        name.isNotBlank() &&
+        hasValidChannelBaseUrl(baseUrl)
 
 internal fun Channel.canUseBasicMobileEditor(): Boolean =
     baseUrls.size <= 1 &&

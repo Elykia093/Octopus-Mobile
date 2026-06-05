@@ -27,6 +27,9 @@ data class GroupUiState(
     val operationError: String? = null,
 )
 
+internal fun GroupUiState.shouldShowPageError(): Boolean =
+    error != null && groups.isEmpty()
+
 @HiltViewModel
 class GroupViewModel @Inject constructor(
     private val repository: DashboardRepository,
@@ -173,7 +176,11 @@ internal fun buildGroupRefreshState(
     )
     is AppResult.Error -> previous.copy(
         loading = false,
+        channels = channelsResult.dataOrPrevious(previous.channels),
+        modelChannels = modelChannelsResult.dataOrPrevious(previous.modelChannels),
         error = groupsResult.message,
+        channelListError = channelsResult.errorMessageOrNull(),
+        modelChannelError = modelChannelsResult.errorMessageOrNull(),
     )
 }
 

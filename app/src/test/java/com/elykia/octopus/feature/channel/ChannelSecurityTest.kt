@@ -17,4 +17,57 @@ class ChannelSecurityTest {
         assertThat(hasValidChannelBaseUrl("https://api.example.com/v1?token=secret")).isFalse()
         assertThat(hasValidChannelBaseUrl("https://api.example.com/v1#secret")).isFalse()
     }
+
+    @Test
+    fun canSubmitChannelEditorRequiresValidNameUrlAndEditableState() {
+        assertThat(
+            canSubmitChannelEditor(
+                name = "OpenAI",
+                baseUrl = "https://api.example.com/v1",
+                submitting = false,
+                basicEditSupported = true,
+            )
+        ).isTrue()
+
+        assertThat(
+            canSubmitChannelEditor(
+                name = " ",
+                baseUrl = "https://api.example.com/v1",
+                submitting = false,
+                basicEditSupported = true,
+            )
+        ).isFalse()
+        assertThat(
+            canSubmitChannelEditor(
+                name = "OpenAI",
+                baseUrl = "http://api.example.com/v1",
+                submitting = false,
+                basicEditSupported = true,
+            )
+        ).isFalse()
+        assertThat(
+            canSubmitChannelEditor(
+                name = "OpenAI",
+                baseUrl = "https://api.example.com/v1?token=secret",
+                submitting = false,
+                basicEditSupported = true,
+            )
+        ).isFalse()
+        assertThat(
+            canSubmitChannelEditor(
+                name = "OpenAI",
+                baseUrl = "https://api.example.com/v1",
+                submitting = true,
+                basicEditSupported = true,
+            )
+        ).isFalse()
+        assertThat(
+            canSubmitChannelEditor(
+                name = "OpenAI",
+                baseUrl = "https://api.example.com/v1",
+                submitting = false,
+                basicEditSupported = false,
+            )
+        ).isFalse()
+    }
 }

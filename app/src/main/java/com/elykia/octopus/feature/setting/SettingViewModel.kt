@@ -49,6 +49,12 @@ data class SettingUiState(
     val actionError: String? = null,
 )
 
+internal fun SettingUiState.shouldShowSettingsPageError(): Boolean =
+    error != null && sections.isEmpty()
+
+internal fun SettingUiState.shouldShowApiKeyPageError(): Boolean =
+    apiKeyListError != null && apiKeys.isEmpty()
+
 internal fun SettingUiState.apiKeyOperationStarted(): SettingUiState = copy(
     apiKeySubmitting = true,
     apiKeyOperationError = null,
@@ -115,8 +121,8 @@ class SettingViewModel @Inject constructor(
 
     fun refresh() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(loading = true, error = null)
             val previous = _uiState.value
+            _uiState.value = previous.copy(loading = true, error = null)
             val settingsDeferred = async { appRepository.settings() }
             val apiKeysDeferred = async { dashboardRepository.apiKeys() }
             val latestDeferred = async { dashboardRepository.latestInfo() }
@@ -126,55 +132,23 @@ class SettingViewModel @Inject constructor(
             val configDeferred = async { appRepository.currentServerConfig() }
 
             val settings = settingsDeferred.await()
-            if (settings is AppResult.Success) {
-                val config = configDeferred.await()
-                val auth = authDeferred.await()
-                val apiKeys = apiKeysDeferred.await()
-                val latest = latestDeferred.await()
-                val version = versionDeferred.await()
-                val modelTime = modelTimeDeferred.await()
-                _uiState.value = SettingUiState(
-                    loading = false,
-                    settings = settings.data,
-                    sections = settings.data.toSections(),
-                    apiKeys = apiKeys.dataOrPrevious(previous.apiKeys),
-                    latestInfo = latest.dataOrPreviousNullable(previous.latestInfo),
-                    currentVersion = version.dataOrPreviousNullable(previous.currentVersion),
-                    modelLastUpdateTime = modelTime.dataOrPreviousNullable(previous.modelLastUpdateTime),
-                    username = auth.username,
-                    language = config.language,
-                    themeMode = config.themeMode,
-                    createdApiKey = _uiState.value.createdApiKey,
-                    apiKeyListError = apiKeys.errorMessageOrNull(),
-                    versionInfoError = latest.errorMessageOrNull() ?: version.errorMessageOrNull(),
-                    modelLastUpdateError = modelTime.errorMessageOrNull(),
-                    apiKeySubmitting = previous.apiKeySubmitting,
-                    apiKeyOperationError = previous.apiKeyOperationError,
-                    dataTransferSubmitting = previous.dataTransferSubmitting,
-                    dataTransferMessage = previous.dataTransferMessage,
-                    dataTransferError = previous.dataTransferError,
-                    actionSubmitting = previous.actionSubmitting,
-                    actionMessage = previous.actionMessage,
-                    actionError = previous.actionError,
-                )
-            } else {
-                _uiState.value = SettingUiState(
-                    loading = false,
-                    error = (settings as AppResult.Error).message,
-                    createdApiKey = previous.createdApiKey,
-                    apiKeyListError = previous.apiKeyListError,
-                    versionInfoError = previous.versionInfoError,
-                    modelLastUpdateError = previous.modelLastUpdateError,
-                    apiKeySubmitting = previous.apiKeySubmitting,
-                    apiKeyOperationError = previous.apiKeyOperationError,
-                    dataTransferSubmitting = previous.dataTransferSubmitting,
-                    dataTransferMessage = previous.dataTransferMessage,
-                    dataTransferError = previous.dataTransferError,
-                    actionSubmitting = previous.actionSubmitting,
-                    actionMessage = previous.actionMessage,
-                    actionError = previous.actionError,
-                )
-            }
+            val config = configDeferred.await()
+            val auth = authDeferred.await()
+            val apiKeys = apiKeysDeferred.await()
+            val latest = latestDeferred.await()
+            val version = versionDeferred.await()
+            val modelTime = modelTimeDeferred.await()
+            _uiState.value = buildSettingRefreshState(
+                previous = previous,
+                settingsResult = settings,
+                apiKeysResult = apiKeys,
+                latestResult = latest,
+                versionResult = version,
+                modelTimeResult = modelTime,
+                username = auth.username,
+                language = config.language,
+                themeMode = config.themeMode,
+            )
         }
     }
 
@@ -406,6 +380,55 @@ class SettingViewModel @Inject constructor(
                 is AppResult.Error -> _uiState.value = _uiState.value.apiKeyOperationFailed(result.message)
             }
         }
+    }
+}
+
+internal fun buildSettingRefreshState(
+    previous: SettingUiState,
+    settingsResult: AppResult<List<SettingItem>>,
+    apiKeysResult: AppResult<List<ApiKeyItem>>,
+    latestResult: AppResult<LatestInfo>,
+    versionResult: AppResult<String>,
+    modelTimeResult: AppResult<String>,
+    username: String,
+    language: String,
+    themeMode: Int,
+): SettingUiState {
+    val apiKeyListError = apiKeysResult.errorMessageOrNull()
+    val versionInfoError = latestResult.errorMessageOrNull() ?: versionResult.errorMessageOrNull()
+    val modelLastUpdateError = modelTimeResult.errorMessageOrNull()
+
+    return when (settingsResult) {
+        is AppResult.Success -> previous.copy(
+            loading = false,
+            settings = settingsResult.data,
+            sections = settingsResult.data.toSections(),
+            apiKeys = apiKeysResult.dataOrPrevious(previous.apiKeys),
+            latestInfo = latestResult.dataOrPreviousNullable(previous.latestInfo),
+            currentVersion = versionResult.dataOrPreviousNullable(previous.currentVersion),
+            modelLastUpdateTime = modelTimeResult.dataOrPreviousNullable(previous.modelLastUpdateTime),
+            username = username,
+            language = language,
+            themeMode = themeMode,
+            error = null,
+            apiKeyListError = apiKeyListError,
+            versionInfoError = versionInfoError,
+            modelLastUpdateError = modelLastUpdateError,
+        )
+        is AppResult.Error -> previous.copy(
+            loading = false,
+            apiKeys = apiKeysResult.dataOrPrevious(previous.apiKeys),
+            latestInfo = latestResult.dataOrPreviousNullable(previous.latestInfo),
+            currentVersion = versionResult.dataOrPreviousNullable(previous.currentVersion),
+            modelLastUpdateTime = modelTimeResult.dataOrPreviousNullable(previous.modelLastUpdateTime),
+            username = username,
+            language = language,
+            themeMode = themeMode,
+            error = settingsResult.message,
+            apiKeyListError = apiKeyListError,
+            versionInfoError = versionInfoError,
+            modelLastUpdateError = modelLastUpdateError,
+        )
     }
 }
 

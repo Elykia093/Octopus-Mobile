@@ -21,19 +21,23 @@ private data class OctopusPalette(
     val primarySoft: Color,
     val selectedNav: Color,
     val navMuted: Color,
+    val glowPrimary: Color,
+    val glowSecondary: Color,
 )
 
 private val LightOctopusPalette = OctopusPalette(
     accent = Color(0xFF5BA567),
-    canvas = Color(0xFFEDEBE4),
-    card = Color(0xFFFBFBFC),
-    muted = Color(0xFFEFEDE8),
-    border = Color(0xFFDCD8CF),
-    textPrimary = Color(0xFF3B352B),
-    textSecondary = Color(0xFF7A766D),
-    primarySoft = Color(0xFFE3EDE3),
-    selectedNav = Color(0xFFE8D8B7),
-    navMuted = Color(0xFF8B877E),
+    canvas = Color(0xFFEEECE4),
+    card = Color(0xFFFEFCFA),
+    muted = Color(0xFFF1EFE8),
+    border = Color(0xFFDED9CF),
+    textPrimary = Color(0xFF352F27),
+    textSecondary = Color(0xFF777168),
+    primarySoft = Color(0xFFE3ECDF),
+    selectedNav = Color(0xFFE9DBBE),
+    navMuted = Color(0xFF89847B),
+    glowPrimary = Color(0xFFC9DFC9),
+    glowSecondary = Color(0xFFDDEAE8),
 )
 
 private val DarkOctopusPalette = OctopusPalette(
@@ -47,6 +51,8 @@ private val DarkOctopusPalette = OctopusPalette(
     primarySoft = Color(0xFF283A2C),
     selectedNav = Color(0xFF4A3E28),
     navMuted = Color(0xFFA7A094),
+    glowPrimary = Color(0xFF24422A),
+    glowSecondary = Color(0xFF21353A),
 )
 
 private val LocalOctopusPalette = staticCompositionLocalOf { LightOctopusPalette }
@@ -73,6 +79,10 @@ object OctopusTokens {
         @Composable get() = LocalOctopusPalette.current.selectedNav
     val NavMuted: Color
         @Composable get() = LocalOctopusPalette.current.navMuted
+    val GlowPrimary: Color
+        @Composable get() = LocalOctopusPalette.current.glowPrimary
+    val GlowSecondary: Color
+        @Composable get() = LocalOctopusPalette.current.glowSecondary
 }
 
 @Composable
@@ -95,7 +105,7 @@ fun OctopusTheme(
     val palette = remember(effectiveDark) {
         if (effectiveDark) DarkOctopusPalette else LightOctopusPalette
     }
-    MiuixTheme(controller = controller, smoothRounding = true) {
+    MiuixTheme(controller) {
         CompositionLocalProvider(LocalOctopusPalette provides palette) {
             content()
         }

@@ -35,6 +35,9 @@ data class HomeUiState(
     val apiKeyStatsError: String? = null,
 )
 
+internal fun HomeUiState.shouldShowPageError(): Boolean =
+    error != null && total == null
+
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: DashboardRepository,
@@ -91,7 +94,7 @@ internal fun buildHomeRefreshState(
     apiKeyStatsResult: AppResult<List<StatsApiKeyEntry>>,
 ): HomeUiState {
     return when (totalResult) {
-        is AppResult.Success -> HomeUiState(
+        is AppResult.Success -> previous.copy(
             loading = false,
             today = todayResult.dataOrPreviousNullable(previous.today),
             total = totalResult.data,
@@ -106,10 +109,23 @@ internal fun buildHomeRefreshState(
             channelListError = channelsResult.errorMessageOrNull(),
             apiKeyListError = apiKeysResult.errorMessageOrNull(),
             apiKeyStatsError = apiKeyStatsResult.errorMessageOrNull(),
+            error = null,
         )
-        is AppResult.Error -> HomeUiState(
+        is AppResult.Error -> previous.copy(
             loading = false,
+            today = todayResult.dataOrPreviousNullable(previous.today),
+            daily = dailyResult.dataOrPrevious(previous.daily),
+            hourly = hourlyResult.dataOrPrevious(previous.hourly),
+            channels = channelsResult.dataOrPrevious(previous.channels),
+            apiKeys = apiKeysResult.dataOrPrevious(previous.apiKeys),
+            apiKeyStats = apiKeyStatsResult.dataOrPrevious(previous.apiKeyStats),
             error = totalResult.message,
+            todayError = todayResult.errorMessageOrNull(),
+            dailyError = dailyResult.errorMessageOrNull(),
+            hourlyError = hourlyResult.errorMessageOrNull(),
+            channelListError = channelsResult.errorMessageOrNull(),
+            apiKeyListError = apiKeysResult.errorMessageOrNull(),
+            apiKeyStatsError = apiKeyStatsResult.errorMessageOrNull(),
         )
     }
 }

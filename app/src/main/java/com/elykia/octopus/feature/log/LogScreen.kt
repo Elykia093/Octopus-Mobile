@@ -77,7 +77,7 @@ fun LogScreen(
             PageActionButton(
                 icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
                 contentDescription = stringResource(R.string.action_open_search),
-                enabled = !uiState.loading && uiState.error == null,
+                enabled = !uiState.loading && !uiState.shouldShowPageError(),
                 onClick = {
                     searchVisible = !searchVisible
                     if (!searchVisible) searchTerm = ""
@@ -86,7 +86,7 @@ fun LogScreen(
             PageActionButton(
                 icon = AppMiuixIcons.Delete,
                 contentDescription = stringResource(R.string.log_toolbar_clear),
-                enabled = !uiState.loading && uiState.error == null && uiState.logs.isNotEmpty() && !uiState.clearing,
+                enabled = !uiState.loading && !uiState.shouldShowPageError() && uiState.logs.isNotEmpty() && !uiState.clearing,
                 onClick = { confirmClear = true },
             )
         },
@@ -96,7 +96,7 @@ fun LogScreen(
             uiState.loading -> item {
                 LoadingStateCard(title = stringResource(R.string.log_title))
             }
-            uiState.error != null -> item {
+            uiState.shouldShowPageError() -> item {
                 ErrorStateCard(
                     message = uiState.error ?: stringResource(R.string.error_title),
                     onRetry = viewModel::refresh,
@@ -110,6 +110,11 @@ fun LogScreen(
                             onValueChange = { searchTerm = it },
                             hint = stringResource(R.string.log_search_hint),
                         )
+                    }
+                }
+                uiState.error?.takeIf { it.isNotBlank() }?.let { refreshError ->
+                    item {
+                        OperationErrorCard(message = refreshError)
                     }
                 }
                 uiState.clearError?.takeIf { it.isNotBlank() }?.let { clearError ->

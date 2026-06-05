@@ -203,15 +203,15 @@ fun AppListCard(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 5.dp,
+                elevation = 7.dp,
                 shape = shape,
                 clip = false,
-                ambientColor = Color.Black.copy(alpha = 0.045f),
-                spotColor = Color.Black.copy(alpha = 0.075f),
+                ambientColor = Color.Black.copy(alpha = 0.04f),
+                spotColor = Color.Black.copy(alpha = 0.095f),
             )
             .clip(shape)
-            .background(OctopusTokens.Card)
-            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.9f), shape)
+            .background(OctopusTokens.Card.copy(alpha = 0.985f))
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.84f), shape)
             .then(clickableModifier)
             .padding(padding),
     ) {
@@ -228,8 +228,8 @@ fun AppInfoChip(
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(OctopusTokens.Muted)
-            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.6f), RoundedCornerShape(999.dp))
+            .background(OctopusTokens.Muted.copy(alpha = 0.76f))
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.52f), RoundedCornerShape(999.dp))
             .padding(horizontal = 10.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -265,8 +265,8 @@ fun AppMetricRow(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(OctopusTokens.Muted.copy(alpha = 0.72f))
-            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.68f), RoundedCornerShape(20.dp))
+            .background(OctopusTokens.Muted.copy(alpha = 0.78f))
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.58f), RoundedCornerShape(20.dp))
             .padding(horizontal = 12.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -313,7 +313,7 @@ fun AppTypePill(
             text = text,
             color = color,
             style = MiuixTheme.textStyles.body2,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
         )
     }
 }

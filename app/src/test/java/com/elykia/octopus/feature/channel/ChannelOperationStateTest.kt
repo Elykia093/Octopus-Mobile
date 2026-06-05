@@ -9,6 +9,21 @@ import org.junit.Test
 
 class ChannelOperationStateTest {
     @Test
+    fun pageErrorOnlyShowsWhenRefreshFailsWithoutCachedChannels() {
+        assertThat(
+            ChannelUiState(error = "channels failed", channels = emptyList())
+                .shouldShowPageError(),
+        ).isTrue()
+
+        assertThat(
+            ChannelUiState(
+                error = "channels failed",
+                channels = listOf(Channel(id = 1, name = "Cached", type = 0)),
+            ).shouldShowPageError(),
+        ).isFalse()
+    }
+
+    @Test
     fun operationFailureKeepsVisibleErrorAndStopsSubmitting() {
         val state = ChannelUiState(submitting = true)
             .channelOperationFailed("channel failed")

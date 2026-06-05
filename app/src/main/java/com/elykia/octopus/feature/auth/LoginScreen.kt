@@ -56,6 +56,7 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
+    val visibleError = uiState.error ?: loginInlineError(uiState)
 
     if (uiState.password.isNotBlank()) {
         SecureVisibleWindow()
@@ -155,7 +156,7 @@ fun LoginScreen(
 
                     Button(
                         onClick = { viewModel.submit(onLoggedIn) },
-                        enabled = !uiState.isLoading,
+                        enabled = canSubmitLogin(uiState),
                         colors = ButtonDefaults.buttonColorsPrimary(),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -170,7 +171,7 @@ fun LoginScreen(
                 }
             }
 
-            uiState.error?.let { errorMsg ->
+            visibleError?.let { errorMsg ->
                 ErrorStrip(message = errorMsg)
             }
             securityMessage?.takeIf { it.isNotBlank() }?.let { message ->

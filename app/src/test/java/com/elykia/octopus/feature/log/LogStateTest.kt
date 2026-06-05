@@ -5,6 +5,21 @@ import org.junit.Test
 
 class LogStateTest {
     @Test
+    fun pageErrorOnlyShowsWhenRefreshFailsWithoutCachedLogs() {
+        assertThat(
+            LogUiState(error = "logs failed", logs = emptyList())
+                .shouldShowPageError(),
+        ).isTrue()
+
+        assertThat(
+            LogUiState(
+                error = "logs failed",
+                logs = listOf(sampleLog(id = 1)),
+            ).shouldShowPageError(),
+        ).isFalse()
+    }
+
+    @Test
     fun clearLogsStartClearsPreviousErrorAndMarksClearing() {
         val state = LogUiState(clearError = "old error")
             .clearLogsStarted()

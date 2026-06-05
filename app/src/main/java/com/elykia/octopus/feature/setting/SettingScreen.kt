@@ -141,7 +141,7 @@ fun SettingScreen(
             uiState.loading -> item {
                 LoadingStateCard(title = stringResource(R.string.setting_title))
             }
-            uiState.error != null -> item {
+            uiState.shouldShowSettingsPageError() -> item {
                 ErrorStateCard(
                     message = uiState.error ?: stringResource(R.string.error_title),
                     onRetry = viewModel::refresh,
@@ -154,6 +154,9 @@ fun SettingScreen(
                         latestVersion = uiState.latestInfo?.tagName ?: stringResource(R.string.common_unknown),
                         publishedAt = uiState.latestInfo?.publishedAt,
                     )
+                }
+                uiState.error?.takeIf { it.isNotBlank() }?.let { error ->
+                    item { OperationErrorCard(message = error) }
                 }
                 uiState.versionInfoError?.takeIf { it.isNotBlank() }?.let { error ->
                     item { OperationErrorCard(message = error) }
@@ -657,6 +660,9 @@ internal fun validateSettingValue(key: String, value: String): SettingValidation
     else -> null
 }
 
+internal fun canSubmitSettingEdit(key: String, value: String): Boolean =
+    validateSettingValue(key, value) == null
+
 private fun String.isValidSettingUrl(): Boolean {
     val url = trim().toHttpUrlOrNull() ?: return false
     return url.scheme in setOf("http", "https") &&
@@ -694,8 +700,9 @@ private fun SettingEditDialog(
     onConfirm: (String) -> Unit,
 ) {
     val isNumeric = item.key in NUMERIC_KEYS
-    var editValue by remember { mutableStateOf(item.value) }
-    var validationIssue by remember(item.key) { mutableStateOf<SettingValidationIssue?>(null) }
+    var editValue by remember(item.key, item.value) { mutableStateOf(item.value) }
+    var validationIssue by remember(item.key, item.value) { mutableStateOf<SettingValidationIssue?>(null) }
+    val currentValidationIssue = validateSettingValue(item.key, editValue) ?: validationIssue
 
     OverlayDialog(
         show = true,
@@ -724,7 +731,7 @@ private fun SettingEditDialog(
                     .fillMaxWidth()
                     .padding(top = 12.dp),
             )
-            validationIssue?.let { issue ->
+            currentValidationIssue?.let { issue ->
                 OperationErrorCard(
                     message = settingValidationMessage(issue),
                     modifier = Modifier.padding(top = 10.dp),
@@ -739,6 +746,7 @@ private fun SettingEditDialog(
                 TextButton(text = stringResource(R.string.common_cancel), onClick = onDismiss)
                 TextButton(
                     text = stringResource(R.string.common_confirm),
+                    enabled = canSubmitSettingEdit(item.key, editValue),
                     onClick = {
                         val issue = validateSettingValue(item.key, editValue)
                         if (issue != null) {

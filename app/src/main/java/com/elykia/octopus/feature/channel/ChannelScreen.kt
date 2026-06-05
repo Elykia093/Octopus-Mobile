@@ -73,7 +73,7 @@ fun ChannelScreen(
     var deletingId by remember { mutableStateOf<Int?>(null) }
     var searchTerm by remember { mutableStateOf("") }
     var searchVisible by remember { mutableStateOf(false) }
-    var editingChannel by remember { mutableStateOf<Channel?>(null) }
+    var editingChannelId by remember { mutableStateOf<Int?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var selectedChannelForFetch by remember { mutableStateOf<Channel?>(null) }
 
@@ -86,6 +86,7 @@ fun ChannelScreen(
                 channel.baseUrls.any { it.url.contains(searchTerm, ignoreCase = true) }
         }
         .sortedByDescending { it.enabled }
+    val editingChannel = resolveEditingChannel(uiState.channels, editingChannelId)
 
     Box(modifier = Modifier.fillMaxSize()) {
         AppLazyPageScaffold(
@@ -94,7 +95,7 @@ fun ChannelScreen(
                 PageActionButton(
                     icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
                     contentDescription = stringResource(R.string.action_open_search),
-                    enabled = !uiState.loading && uiState.error == null,
+                    enabled = !uiState.loading && !uiState.shouldShowPageError(),
                     onClick = {
                         searchVisible = !searchVisible
                         if (!searchVisible) searchTerm = ""
@@ -103,7 +104,7 @@ fun ChannelScreen(
                 PageActionButton(
                     icon = AppMiuixIcons.Add,
                     contentDescription = stringResource(R.string.action_create),
-                    enabled = !uiState.loading && uiState.error == null && !uiState.submitting,
+                    enabled = !uiState.loading && !uiState.shouldShowPageError() && !uiState.submitting,
                     onClick = {
                         viewModel.clearOperationError()
                         showCreateDialog = true
@@ -116,7 +117,7 @@ fun ChannelScreen(
                 uiState.loading -> item {
                     LoadingStateCard(title = stringResource(R.string.channel_title))
                 }
-                uiState.error != null -> item {
+                uiState.shouldShowPageError() -> item {
                     ErrorStateCard(
                         message = uiState.error ?: stringResource(R.string.error_title),
                         onRetry = viewModel::refresh,
@@ -133,6 +134,9 @@ fun ChannelScreen(
                         }
                     }
                     if (!showCreateDialog && editingChannel == null) {
+                        uiState.error?.takeIf { it.isNotBlank() }?.let { error ->
+                            item { OperationErrorCard(message = error) }
+                        }
                         uiState.operationError?.takeIf { it.isNotBlank() }?.let { error ->
                             item { OperationErrorCard(message = error) }
                         }
@@ -157,7 +161,7 @@ fun ChannelScreen(
                                 onToggle = { viewModel.setEnabled(channel.id, it) },
                                 onEdit = {
                                     viewModel.clearOperationError()
-                                    editingChannel = channel
+                                    editingChannelId = channel.id
                                 },
                                 onDelete = { deletingId = channel.id },
                             )
@@ -219,14 +223,14 @@ fun ChannelScreen(
         onConfirm = { name, type, enabled, baseUrl, apiKey, model, customModel, proxy, autoSync ->
             editingChannel?.let { current ->
                 viewModel.updateChannel(current, name, type, enabled, baseUrl, apiKey, model, customModel, proxy, autoSync) {
-                    editingChannel = null
+                    editingChannelId = null
                     viewModel.clearOperationError()
                 }
             }
         },
         onDismiss = {
             if (!uiState.submitting) {
-                editingChannel = null
+                editingChannelId = null
                 viewModel.clearOperationError()
             }
         },
@@ -241,6 +245,11 @@ fun ChannelScreen(
         },
     )
 }
+
+internal fun resolveEditingChannel(
+    channels: List<Channel>,
+    editingChannelId: Int?,
+): Channel? = editingChannelId?.let { id -> channels.firstOrNull { it.id == id } }
 
 @Composable
 private fun ChannelRow(
@@ -561,7 +570,12 @@ private fun ChannelEditorDialog(
                     } else {
                         stringResource(R.string.common_confirm)
                     },
-                    enabled = !submitting && basicEditSupported && name.isNotBlank(),
+                    enabled = canSubmitChannelEditor(
+                        name = name,
+                        baseUrl = baseUrl,
+                        submitting = submitting,
+                        basicEditSupported = basicEditSupported,
+                    ),
                     onClick = {
                         onConfirm(name.trim(), type, enabled, baseUrl.trim(), apiKey.trim(), model.trim(), customModel.trim(), proxy, autoSync)
                     },

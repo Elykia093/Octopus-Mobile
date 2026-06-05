@@ -1,10 +1,52 @@
 package com.elykia.octopus.feature.setting
 
 import com.elykia.octopus.core.common.AppResult
+import com.elykia.octopus.core.data.model.ApiKeyItem
+import com.elykia.octopus.core.data.model.LatestInfo
+import com.elykia.octopus.core.data.model.SettingItem
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class DataTransferStateTest {
+    @Test
+    fun settingsPageErrorOnlyShowsWhenRefreshFailsWithoutCachedSections() {
+        assertThat(SettingUiState(error = "settings failed").shouldShowSettingsPageError()).isTrue()
+
+        assertThat(
+            SettingUiState(
+                sections = listOf(
+                    SettingSection(
+                        key = "system",
+                        title = "System",
+                        summary = "Cached settings.",
+                        items = listOf(SettingItem("proxy_url", "")),
+                    )
+                ),
+                error = "settings failed",
+            ).shouldShowSettingsPageError()
+        ).isFalse()
+    }
+
+    @Test
+    fun apiKeyPageErrorOnlyFollowsApiKeyListFailureWithoutCachedKeys() {
+        assertThat(
+            SettingUiState(apiKeyListError = "keys failed")
+                .shouldShowApiKeyPageError()
+        ).isTrue()
+
+        assertThat(
+            SettingUiState(
+                apiKeys = listOf(ApiKeyItem(id = 1, name = "Cached", apiKey = "")),
+                apiKeyListError = "keys failed",
+            ).shouldShowApiKeyPageError()
+        ).isFalse()
+
+        assertThat(
+            SettingUiState(error = "settings failed")
+                .shouldShowApiKeyPageError()
+        ).isFalse()
+    }
+
     @Test
     fun dataTransferStartClearsPreviousMessageAndError() {
         val state = SettingUiState(
@@ -79,6 +121,89 @@ class DataTransferStateTest {
     }
 
     @Test
+    fun settingRefreshSuccessClearsRecoveredPartialErrors() {
+        val state = buildSettingRefreshState(
+            previous = SettingUiState(
+                apiKeyListError = "old api error",
+                versionInfoError = "old version error",
+                modelLastUpdateError = "old model error",
+            ),
+            settingsResult = AppResult.Success(listOf(SettingItem("relay_log_keep_enabled", "true"))),
+            apiKeysResult = AppResult.Success(listOf(ApiKeyItem(id = 1, name = "Main", apiKey = ""))),
+            latestResult = AppResult.Success(LatestInfo(tagName = "v1.0.0", publishedAt = "2026-06-01")),
+            versionResult = AppResult.Success("v0.9.0"),
+            modelTimeResult = AppResult.Success("2026-06-01"),
+            username = "admin",
+            language = "zh-CN",
+            themeMode = 1,
+        )
+
+        assertThat(state.loading).isFalse()
+        assertThat(state.error).isNull()
+        assertThat(state.settings).containsExactly(SettingItem("relay_log_keep_enabled", "true"))
+        assertThat(state.apiKeys).containsExactly(ApiKeyItem(id = 1, name = "Main", apiKey = ""))
+        assertThat(state.latestInfo?.tagName).isEqualTo("v1.0.0")
+        assertThat(state.currentVersion).isEqualTo("v0.9.0")
+        assertThat(state.modelLastUpdateTime).isEqualTo("2026-06-01")
+        assertThat(state.apiKeyListError).isNull()
+        assertThat(state.versionInfoError).isNull()
+        assertThat(state.modelLastUpdateError).isNull()
+        assertThat(state.username).isEqualTo("admin")
+        assertThat(state.language).isEqualTo("zh-CN")
+        assertThat(state.themeMode).isEqualTo(1)
+    }
+
+    @Test
+    fun settingRefreshFailureKeepsPreviousPageDataAndUpdatesPartialResults() {
+        val previousApiKeys = listOf(ApiKeyItem(id = 1, name = "Old", apiKey = ""))
+        val previous = SettingUiState(
+            settings = listOf(SettingItem("relay_log_keep_enabled", "false")),
+            sections = listOf(
+                SettingSection(
+                    key = "log",
+                    title = "Log settings",
+                    summary = "Log retention settings.",
+                    items = listOf(SettingItem("relay_log_keep_enabled", "false")),
+                )
+            ),
+            apiKeys = previousApiKeys,
+            latestInfo = LatestInfo(tagName = "old", publishedAt = "2026-05-01"),
+            currentVersion = "old-current",
+            modelLastUpdateTime = "old-time",
+            apiKeyListError = "old api error",
+            versionInfoError = "old version error",
+            modelLastUpdateError = "old model error",
+        )
+
+        val state = buildSettingRefreshState(
+            previous = previous,
+            settingsResult = AppResult.Error("settings failed"),
+            apiKeysResult = AppResult.Success(listOf(ApiKeyItem(id = 2, name = "New", apiKey = ""))),
+            latestResult = AppResult.Success(LatestInfo(tagName = "new", publishedAt = "2026-06-01")),
+            versionResult = AppResult.Error("version failed"),
+            modelTimeResult = AppResult.Success("new-time"),
+            username = "operator",
+            language = "en",
+            themeMode = 2,
+        )
+
+        assertThat(state.loading).isFalse()
+        assertThat(state.error).isEqualTo("settings failed")
+        assertThat(state.settings).isEqualTo(previous.settings)
+        assertThat(state.sections).isEqualTo(previous.sections)
+        assertThat(state.apiKeys).containsExactly(ApiKeyItem(id = 2, name = "New", apiKey = ""))
+        assertThat(state.latestInfo?.tagName).isEqualTo("new")
+        assertThat(state.currentVersion).isEqualTo("old-current")
+        assertThat(state.modelLastUpdateTime).isEqualTo("new-time")
+        assertThat(state.apiKeyListError).isNull()
+        assertThat(state.versionInfoError).isEqualTo("version failed")
+        assertThat(state.modelLastUpdateError).isNull()
+        assertThat(state.username).isEqualTo("operator")
+        assertThat(state.language).isEqualTo("en")
+        assertThat(state.themeMode).isEqualTo(2)
+    }
+
+    @Test
     fun settingValidationAcceptsConfiguredBoundaries() {
         assertThat(validateSettingValue("stats_save_interval", "1")).isNull()
         assertThat(validateSettingValue("stats_save_interval", "1440")).isNull()
@@ -133,5 +258,15 @@ class DataTransferStateTest {
             .isEqualTo(SettingValidationIssue.InvalidCors)
         assertThat(validateSettingValue("cors_allow_origins", "ftp://app.example.com"))
             .isEqualTo(SettingValidationIssue.InvalidCors)
+    }
+
+    @Test
+    fun canSubmitSettingEditFollowsValidationRules() {
+        assertThat(canSubmitSettingEdit("stats_save_interval", "30")).isTrue()
+        assertThat(canSubmitSettingEdit("stats_save_interval", "0")).isFalse()
+        assertThat(canSubmitSettingEdit("proxy_url", "https://proxy.example.com")).isTrue()
+        assertThat(canSubmitSettingEdit("proxy_url", "https://user:pass@proxy.example.com")).isFalse()
+        assertThat(canSubmitSettingEdit("cors_allow_origins", "https://app.example.com")).isTrue()
+        assertThat(canSubmitSettingEdit("cors_allow_origins", "https://app.example.com/path")).isFalse()
     }
 }

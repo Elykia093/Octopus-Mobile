@@ -50,7 +50,6 @@ import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.FloatingNavigationBarDisplayMode
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
@@ -92,9 +91,9 @@ fun FloatingDockBar(
     selectedKey: String,
     onSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
-    mode: FloatingNavigationBarDisplayMode = FloatingNavigationBarDisplayMode.IconOnly,
 ) {
-    val dockShape = RoundedCornerShape(36.dp)
+    val dockShape = RoundedCornerShape(34.dp)
+    val itemShape = RoundedCornerShape(22.dp)
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         if (items.isEmpty()) return@BoxWithConstraints
 
@@ -103,37 +102,37 @@ fun FloatingDockBar(
         val sidePadding = when {
             ultraCompactDock -> 0.dp
             compactDock -> 4.dp
-            else -> 10.dp
+            else -> 12.dp
         }
         val gap = when {
             ultraCompactDock -> 0.dp
             compactDock -> 4.dp
-            else -> 7.dp
+            else -> 6.dp
         }
-        val dockMaxWidth = minOf(maxWidth, 352.dp)
+        val dockMaxWidth = minOf(maxWidth, 360.dp)
         val availableItemWidth = (dockMaxWidth - sidePadding * 2f - gap * (items.size - 1).toFloat()) / items.size.toFloat()
-        val maxItemSize = if (mode == FloatingNavigationBarDisplayMode.IconOnly) 50.dp else 58.dp
+        val maxItemSize = 52.dp
         val minItemSize = if (availableItemWidth >= 48.dp) 48.dp else availableItemWidth
         val itemSize = availableItemWidth.coerceIn(minItemSize, maxItemSize)
         val iconSize = (itemSize * 0.52f).coerceIn(20.dp, 27.dp)
         val dockWidth = (itemSize * items.size.toFloat() + sidePadding * 2f + gap * (items.size - 1).toFloat())
-            .coerceAtMost(352.dp)
+            .coerceAtMost(360.dp)
 
         Row(
             modifier = Modifier
                 .align(Alignment.Center)
                 .width(dockWidth)
                 .shadow(
-                    elevation = 18.dp,
+                    elevation = 22.dp,
                     shape = dockShape,
                     clip = false,
-                    ambientColor = Color.Black.copy(alpha = 0.10f),
-                    spotColor = Color.Black.copy(alpha = 0.16f),
+                    ambientColor = Color.Black.copy(alpha = 0.08f),
+                    spotColor = Color.Black.copy(alpha = 0.18f),
                 )
                 .clip(dockShape)
-                .background(OctopusTokens.Card.copy(alpha = 0.98f))
-                .border(1.dp, OctopusTokens.Border.copy(alpha = 0.9f), dockShape)
-                .padding(horizontal = sidePadding, vertical = 9.dp),
+                .background(OctopusTokens.Card.copy(alpha = 0.96f))
+                .border(1.dp, OctopusTokens.Border.copy(alpha = 0.82f), dockShape)
+                .padding(horizontal = sidePadding, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(gap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -142,8 +141,8 @@ fun FloatingDockBar(
                 Box(
                     modifier = Modifier
                         .size(itemSize)
-                        .clip(CircleShape)
-                        .background(if (selected) OctopusTokens.SelectedNav.copy(alpha = 0.92f) else Color.Transparent)
+                        .clip(itemShape)
+                        .background(if (selected) OctopusTokens.SelectedNav.copy(alpha = 0.94f) else Color.Transparent)
                         .clickable { onSelected(item.key) },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -178,7 +177,7 @@ fun AppSegmentButton(
         Text(
             text = text,
             style = MiuixTheme.textStyles.body2,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
             color = OctopusTokens.TextPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -247,11 +246,21 @@ fun PageContainer(
             .background(
                 Brush.radialGradient(
                     colors = listOf(
-                        OctopusTokens.PrimarySoft.copy(alpha = 0.95f),
+                        OctopusTokens.GlowPrimary.copy(alpha = 0.82f),
                         Color.Transparent,
                     ),
-                    center = Offset(760f, 120f),
-                    radius = 620f,
+                    center = Offset(780f, 110f),
+                    radius = 640f,
+                )
+            )
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        OctopusTokens.GlowSecondary.copy(alpha = 0.42f),
+                        Color.Transparent,
+                    ),
+                    center = Offset(-120f, 980f),
+                    radius = 720f,
                 )
             ),
     ) {
@@ -823,7 +832,7 @@ fun ProgressToneBar(
     color: Color,
     modifier: Modifier = Modifier,
 ) {
-    val clamped = progress.coerceIn(0f, 1f)
+    val clamped = progress.normalizedProgress()
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -838,6 +847,9 @@ fun ProgressToneBar(
         )
     }
 }
+
+internal fun Float.normalizedProgress(): Float =
+    if (isNaN() || isInfinite()) 0f else coerceIn(0f, 1f)
 
 fun formatPercent(value: Double): String = "${(value * 100).roundToInt()}%"
 

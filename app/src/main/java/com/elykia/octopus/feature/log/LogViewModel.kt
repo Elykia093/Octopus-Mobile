@@ -23,6 +23,9 @@ data class LogUiState(
     val clearError: String? = null,
 )
 
+internal fun LogUiState.shouldShowPageError(): Boolean =
+    error != null && logs.isEmpty()
+
 internal fun LogUiState.clearLogsStarted(): LogUiState = copy(
     clearing = true,
     clearError = null,

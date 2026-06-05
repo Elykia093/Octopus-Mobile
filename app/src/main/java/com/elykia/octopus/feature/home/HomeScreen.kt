@@ -110,7 +110,7 @@ fun HomeScreen(
             }
             when {
                 uiState.loading -> LoadingStateCard(title = stringResource(R.string.home_title))
-                uiState.error != null -> ErrorStateCard(
+                uiState.shouldShowPageError() -> ErrorStateCard(
                     message = uiState.error ?: stringResource(R.string.error_title),
                     onRetry = viewModel::refresh,
                 )
@@ -119,6 +119,9 @@ fun HomeScreen(
                     summary = stringResource(R.string.home_empty),
                 )
                 else -> {
+                    uiState.error?.takeIf { it.isNotBlank() }?.let { error ->
+                        OperationErrorCard(message = error)
+                    }
                     uiState.partialErrors().forEach { error ->
                         OperationErrorCard(message = error)
                     }
@@ -334,8 +337,8 @@ private fun DashboardMetricTile(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(OctopusTokens.Muted.copy(alpha = 0.72f))
-            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.72f), RoundedCornerShape(20.dp))
+            .background(OctopusTokens.Muted.copy(alpha = 0.78f))
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.58f), RoundedCornerShape(20.dp))
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -344,7 +347,7 @@ private fun DashboardMetricTile(
             modifier = Modifier
                 .size(36.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(accent.copy(alpha = 0.13f)),
+                .background(accent.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -390,8 +393,8 @@ private fun DashboardBreakdownLine(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(OctopusTokens.Muted.copy(alpha = 0.64f))
-            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.68f), RoundedCornerShape(20.dp))
+            .background(OctopusTokens.Muted.copy(alpha = 0.74f))
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.56f), RoundedCornerShape(20.dp))
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -400,7 +403,7 @@ private fun DashboardBreakdownLine(
             modifier = Modifier
                 .size(40.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(accent.copy(alpha = 0.13f)),
+                .background(accent.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

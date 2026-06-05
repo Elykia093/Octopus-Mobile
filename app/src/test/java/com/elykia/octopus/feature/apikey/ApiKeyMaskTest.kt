@@ -56,4 +56,49 @@ class ApiKeyMaskTest {
                 .isEqualTo(ApiKeyEditorValidationIssue.InvalidMaxCost)
         }
     }
+
+    @Test
+    fun canSubmitApiKeyEditorRequiresValidLimitsNameAndIdleState() {
+        assertThat(
+            canSubmitApiKeyEditor(
+                name = "mobile key",
+                expireAt = "100",
+                maxCost = "2.5",
+                submitting = false,
+            )
+        ).isTrue()
+
+        assertThat(
+            canSubmitApiKeyEditor(
+                name = " ",
+                expireAt = "100",
+                maxCost = "2.5",
+                submitting = false,
+            )
+        ).isFalse()
+        assertThat(
+            canSubmitApiKeyEditor(
+                name = "mobile key",
+                expireAt = "-1",
+                maxCost = "2.5",
+                submitting = false,
+            )
+        ).isFalse()
+        assertThat(
+            canSubmitApiKeyEditor(
+                name = "mobile key",
+                expireAt = "100",
+                maxCost = "NaN",
+                submitting = false,
+            )
+        ).isFalse()
+        assertThat(
+            canSubmitApiKeyEditor(
+                name = "mobile key",
+                expireAt = "100",
+                maxCost = "2.5",
+                submitting = true,
+            )
+        ).isFalse()
+    }
 }

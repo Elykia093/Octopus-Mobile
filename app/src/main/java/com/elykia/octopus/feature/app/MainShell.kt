@@ -23,7 +23,6 @@ import com.elykia.octopus.feature.log.LogScreen
 import com.elykia.octopus.feature.setting.SettingScreen
 import com.elykia.octopus.navigation.MainTab
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.FloatingNavigationBarDisplayMode
 
 @Composable
 fun MainShell(
@@ -50,7 +49,6 @@ fun MainShell(
                 items = dockItems,
                 selectedKey = currentTab.route,
                 onSelected = { route -> currentTab = MainTab.entries.first { it.route == route } },
-                mode = FloatingNavigationBarDisplayMode.IconOnly,
             )
         },
     ) { padding ->

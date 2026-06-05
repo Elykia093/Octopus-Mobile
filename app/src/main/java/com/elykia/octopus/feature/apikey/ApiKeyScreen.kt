@@ -58,6 +58,7 @@ import com.elykia.octopus.core.designsystem.SoftIconTile
 import com.elykia.octopus.core.designsystem.formatMoney
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import com.elykia.octopus.feature.setting.SettingViewModel
+import com.elykia.octopus.feature.setting.shouldShowApiKeyPageError
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -96,7 +97,7 @@ fun ApiKeyScreen(
                 PageActionButton(
                     icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
                     contentDescription = stringResource(R.string.action_open_search),
-                    enabled = !uiState.loading && uiState.error == null,
+                    enabled = !uiState.loading && !uiState.shouldShowApiKeyPageError(),
                     onClick = {
                         searchVisible = !searchVisible
                         if (!searchVisible) searchTerm = ""
@@ -105,7 +106,7 @@ fun ApiKeyScreen(
                 PageActionButton(
                     icon = AppMiuixIcons.Add,
                     contentDescription = stringResource(R.string.action_create),
-                    enabled = !uiState.loading && uiState.error == null && !uiState.apiKeySubmitting,
+                    enabled = !uiState.loading && !uiState.shouldShowApiKeyPageError() && !uiState.apiKeySubmitting,
                     onClick = {
                         viewModel.clearApiKeyOperationError()
                         showCreateDialog = true
@@ -118,9 +119,9 @@ fun ApiKeyScreen(
                 uiState.loading -> item {
                     LoadingStateCard(title = stringResource(R.string.apikey_title))
                 }
-                uiState.error != null -> item {
+                uiState.shouldShowApiKeyPageError() -> item {
                     ErrorStateCard(
-                        message = uiState.error ?: stringResource(R.string.error_title),
+                        message = uiState.apiKeyListError ?: stringResource(R.string.error_title),
                         onRetry = viewModel::refresh,
                     )
                 }
@@ -135,6 +136,9 @@ fun ApiKeyScreen(
                         }
                     }
                     if (!showCreateDialog && editingItem == null) {
+                        uiState.error?.takeIf { it.isNotBlank() }?.let { error ->
+                            item { OperationErrorCard(message = error) }
+                        }
                         uiState.apiKeyListError?.takeIf { it.isNotBlank() }?.let { error ->
                             item { OperationErrorCard(message = error) }
                         }
@@ -411,6 +415,23 @@ internal fun parseApiKeyEditorValues(
     )
 }
 
+internal fun apiKeyEditorValidationIssue(
+    expireAt: String,
+    maxCost: String,
+): ApiKeyEditorValidationIssue? =
+    (parseApiKeyEditorValues(expireAt = expireAt, maxCost = maxCost).exceptionOrNull() as? ApiKeyEditorValidationException)
+        ?.issue
+
+internal fun canSubmitApiKeyEditor(
+    name: String,
+    expireAt: String,
+    maxCost: String,
+    submitting: Boolean,
+): Boolean =
+    !submitting &&
+        name.isNotBlank() &&
+        apiKeyEditorValidationIssue(expireAt = expireAt, maxCost = maxCost) == null
+
 private fun parseOptionalNonNegativeLong(value: String): Long? {
     val trimmed = value.trim()
     if (trimmed.isBlank()) return 0L
@@ -508,13 +529,32 @@ private fun ApiKeyEditorDialog(
 ) {
     if (!visible) return
 
-    var name by remember(initialItem?.id, visible) { mutableStateOf(initialItem?.name.orEmpty()) }
-    var expireAt by remember(initialItem?.id, visible) { mutableStateOf(initialItem?.expireAt?.toString().orEmpty()) }
-    var maxCost by remember(initialItem?.id, visible) { mutableStateOf(initialItem?.maxCost?.toString().orEmpty()) }
-    var supportedModels by remember(initialItem?.id, visible) { mutableStateOf(initialItem?.supportedModels.orEmpty()) }
-    var enabled by remember(initialItem?.id, visible) { mutableStateOf(initialItem?.enabled ?: true) }
-    var validationIssue by remember(initialItem?.id, visible) { mutableStateOf<ApiKeyEditorValidationIssue?>(null) }
+    var name by remember(initialItem?.id, initialItem?.name, visible) {
+        mutableStateOf(initialItem?.name.orEmpty())
+    }
+    var expireAt by remember(initialItem?.id, initialItem?.expireAt, visible) {
+        mutableStateOf(initialItem?.expireAt?.toString().orEmpty())
+    }
+    var maxCost by remember(initialItem?.id, initialItem?.maxCost, visible) {
+        mutableStateOf(initialItem?.maxCost?.toString().orEmpty())
+    }
+    var supportedModels by remember(initialItem?.id, initialItem?.supportedModels, visible) {
+        mutableStateOf(initialItem?.supportedModels.orEmpty())
+    }
+    var enabled by remember(initialItem?.id, initialItem?.enabled, visible) {
+        mutableStateOf(initialItem?.enabled ?: true)
+    }
+    var validationIssue by remember(
+        initialItem?.id,
+        initialItem?.expireAt,
+        initialItem?.maxCost,
+        visible,
+    ) {
+        mutableStateOf<ApiKeyEditorValidationIssue?>(null)
+    }
     val editorScrollState = rememberScrollState()
+    val currentValidationIssue = apiKeyEditorValidationIssue(expireAt = expireAt, maxCost = maxCost)
+        ?: validationIssue
 
     OverlayDialog(
         show = visible,
@@ -567,7 +607,7 @@ private fun ApiKeyEditorDialog(
                     enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                validationIssue?.let { issue ->
+                currentValidationIssue?.let { issue ->
                     OperationErrorCard(message = apiKeyEditorValidationMessage(issue))
                 }
                 TextField(
@@ -600,7 +640,12 @@ private fun ApiKeyEditorDialog(
                     } else {
                         stringResource(R.string.common_confirm)
                     },
-                    enabled = !submitting && name.isNotBlank(),
+                    enabled = canSubmitApiKeyEditor(
+                        name = name,
+                        expireAt = expireAt,
+                        maxCost = maxCost,
+                        submitting = submitting,
+                    ),
                     colors = ButtonDefaults.textButtonColorsPrimary(),
                     onClick = {
                         val parsedValues = parseApiKeyEditorValues(

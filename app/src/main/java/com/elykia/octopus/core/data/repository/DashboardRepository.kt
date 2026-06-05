@@ -111,7 +111,7 @@ class DashboardRepository @Inject constructor(
     }
 
     suspend fun logs(page: Int = 1, pageSize: Int = 20): AppResult<List<RelayLog>> = withContext(dispatchers.io) {
-        when (val result = executor.execute { apiService.logs(page, pageSize) }) {
+        when (val result = executor.executeNullable { apiService.logs(page, pageSize) }) {
             is AppResult.Success -> AppResult.Success(result.data?.map { it.withHiddenContent() } ?: emptyList())
             is AppResult.Error -> result
         }

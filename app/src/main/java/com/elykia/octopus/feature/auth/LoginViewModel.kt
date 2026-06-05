@@ -13,7 +13,7 @@ import javax.inject.Inject
 data class LoginUiState(
     val serverUrl: String = "",
     val showServerField: Boolean = false,
-    val username: String = "admin",
+    val username: String = DEFAULT_LOGIN_USERNAME,
     val password: String = "",
     val passwordVisible: Boolean = false,
     val expireDays: String = "7",
@@ -58,8 +58,13 @@ class LoginViewModel @Inject constructor(
     fun submit(onSuccess: () -> Unit) {
         viewModelScope.launch {
             if (_uiState.value.isLoading) return@launch
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val state = _uiState.value
+            val inputError = loginInputError(state)
+            if (inputError != null) {
+                _uiState.value = state.copy(error = inputError)
+                return@launch
+            }
+            _uiState.value = state.copy(isLoading = true, error = null)
             val days = parseLoginExpireDays(state.expireDays)
             if (days == null) {
                 _uiState.value = _uiState.value.copy(
@@ -81,7 +86,7 @@ class LoginViewModel @Inject constructor(
             }
 
             // 登录
-            when (val result = appRepository.login(state.username, state.password, days)) {
+            when (val result = appRepository.login(state.username.trim(), state.password, days)) {
                 is AppResult.Success -> {
                     _uiState.value = _uiState.value.copy(isLoading = false)
                     onSuccess()
@@ -94,7 +99,28 @@ class LoginViewModel @Inject constructor(
     }
 }
 
+internal fun canSubmitLogin(state: LoginUiState): Boolean =
+    !state.isLoading && loginInputError(state) == null
+
+internal fun loginInlineError(state: LoginUiState): String? {
+    val error = loginInputError(state) ?: return null
+    val userHasStartedInput = state.username != DEFAULT_LOGIN_USERNAME ||
+        state.password.isNotBlank() ||
+        (state.showServerField && state.serverUrl.isNotBlank()) ||
+        (state.expireDays.isNotBlank() && parseLoginExpireDays(state.expireDays) == null)
+    return error.takeIf { userHasStartedInput }
+}
+
+internal fun loginInputError(state: LoginUiState): String? = when {
+    state.showServerField && state.serverUrl.isBlank() -> "请输入服务器地址。"
+    state.username.isBlank() -> "请输入用户名。"
+    state.password.isBlank() -> "请输入密码。"
+    parseLoginExpireDays(state.expireDays) == null -> "请输入 1 到 3650 之间的令牌天数。"
+    else -> null
+}
+
 internal fun parseLoginExpireDays(value: String): Int? =
     value.trim().toIntOrNull()?.takeIf { it in 1..MAX_LOGIN_EXPIRE_DAYS }
 
+private const val DEFAULT_LOGIN_USERNAME = "admin"
 private const val MAX_LOGIN_EXPIRE_DAYS = 3650

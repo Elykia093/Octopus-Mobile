@@ -79,7 +79,7 @@ fun GroupScreen(
     var deletingId by remember { mutableStateOf<Int?>(null) }
     var searchTerm by remember { mutableStateOf("") }
     var searchVisible by remember { mutableStateOf(false) }
-    var editingGroup by remember { mutableStateOf<Group?>(null) }
+    var editingGroupId by remember { mutableStateOf<Int?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
     val expanded = remember { mutableStateMapOf<Int, Boolean>() }
 
@@ -97,6 +97,7 @@ fun GroupScreen(
     val modelCandidates = remember(uiState.channels, uiState.modelChannels) {
         buildGroupModelCandidates(uiState.channels, uiState.modelChannels)
     }
+    val editingGroup = resolveEditingGroup(uiState.groups, editingGroupId)
 
     Box(modifier = Modifier.fillMaxSize()) {
         AppLazyPageScaffold(
@@ -105,7 +106,7 @@ fun GroupScreen(
                 PageActionButton(
                     icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
                     contentDescription = stringResource(R.string.action_open_search),
-                    enabled = !uiState.loading && uiState.error == null,
+                    enabled = !uiState.loading && !uiState.shouldShowPageError(),
                     onClick = {
                         searchVisible = !searchVisible
                         if (!searchVisible) searchTerm = ""
@@ -114,7 +115,7 @@ fun GroupScreen(
                 PageActionButton(
                     icon = AppMiuixIcons.Add,
                     contentDescription = stringResource(R.string.action_create),
-                    enabled = !uiState.loading && uiState.error == null && !uiState.submitting,
+                    enabled = !uiState.loading && !uiState.shouldShowPageError() && !uiState.submitting,
                     onClick = {
                         viewModel.clearOperationError()
                         showCreateDialog = true
@@ -127,7 +128,7 @@ fun GroupScreen(
                 uiState.loading -> item {
                     LoadingStateCard(title = stringResource(R.string.group_title))
                 }
-                uiState.error != null -> item {
+                uiState.shouldShowPageError() -> item {
                     ErrorStateCard(
                         message = uiState.error ?: stringResource(R.string.error_title),
                         onRetry = viewModel::refresh,
@@ -144,6 +145,9 @@ fun GroupScreen(
                         }
                     }
                     if (!showCreateDialog && editingGroup == null) {
+                        uiState.error?.takeIf { it.isNotBlank() }?.let { error ->
+                            item { OperationErrorCard(message = error) }
+                        }
                         uiState.channelListError?.takeIf { it.isNotBlank() }?.let { error ->
                             item { OperationErrorCard(message = error) }
                         }
@@ -175,7 +179,7 @@ fun GroupScreen(
                                 onToggleExpanded = { expanded[group.id] = !(expanded[group.id] == true) },
                                 onEdit = {
                                     viewModel.clearOperationError()
-                                    editingGroup = group
+                                    editingGroupId = group.id
                                 },
                                 onDelete = { deletingId = group.id },
                             )
@@ -230,19 +234,24 @@ fun GroupScreen(
         onConfirm = { name, mode, matchRegex, timeout, keepTime, retryEnabled, maxRetries, items ->
             editingGroup?.let { current ->
                 viewModel.updateGroup(current, name, mode, matchRegex, timeout, keepTime, retryEnabled, maxRetries, items) {
-                    editingGroup = null
+                    editingGroupId = null
                     viewModel.clearOperationError()
                 }
             }
         },
         onDismiss = {
             if (!uiState.submitting) {
-                editingGroup = null
+                editingGroupId = null
                 viewModel.clearOperationError()
             }
         },
     )
 }
+
+internal fun resolveEditingGroup(
+    groups: List<Group>,
+    editingGroupId: Int?,
+): Group? = editingGroupId?.let { id -> groups.firstOrNull { it.id == id } }
 
 @Composable
 private fun GroupRow(
@@ -535,6 +544,39 @@ internal fun parseGroupEditorValues(
     )
 }
 
+internal fun groupEditorValidationIssue(
+    firstTokenTimeOut: String,
+    sessionKeepTime: String,
+    retryEnabled: Boolean,
+    maxRetries: String,
+): GroupEditorValidationIssue? =
+    (parseGroupEditorValues(
+        firstTokenTimeOut = firstTokenTimeOut,
+        sessionKeepTime = sessionKeepTime,
+        retryEnabled = retryEnabled,
+        maxRetries = maxRetries,
+    ).exceptionOrNull() as? GroupEditorValidationException)
+        ?.issue
+
+internal fun canSubmitGroupEditor(
+    name: String,
+    firstTokenTimeOut: String,
+    sessionKeepTime: String,
+    retryEnabled: Boolean,
+    maxRetries: String,
+    hasValidItems: Boolean,
+    submitting: Boolean,
+): Boolean =
+    !submitting &&
+        name.isNotBlank() &&
+        hasValidItems &&
+        groupEditorValidationIssue(
+            firstTokenTimeOut = firstTokenTimeOut,
+            sessionKeepTime = sessionKeepTime,
+            retryEnabled = retryEnabled,
+            maxRetries = maxRetries,
+        ) == null
+
 private fun parseOptionalNonNegativeInt(value: String): Int? {
     val trimmed = value.trim()
     if (trimmed.isBlank()) return 0
@@ -553,6 +595,18 @@ internal class GroupEditorValidationException(
 
 internal fun parseGroupItemNonNegativeInt(value: String): Int? =
     value.trim().toIntOrNull()?.takeIf { it >= 0 }
+
+internal data class GroupItemNumberInput(
+    val displayValue: String,
+    val value: Int,
+)
+
+internal fun parseGroupItemNumberInput(value: String): GroupItemNumberInput? {
+    val trimmed = value.trim()
+    if (trimmed.isBlank()) return GroupItemNumberInput(displayValue = "", value = 0)
+    val parsed = trimmed.toIntOrNull()?.takeIf { it >= 0 } ?: return null
+    return GroupItemNumberInput(displayValue = trimmed, value = parsed)
+}
 
 @Composable
 private fun GroupEditorDialog(
@@ -597,6 +651,12 @@ private fun GroupEditorDialog(
     )
     val hasValidItems = items.all { it.modelName.isNotBlank() }
     val editorScrollState = rememberScrollState()
+    val currentValidationIssue = groupEditorValidationIssue(
+        firstTokenTimeOut = firstTokenTimeOut,
+        sessionKeepTime = sessionKeepTime,
+        retryEnabled = retryEnabled,
+        maxRetries = maxRetries,
+    ) ?: validationIssue
 
     OverlayDialog(
         show = visible,
@@ -705,7 +765,7 @@ private fun GroupEditorDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                validationIssue?.let { issue ->
+                currentValidationIssue?.let { issue ->
                     OperationErrorCard(message = groupEditorValidationMessage(issue))
                 }
 
@@ -777,7 +837,15 @@ private fun GroupEditorDialog(
                     } else {
                         stringResource(R.string.common_confirm)
                     },
-                    enabled = !submitting && name.isNotBlank() && hasValidItems,
+                    enabled = canSubmitGroupEditor(
+                        name = name,
+                        firstTokenTimeOut = firstTokenTimeOut,
+                        sessionKeepTime = sessionKeepTime,
+                        retryEnabled = retryEnabled,
+                        maxRetries = maxRetries,
+                        hasValidItems = hasValidItems,
+                        submitting = submitting,
+                    ),
                     onClick = {
                         val parsedValues = parseGroupEditorValues(
                             firstTokenTimeOut = firstTokenTimeOut,
@@ -839,6 +907,13 @@ private fun GroupItemEditorRow(
     onDelete: () -> Unit,
     enabled: Boolean,
 ) {
+    var priorityText by remember(item.id, item.groupId, item.channelId, item.modelName) {
+        mutableStateOf(item.priority.toString())
+    }
+    var weightText by remember(item.id, item.groupId, item.channelId, item.modelName) {
+        mutableStateOf(item.weight.toString())
+    }
+
     AppListCard {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             AppInfoChip(
@@ -860,10 +935,11 @@ private fun GroupItemEditorRow(
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextField(
-                    value = item.priority.toString(),
+                    value = priorityText,
                     onValueChange = { value ->
-                        parseGroupItemNonNegativeInt(value)?.let { priority ->
-                            onChange(item.copy(priority = priority))
+                        parseGroupItemNumberInput(value)?.let { input ->
+                            priorityText = input.displayValue
+                            onChange(item.copy(priority = input.value))
                         }
                     },
                     label = stringResource(R.string.group_item_priority_hint),
@@ -873,10 +949,11 @@ private fun GroupItemEditorRow(
                     modifier = Modifier.weight(1f),
                 )
                 TextField(
-                    value = item.weight.toString(),
+                    value = weightText,
                     onValueChange = { value ->
-                        parseGroupItemNonNegativeInt(value)?.let { weight ->
-                            onChange(item.copy(weight = weight))
+                        parseGroupItemNumberInput(value)?.let { input ->
+                            weightText = input.displayValue
+                            onChange(item.copy(weight = input.value))
                         }
                     },
                     label = stringResource(R.string.group_item_weight_hint),

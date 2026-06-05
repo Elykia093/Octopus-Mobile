@@ -170,6 +170,99 @@ class GroupUpdateRequestBuilderTest {
     }
 
     @Test
+    fun canSubmitGroupEditorRequiresValidInputItemsAndIdleState() {
+        assertThat(
+            canSubmitGroupEditor(
+                name = "default",
+                firstTokenTimeOut = "30",
+                sessionKeepTime = "120",
+                retryEnabled = true,
+                maxRetries = "3",
+                hasValidItems = true,
+                submitting = false,
+            )
+        ).isTrue()
+
+        assertThat(
+            canSubmitGroupEditor(
+                name = " ",
+                firstTokenTimeOut = "30",
+                sessionKeepTime = "120",
+                retryEnabled = true,
+                maxRetries = "3",
+                hasValidItems = true,
+                submitting = false,
+            )
+        ).isFalse()
+        assertThat(
+            canSubmitGroupEditor(
+                name = "default",
+                firstTokenTimeOut = "-1",
+                sessionKeepTime = "120",
+                retryEnabled = true,
+                maxRetries = "3",
+                hasValidItems = true,
+                submitting = false,
+            )
+        ).isFalse()
+        assertThat(
+            canSubmitGroupEditor(
+                name = "default",
+                firstTokenTimeOut = "30",
+                sessionKeepTime = "-1",
+                retryEnabled = true,
+                maxRetries = "3",
+                hasValidItems = true,
+                submitting = false,
+            )
+        ).isFalse()
+        assertThat(
+            canSubmitGroupEditor(
+                name = "default",
+                firstTokenTimeOut = "30",
+                sessionKeepTime = "120",
+                retryEnabled = true,
+                maxRetries = "0",
+                hasValidItems = true,
+                submitting = false,
+            )
+        ).isFalse()
+        assertThat(
+            canSubmitGroupEditor(
+                name = "default",
+                firstTokenTimeOut = "30",
+                sessionKeepTime = "120",
+                retryEnabled = false,
+                maxRetries = "0",
+                hasValidItems = true,
+                submitting = false,
+            )
+        ).isTrue()
+        assertThat(
+            canSubmitGroupEditor(
+                name = "default",
+                firstTokenTimeOut = "30",
+                sessionKeepTime = "120",
+                retryEnabled = true,
+                maxRetries = "3",
+                hasValidItems = false,
+                submitting = false,
+            )
+        ).isFalse()
+        assertThat(
+            canSubmitGroupEditor(
+                name = "default",
+                firstTokenTimeOut = "30",
+                sessionKeepTime = "120",
+                retryEnabled = true,
+                maxRetries = "3",
+                hasValidItems = true,
+                submitting = true,
+            )
+        ).isFalse()
+    }
+
+    @Test
     fun parseGroupItemNonNegativeIntRejectsInvalidValues() {
         assertThat(parseGroupItemNonNegativeInt("0")).isEqualTo(0)
         assertThat(parseGroupItemNonNegativeInt("42")).isEqualTo(42)
@@ -177,5 +270,28 @@ class GroupUpdateRequestBuilderTest {
         assertThat(parseGroupItemNonNegativeInt("1.5")).isNull()
         assertThat(parseGroupItemNonNegativeInt("abc")).isNull()
         assertThat(parseGroupItemNonNegativeInt("")).isNull()
+    }
+
+    @Test
+    fun parseGroupItemNumberInputAllowsBlankDisplayWithZeroValue() {
+        val blank = parseGroupItemNumberInput("")
+        val spaces = parseGroupItemNumberInput("   ")
+
+        assertThat(blank).isEqualTo(GroupItemNumberInput(displayValue = "", value = 0))
+        assertThat(spaces).isEqualTo(GroupItemNumberInput(displayValue = "", value = 0))
+    }
+
+    @Test
+    fun parseGroupItemNumberInputKeepsTypedDisplayForValidNumbers() {
+        val parsed = parseGroupItemNumberInput(" 007 ")
+
+        assertThat(parsed).isEqualTo(GroupItemNumberInput(displayValue = "007", value = 7))
+    }
+
+    @Test
+    fun parseGroupItemNumberInputRejectsInvalidNumbers() {
+        assertThat(parseGroupItemNumberInput("-1")).isNull()
+        assertThat(parseGroupItemNumberInput("1.5")).isNull()
+        assertThat(parseGroupItemNumberInput("abc")).isNull()
     }
 }
