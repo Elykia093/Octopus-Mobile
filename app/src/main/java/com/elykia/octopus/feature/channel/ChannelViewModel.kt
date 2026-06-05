@@ -14,7 +14,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import javax.inject.Inject
 
 data class ChannelUiState(
@@ -404,31 +403,3 @@ private fun Channel.toFetchRequest(): ChannelFetchModelRequest = ChannelFetchMod
     matchRegex = matchRegex,
     customHeader = customHeader,
 )
-
-internal fun hasValidChannelBaseUrl(baseUrl: String): Boolean =
-    baseUrl.isBlank() || baseUrl.trim().toHttpUrlOrNull()?.let { url ->
-        url.scheme == "https" &&
-            url.encodedUsername.isBlank() &&
-            url.encodedPassword.isBlank() &&
-            url.encodedQuery == null &&
-            url.encodedFragment == null
-    } == true
-
-internal fun canSubmitChannelEditor(
-    name: String,
-    baseUrl: String,
-    submitting: Boolean,
-    basicEditSupported: Boolean,
-): Boolean =
-    !submitting &&
-        basicEditSupported &&
-        name.isNotBlank() &&
-        hasValidChannelBaseUrl(baseUrl)
-
-internal fun Channel.canUseBasicMobileEditor(): Boolean =
-    baseUrls.size <= 1 &&
-        keys.size <= 1 &&
-        customHeader.isEmpty() &&
-        channelProxy.isNullOrBlank() &&
-        matchRegex.isNullOrBlank() &&
-        paramOverride.isNullOrBlank()

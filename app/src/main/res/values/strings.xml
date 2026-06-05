@@ -393,4 +393,30 @@
     <string name="message_network_error">Network error.</string>
     <string name="message_serialization_error">Serialization error.</string>
     <string name="message_session_validation_failed">Session validation failed.</string>
+
+    <!-- Batch operations -->
+    <string name="batch_selected_count">%d selected</string>
+    <string name="batch_exit_selection">Exit selection</string>
+    <string name="batch_select_all">Select all</string>
+    <string name="batch_operations">Batch operations</string>
+    <string name="batch_enable">Enable</string>
+    <string name="batch_disable">Disable</string>
+    <string name="batch_delete">Delete</string>
+
+    <string name="batch_delete_channels_title">Batch delete channels</string>
+    <string name="batch_delete_channels_summary">Delete %d selected channels? This cannot be undone.</string>
+    <string name="batch_delete_groups_title">Batch delete groups</string>
+    <string name="batch_delete_groups_summary">Delete %d selected groups? This cannot be undone.</string>
+    <string name="batch_delete_apikeys_title">Batch delete API Keys</string>
+    <string name="batch_delete_apikeys_summary">Delete %d selected API Keys? This cannot be undone.</string>
+
+    <string name="batch_enable_title">Batch enable</string>
+    <string name="batch_disable_title">Batch disable</string>
+    <string name="batch_enable_summary">Enable %d selected items?</string>
+    <string name="batch_disable_summary">Disable %d selected items?</string>
+
+    <string name="batch_progress_deleting">Deleting %1$d/%2$d…</string>
+    <string name="batch_progress_enabling">Enabling %1$d/%2$d…</string>
+    <string name="batch_progress_disabling">Disabling %1$d/%2$d…</string>
+    <string name="batch_result_success">%1$d succeeded, %2$d failed</string>
 </resources>

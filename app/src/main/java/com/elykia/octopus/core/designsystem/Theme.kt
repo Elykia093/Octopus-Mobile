@@ -22,40 +22,34 @@ private data class OctopusPalette(
     val primarySoft: Color,
     val selectedNav: Color,
     val navMuted: Color,
-    val glowPrimary: Color,
-    val glowSecondary: Color,
 )
 
 private val LightOctopusPalette = OctopusPalette(
-    accent = Color(0xFF5BA567),
+    accent = Color(0xFF4F8F66),
     onAccent = Color(0xFFFFFFFF),
-    canvas = Color(0xFFEEECE4),
-    card = Color(0xFFFEFCFA),
-    muted = Color(0xFFF1EFE8),
-    border = Color(0xFFDED9CF),
-    textPrimary = Color(0xFF352F27),
-    textSecondary = Color(0xFF777168),
-    primarySoft = Color(0xFFE3ECDF),
-    selectedNav = Color(0xFFE9DBBE),
-    navMuted = Color(0xFF89847B),
-    glowPrimary = Color(0xFFC9DFC9),
-    glowSecondary = Color(0xFFDDEAE8),
+    canvas = Color(0xFFF5F6F1),
+    card = Color(0xFFFFFFFF),
+    muted = Color(0xFFECEFE8),
+    border = Color(0xFFD8DED5),
+    textPrimary = Color(0xFF252B27),
+    textSecondary = Color(0xFF626B64),
+    primarySoft = Color(0xFFDFEEE4),
+    selectedNav = Color(0xFFE5F0E7),
+    navMuted = Color(0xFF6F776F),
 )
 
 private val DarkOctopusPalette = OctopusPalette(
-    accent = Color(0xFF82C98A),
-    onAccent = Color(0xFF1A2B1D),
-    canvas = Color(0xFF171A16),
-    card = Color(0xFF23261F),
-    muted = Color(0xFF2B2E27),
-    border = Color(0xFF3B4036),
-    textPrimary = Color(0xFFF2EFE7),
-    textSecondary = Color(0xFFB8B2A7),
-    primarySoft = Color(0xFF283A2C),
-    selectedNav = Color(0xFF4A3E28),
-    navMuted = Color(0xFFA7A094),
-    glowPrimary = Color(0xFF24422A),
-    glowSecondary = Color(0xFF21353A),
+    accent = Color(0xFF7BCB93),
+    onAccent = Color(0xFF102217),
+    canvas = Color(0xFF111512),
+    card = Color(0xFF1B211D),
+    muted = Color(0xFF252B26),
+    border = Color(0xFF344036),
+    textPrimary = Color(0xFFF4F6F0),
+    textSecondary = Color(0xFFA9B3AA),
+    primarySoft = Color(0xFF23382B),
+    selectedNav = Color(0xFF294332),
+    navMuted = Color(0xFF8F9A91),
 )
 
 private val LocalOctopusPalette = staticCompositionLocalOf { LightOctopusPalette }
@@ -84,10 +78,6 @@ object OctopusTokens {
         @Composable get() = LocalOctopusPalette.current.selectedNav
     val NavMuted: Color
         @Composable get() = LocalOctopusPalette.current.navMuted
-    val GlowPrimary: Color
-        @Composable get() = LocalOctopusPalette.current.glowPrimary
-    val GlowSecondary: Color
-        @Composable get() = LocalOctopusPalette.current.glowSecondary
 }
 
 @Composable

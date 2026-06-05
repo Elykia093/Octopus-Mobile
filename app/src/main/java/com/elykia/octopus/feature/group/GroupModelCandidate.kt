@@ -1,7 +1,6 @@
 package com.elykia.octopus.feature.group
 
 import com.elykia.octopus.core.data.model.Channel
-import com.elykia.octopus.core.data.model.GroupItem
 import com.elykia.octopus.core.data.model.LlmChannel
 
 internal data class GroupModelCandidateKey(
@@ -54,9 +53,6 @@ internal fun buildGroupModelCandidates(
         .distinctBy { it.key }
         .sortedWith(compareBy<GroupModelCandidate> { it.channelId }.thenBy { it.modelName.lowercase() })
 }
-
-internal fun nextGroupItemPriority(items: List<GroupItem>): Int =
-    (items.maxOfOrNull { it.priority } ?: 0) + 1
 
 internal fun findMatchingGroupModelCandidates(
     candidates: List<GroupModelCandidate>,

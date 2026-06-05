@@ -35,7 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -92,8 +91,8 @@ fun FloatingDockBar(
     onSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val dockShape = RoundedCornerShape(34.dp)
-    val itemShape = RoundedCornerShape(22.dp)
+    val dockShape = RoundedCornerShape(28.dp)
+    val itemShape = RoundedCornerShape(18.dp)
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         if (items.isEmpty()) return@BoxWithConstraints
 
@@ -102,37 +101,36 @@ fun FloatingDockBar(
         val sidePadding = when {
             ultraCompactDock -> 0.dp
             compactDock -> 4.dp
-            else -> 12.dp
+            else -> 10.dp
         }
         val gap = when {
             ultraCompactDock -> 0.dp
             compactDock -> 4.dp
             else -> 6.dp
         }
-        val dockMaxWidth = minOf(maxWidth, 360.dp)
+        val dockMaxWidth = minOf(maxWidth, 348.dp)
         val availableItemWidth = (dockMaxWidth - sidePadding * 2f - gap * (items.size - 1).toFloat()) / items.size.toFloat()
-        val maxItemSize = 52.dp
-        val minItemSize = if (availableItemWidth >= 48.dp) 48.dp else availableItemWidth
+        val maxItemSize = 48.dp
+        val minItemSize = if (availableItemWidth >= 44.dp) 44.dp else availableItemWidth
         val itemSize = availableItemWidth.coerceIn(minItemSize, maxItemSize)
-        val iconSize = (itemSize * 0.52f).coerceIn(20.dp, 27.dp)
-        val dockWidth = (itemSize * items.size.toFloat() + sidePadding * 2f + gap * (items.size - 1).toFloat())
-            .coerceAtMost(360.dp)
+        val iconSize = (itemSize * 0.48f).coerceIn(19.dp, 24.dp)
+        val dockWidth = (itemSize * items.size.toFloat() + sidePadding * 2f + gap * (items.size - 1).toFloat()).coerceAtMost(348.dp)
 
         Row(
             modifier = Modifier
                 .align(Alignment.Center)
                 .width(dockWidth)
                 .shadow(
-                    elevation = 22.dp,
+                    elevation = 12.dp,
                     shape = dockShape,
                     clip = false,
-                    ambientColor = Color.Black.copy(alpha = 0.08f),
-                    spotColor = Color.Black.copy(alpha = 0.18f),
+                    ambientColor = Color.Black.copy(alpha = 0.035f),
+                    spotColor = Color.Black.copy(alpha = 0.11f),
                 )
                 .clip(dockShape)
-                .background(OctopusTokens.Card.copy(alpha = 0.96f))
-                .border(1.dp, OctopusTokens.Border.copy(alpha = 0.82f), dockShape)
-                .padding(horizontal = sidePadding, vertical = 10.dp),
+                .background(OctopusTokens.Card.copy(alpha = 0.97f))
+                .border(1.dp, OctopusTokens.Border.copy(alpha = 0.78f), dockShape)
+                .padding(horizontal = sidePadding, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(gap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -164,14 +162,14 @@ fun AppSegmentButton(
     selected: Boolean = false,
     onClick: (() -> Unit)? = null,
 ) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(12.dp)
     Box(
         modifier = Modifier
             .clip(shape)
-            .background(if (selected) OctopusTokens.SelectedNav else OctopusTokens.Muted)
-            .border(1.dp, if (selected) OctopusTokens.SelectedNav else OctopusTokens.Border, shape)
+            .background(if (selected) OctopusTokens.SelectedNav else OctopusTokens.Muted.copy(alpha = 0.72f))
+            .border(1.dp, if (selected) OctopusTokens.Accent.copy(alpha = 0.18f) else OctopusTokens.Border.copy(alpha = 0.62f), shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -242,27 +240,7 @@ fun PageContainer(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(OctopusTokens.Canvas)
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        OctopusTokens.GlowPrimary.copy(alpha = 0.82f),
-                        Color.Transparent,
-                    ),
-                    center = Offset(780f, 110f),
-                    radius = 640f,
-                )
-            )
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        OctopusTokens.GlowSecondary.copy(alpha = 0.42f),
-                        Color.Transparent,
-                    ),
-                    center = Offset(-120f, 980f),
-                    radius = 720f,
-                )
-            ),
+            .background(OctopusTokens.Canvas),
     ) {
         content()
     }
@@ -511,8 +489,8 @@ fun SectionCard(
     actions: @Composable (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    AppListCard(padding = PaddingValues(horizontal = 18.dp, vertical = 18.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    AppListCard(padding = PaddingValues(horizontal = 16.dp, vertical = 16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -520,7 +498,7 @@ fun SectionCard(
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Text(text = title, style = MiuixTheme.textStyles.title3, fontWeight = FontWeight.SemiBold)
                     if (!summary.isNullOrBlank()) {
@@ -818,7 +796,7 @@ fun RankBadge(
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = if (rank <= 3) "★" else rank.toString(),
+            text = rank.toString(),
             color = content,
             style = MiuixTheme.textStyles.body2,
             fontWeight = FontWeight.Bold,
@@ -836,13 +814,13 @@ fun ProgressToneBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(6.dp)
+            .height(5.dp)
             .background(MiuixTheme.colorScheme.secondaryContainer, CircleShape),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth(clamped)
-                .height(6.dp)
+                .height(5.dp)
                 .background(color, CircleShape),
         )
     }

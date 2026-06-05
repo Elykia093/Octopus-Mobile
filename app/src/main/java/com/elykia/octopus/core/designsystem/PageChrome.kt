@@ -45,13 +45,13 @@ fun AppPageScaffold(
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         PageHeader(title = title, actions = actions)
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = contentPadding,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item { content() }
         }
@@ -67,13 +67,13 @@ fun AppLazyPageScaffold(
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         PageHeader(title = title, actions = actions)
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = contentPadding,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             content = content,
         )
     }
@@ -86,8 +86,8 @@ fun PageHeader(
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val compactHeader = maxWidth < 360.dp
-        val showBrand = maxWidth >= 330.dp
-        val horizontalGap = if (compactHeader) 10.dp else 14.dp
+        val showBrand = maxWidth >= 340.dp
+        val horizontalGap = if (compactHeader) 8.dp else 12.dp
 
         Row(
             modifier = Modifier
@@ -95,31 +95,31 @@ fun PageHeader(
                 .statusBarsPadding()
                 .padding(
                     start = if (compactHeader) 16.dp else 24.dp,
-                    top = 24.dp,
+                    top = 18.dp,
                     end = if (compactHeader) 12.dp else 18.dp,
-                    bottom = 10.dp,
+                    bottom = 6.dp,
                 ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(horizontalGap),
         ) {
             if (showBrand) {
-                val brandSize = if (compactHeader) 42.dp else 54.dp
-                val brandShape = RoundedCornerShape(if (compactHeader) 14.dp else 18.dp)
+                val brandSize = if (compactHeader) 34.dp else 40.dp
+                val brandShape = RoundedCornerShape(if (compactHeader) 12.dp else 14.dp)
                 Box(
                     modifier = Modifier
                         .size(brandSize)
                         .clip(brandShape)
-                        .background(OctopusTokens.Card.copy(alpha = 0.88f))
-                        .border(1.dp, OctopusTokens.Border.copy(alpha = 0.72f), brandShape),
+                        .background(OctopusTokens.Muted.copy(alpha = 0.72f))
+                        .border(1.dp, OctopusTokens.Border.copy(alpha = 0.62f), brandShape),
                     contentAlignment = Alignment.Center,
                 ) {
-                    OctopusBrandMark(size = if (compactHeader) 30.dp else 40.dp)
+                    OctopusBrandMark(size = if (compactHeader) 24.dp else 28.dp)
                 }
             }
             Text(
                 text = title,
-                style = MiuixTheme.textStyles.title1,
-                fontWeight = FontWeight.Bold,
+                style = MiuixTheme.textStyles.title2,
+                fontWeight = FontWeight.SemiBold,
                 color = OctopusTokens.TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -143,23 +143,23 @@ fun PageActionButton(
 ) {
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(42.dp)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
-                .size(42.dp)
+                .size(36.dp)
                 .clip(CircleShape)
-                .background(OctopusTokens.Card.copy(alpha = 0.72f))
-                .border(1.dp, OctopusTokens.Border.copy(alpha = 0.64f), CircleShape),
+                .background(OctopusTokens.Muted.copy(alpha = 0.78f))
+                .border(1.dp, OctopusTokens.Border.copy(alpha = 0.62f), CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                tint = OctopusTokens.TextPrimary.copy(alpha = if (enabled) 0.66f else 0.28f),
-                modifier = Modifier.size(20.dp),
+                tint = OctopusTokens.TextPrimary.copy(alpha = if (enabled) 0.7f else 0.28f),
+                modifier = Modifier.size(18.dp),
             )
         }
     }
@@ -174,17 +174,17 @@ fun SoftIconTile(
 ) {
     Box(
         modifier = modifier
-            .size(42.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(tint.copy(alpha = 0.12f))
-            .border(1.dp, tint.copy(alpha = 0.18f), RoundedCornerShape(14.dp)),
+            .size(36.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(tint.copy(alpha = 0.11f))
+            .border(1.dp, tint.copy(alpha = 0.16f), RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = tint,
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(20.dp),
         )
     }
 }
@@ -196,22 +196,22 @@ fun AppListCard(
     padding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
     content: @Composable () -> Unit,
 ) {
-    val shape = RoundedCornerShape(30.dp)
+    val shape = RoundedCornerShape(22.dp)
     val clickableModifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 7.dp,
+                elevation = 3.dp,
                 shape = shape,
                 clip = false,
-                ambientColor = Color.Black.copy(alpha = 0.04f),
-                spotColor = Color.Black.copy(alpha = 0.095f),
+                ambientColor = Color.Black.copy(alpha = 0.025f),
+                spotColor = Color.Black.copy(alpha = 0.065f),
             )
             .clip(shape)
-            .background(OctopusTokens.Card.copy(alpha = 0.985f))
-            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.84f), shape)
+            .background(OctopusTokens.Card.copy(alpha = 0.99f))
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.72f), shape)
             .then(clickableModifier)
             .padding(padding),
     ) {
@@ -228,9 +228,9 @@ fun AppInfoChip(
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(OctopusTokens.Muted.copy(alpha = 0.76f))
-            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.52f), RoundedCornerShape(999.dp))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .background(OctopusTokens.Muted.copy(alpha = 0.66f))
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.48f), RoundedCornerShape(999.dp))
+            .padding(horizontal = 9.dp, vertical = 5.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -264,18 +264,18 @@ fun AppMetricRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(OctopusTokens.Muted.copy(alpha = 0.78f))
-            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.58f), RoundedCornerShape(20.dp))
-            .padding(horizontal = 12.dp, vertical = 11.dp),
+            .clip(RoundedCornerShape(16.dp))
+            .background(OctopusTokens.Muted.copy(alpha = 0.68f))
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+            .padding(horizontal = 11.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         SoftIconTile(
             icon = icon,
             contentDescription = label,
             tint = accentColor,
-            modifier = Modifier.size(40.dp),
+            modifier = Modifier.size(34.dp),
         )
         Text(
             text = label,
@@ -305,8 +305,9 @@ fun AppTypePill(
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(color.copy(alpha = 0.14f))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .background(color.copy(alpha = 0.12f))
+            .border(1.dp, color.copy(alpha = 0.14f), RoundedCornerShape(999.dp))
+            .padding(horizontal = 9.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

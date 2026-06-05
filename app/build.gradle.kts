@@ -65,6 +65,7 @@ dependencies {
     implementation(libs.compose.material.icons.extended)
 
     implementation(libs.hilt.android)
+    kapt(libs.kotlin.metadata.jvm)
     kapt(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
