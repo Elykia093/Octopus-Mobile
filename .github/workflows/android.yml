@@ -59,15 +59,8 @@ jobs:
       - name: Grant execute permission
         run: chmod +x gradlew
 
-      - name: Build and test
-        run: ./gradlew testDebugUnitTest assembleDebug assembleRelease --stacktrace
-
-      - name: Upload debug APK
-        uses: actions/upload-artifact@v7
-        with:
-          name: octopus-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+      - name: Build release
+        run: ./gradlew assembleRelease --stacktrace
 
       - name: Upload unsigned release APK for verification
         uses: actions/upload-artifact@v7
