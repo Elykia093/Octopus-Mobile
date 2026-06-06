@@ -31,6 +31,7 @@ android {
             )
         }
     }
+    testBuildType = "release"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

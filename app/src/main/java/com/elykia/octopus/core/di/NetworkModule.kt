@@ -1,6 +1,5 @@
 package com.elykia.octopus.core.di
 
-import com.elykia.octopus.core.data.local.PreferenceStore
 import com.elykia.octopus.core.data.local.SecureSessionStore
 import com.elykia.octopus.core.data.local.SessionManager
 import com.elykia.octopus.core.data.remote.ApiKeyApiService
@@ -12,6 +11,7 @@ import com.elykia.octopus.core.data.remote.LogApiService
 import com.elykia.octopus.core.data.remote.ModelApiService
 import com.elykia.octopus.core.data.remote.NetworkExecutor
 import com.elykia.octopus.core.data.remote.ServerUrlResolver
+import com.elykia.octopus.core.data.remote.ServerUrlProvider
 import com.elykia.octopus.core.data.remote.SettingApiService
 import com.elykia.octopus.core.data.remote.StatsApiService
 import com.elykia.octopus.core.data.remote.UpdateApiService
@@ -20,8 +20,6 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -32,14 +30,12 @@ import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
-private class BaseUrlInterceptor(
-    private val preferenceStore: PreferenceStore,
+internal class BaseUrlInterceptor(
+    private val serverUrlProvider: ServerUrlProvider,
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
-        val baseUrl = runBlocking {
-            ServerUrlResolver.normalize(preferenceStore.serverConfig.first())
-        }
+        val baseUrl = serverUrlProvider.current()
         val newUrl = ServerUrlResolver.merge(baseUrl, request.url)
         return chain.proceed(request.newBuilder().url(newUrl).build())
     }
@@ -99,12 +95,12 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttp(
-        preferenceStore: PreferenceStore,
+        serverUrlProvider: ServerUrlProvider,
         secureSessionStore: SecureSessionStore,
         sessionManager: SessionManager,
     ): OkHttpClient {
         return OkHttpClient.Builder()
-            .addInterceptor(BaseUrlInterceptor(preferenceStore))
+            .addInterceptor(BaseUrlInterceptor(serverUrlProvider))
             .addInterceptor(
                 AuthInterceptor(sessionManager) {
                     clearSessionAfterUnauthorized(secureSessionStore, sessionManager)

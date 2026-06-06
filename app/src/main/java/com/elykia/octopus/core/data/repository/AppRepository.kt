@@ -11,6 +11,7 @@ import com.elykia.octopus.core.data.model.SettingItem
 import com.elykia.octopus.core.data.model.UserLoginRequest
 import com.elykia.octopus.core.data.remote.AuthApiService
 import com.elykia.octopus.core.data.remote.NetworkExecutor
+import com.elykia.octopus.core.data.remote.ServerUrlProvider
 import com.elykia.octopus.core.data.remote.SettingApiService
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import kotlinx.coroutines.flow.Flow
@@ -28,12 +29,13 @@ class AppRepository @Inject constructor(
     private val secureSessionStore: SecureSessionStore,
     private val sessionManager: SessionManager,
     private val networkExecutor: NetworkExecutor,
+    private val serverUrlProvider: ServerUrlProvider,
     private val dispatchers: DispatchersProvider,
 ) {
     val serverConfig: Flow<ServerConfig> = preferenceStore.serverConfig
 
     suspend fun currentServerConfig(): ServerConfig = withContext(dispatchers.io) {
-        preferenceStore.serverConfig.first().httpsOnly()
+        preferenceStore.serverConfig.first().httpsOnly().also(serverUrlProvider::update)
     }
 
     suspend fun currentAuth(): AuthState = withContext(dispatchers.io) {
@@ -57,6 +59,7 @@ class AppRepository @Inject constructor(
                 sessionManager.clear()
             }
             preferenceStore.saveServerConfig(config)
+            serverUrlProvider.update(config)
             AppResult.Success(config)
         }
     }
@@ -65,6 +68,7 @@ class AppRepository @Inject constructor(
         runServerConfigMutation {
             val config = preferenceStore.serverConfig.first().copy(language = language, themeMode = themeMode)
             preferenceStore.saveServerConfig(config)
+            serverUrlProvider.update(config)
             AppResult.Success(config)
         }
     }
@@ -107,7 +111,8 @@ class AppRepository @Inject constructor(
         if (auth.token.isBlank()) {
             return@withContext AppResult.Success(false)
         }
-        val serverUrl = normalizeServerIdentity(preferenceStore.serverConfig.first().httpsOnly().baseUrl)
+        val config = preferenceStore.serverConfig.first().httpsOnly().also(serverUrlProvider::update)
+        val serverUrl = normalizeServerIdentity(config.baseUrl)
         if (!auth.isBoundToServer(serverUrl)) {
             if (!secureSessionStore.clear()) {
                 return@withContext AppResult.Error(SESSION_CLEAR_FAILED_MESSAGE)

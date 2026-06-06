@@ -52,12 +52,14 @@ app/src/main/java/com/elykia/octopus
 Windows:
 
 ```powershell
+.\gradlew.bat testReleaseUnitTest
 .\gradlew.bat assembleRelease
 ```
 
 Linux/macOS:
 
 ```bash
+./gradlew testReleaseUnitTest
 ./gradlew assembleRelease
 ```
 
@@ -84,12 +86,10 @@ app/build/outputs/apk/release/app-release-unsigned.apk
 
 ## 后续优化方向
 
-- 拆分 `OctopusApiService` 和 `ApiModels.kt`，降低单文件复杂度。
 - 继续收窄各页面 ViewModel 的状态与操作边界。
-- 优化 `BaseUrlInterceptor`，避免每次请求都阻塞读取 DataStore。
 - 收紧 release 签名、混淆压缩和明文流量策略。
 - 完善增删改操作的 loading、错误提示和成功反馈。
 
 ## CI
 
-仓库包含 Android GitHub Actions workflow，会在推送和 PR 时执行 release 构建并上传 release 构建产物。
+仓库包含 Android GitHub Actions workflow，会在推送和 PR 时执行 release 单元测试、release 构建并上传 release 构建产物。

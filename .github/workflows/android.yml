@@ -59,6 +59,9 @@ jobs:
       - name: Grant execute permission
         run: chmod +x gradlew
 
+      - name: Test release unit tests
+        run: ./gradlew testReleaseUnitTest --stacktrace
+
       - name: Build release
         run: ./gradlew assembleRelease --stacktrace
 
