@@ -1,0 +1,38 @@
+package com.elykia.octopus.core.data.repository
+
+import com.elykia.octopus.core.common.AppResult
+import com.elykia.octopus.core.common.DispatchersProvider
+import com.elykia.octopus.core.data.model.RelayLog
+import com.elykia.octopus.core.data.remote.NetworkExecutor
+import com.elykia.octopus.core.data.remote.OctopusApiService
+import com.elykia.octopus.core.data.remote.sanitizeErrorMessage
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class LogRepository @Inject constructor(
+    private val apiService: OctopusApiService,
+    private val executor: NetworkExecutor,
+    private val dispatchers: DispatchersProvider,
+) {
+    suspend fun logs(page: Int = 1, pageSize: Int = 20): AppResult<List<RelayLog>> = withContext(dispatchers.io) {
+        when (val result = executor.executeNullable { apiService.logs(page, pageSize) }) {
+            is AppResult.Success -> AppResult.Success(result.data?.map { it.withHiddenContent() } ?: emptyList())
+            is AppResult.Error -> result
+        }
+    }
+
+    suspend fun clearLogs(): AppResult<String?> = withContext(dispatchers.io) {
+        executor.executeNullable { apiService.clearLogs() }
+    }
+}
+
+internal fun RelayLog.withHiddenContent(): RelayLog = copy(
+    requestContent = "",
+    responseContent = "",
+    error = error.sanitizeErrorMessage(),
+    attempts = attempts.map { attempt ->
+        attempt.copy(msg = attempt.msg?.sanitizeErrorMessage())
+    },
+)

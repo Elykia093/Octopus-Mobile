@@ -9,7 +9,7 @@ import com.elykia.octopus.core.data.model.ChannelKey
 import com.elykia.octopus.core.data.model.ChannelKeyAddRequest
 import com.elykia.octopus.core.data.model.ChannelFetchModelRequest
 import com.elykia.octopus.core.data.model.ChannelUpdateRequest
-import com.elykia.octopus.core.data.repository.DashboardRepository
+import com.elykia.octopus.core.data.repository.ChannelRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,7 +48,7 @@ internal fun ChannelUiState.channelOperationFailed(message: String): ChannelUiSt
 
 @HiltViewModel
 class ChannelViewModel @Inject constructor(
-    private val repository: DashboardRepository,
+    private val repository: ChannelRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ChannelUiState())
     val uiState: StateFlow<ChannelUiState> = _uiState

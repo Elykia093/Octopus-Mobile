@@ -15,7 +15,7 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.Test
 import retrofit2.Retrofit
 
-class DashboardRepositoryLogsContractTest {
+class LogRepositoryContractTest {
     private val json = Json {
         ignoreUnknownKeys = true
         explicitNulls = false
@@ -53,14 +53,14 @@ class DashboardRepositoryLogsContractTest {
         }
     }
 
-    private fun repositoryFor(server: MockWebServer): DashboardRepository {
+    private fun repositoryFor(server: MockWebServer): LogRepository {
         val service = Retrofit.Builder()
             .baseUrl(server.url("/"))
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(OctopusApiService::class.java)
 
-        return DashboardRepository(
+        return LogRepository(
             apiService = service,
             executor = NetworkExecutor(json),
             dispatchers = DispatchersProvider(),

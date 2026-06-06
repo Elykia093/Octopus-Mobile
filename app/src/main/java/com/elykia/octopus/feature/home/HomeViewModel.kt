@@ -9,6 +9,8 @@ import com.elykia.octopus.core.data.model.StatsApiKeyEntry
 import com.elykia.octopus.core.data.model.StatsDaily
 import com.elykia.octopus.core.data.model.StatsHourly
 import com.elykia.octopus.core.data.model.StatsTotal
+import com.elykia.octopus.core.data.repository.ApiKeyRepository
+import com.elykia.octopus.core.data.repository.ChannelRepository
 import com.elykia.octopus.core.data.repository.DashboardRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
@@ -40,7 +42,9 @@ internal fun HomeUiState.shouldShowPageError(): Boolean =
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val repository: DashboardRepository,
+    private val dashboardRepository: DashboardRepository,
+    private val channelRepository: ChannelRepository,
+    private val apiKeyRepository: ApiKeyRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState
@@ -53,13 +57,13 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val previous = _uiState.value
             _uiState.value = previous.copy(loading = true, error = null)
-            val todayDeferred = async { repository.todayStats() }
-            val totalDeferred = async { repository.totalStats() }
-            val dailyDeferred = async { repository.dailyStats() }
-            val hourlyDeferred = async { repository.hourlyStats() }
-            val channelsDeferred = async { repository.channels() }
-            val apiKeysDeferred = async { repository.apiKeys() }
-            val apiKeyStatsDeferred = async { repository.apiKeyStats() }
+            val todayDeferred = async { dashboardRepository.todayStats() }
+            val totalDeferred = async { dashboardRepository.totalStats() }
+            val dailyDeferred = async { dashboardRepository.dailyStats() }
+            val hourlyDeferred = async { dashboardRepository.hourlyStats() }
+            val channelsDeferred = async { channelRepository.channels() }
+            val apiKeysDeferred = async { apiKeyRepository.apiKeys() }
+            val apiKeyStatsDeferred = async { dashboardRepository.apiKeyStats() }
 
             val todayResult = todayDeferred.await()
             val totalResult = totalDeferred.await()

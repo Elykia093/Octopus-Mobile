@@ -126,14 +126,14 @@ class ApiKeyRepositoryContractTest {
         }
     }
 
-    private fun repositoryFor(server: MockWebServer): DashboardRepository {
+    private fun repositoryFor(server: MockWebServer): ApiKeyRepository {
         val service = Retrofit.Builder()
             .baseUrl(server.url("/"))
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(OctopusApiService::class.java)
 
-        return DashboardRepository(
+        return ApiKeyRepository(
             apiService = service,
             executor = NetworkExecutor(json),
             dispatchers = DispatchersProvider(),

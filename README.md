@@ -47,24 +47,24 @@ app/src/main/java/com/elykia/octopus
 └── navigation          # 顶层路由和主 Tab 定义
 ```
 
-## 本地构建
+## 本地验证
 
 Windows:
 
 ```powershell
-.\gradlew.bat testDebugUnitTest lintDebug assembleDebug
+.\gradlew.bat assembleRelease
 ```
 
 Linux/macOS:
 
 ```bash
-./gradlew testDebugUnitTest lintDebug assembleDebug
+./gradlew assembleRelease
 ```
 
-Debug APK 输出位置：
+Release APK 输出位置：
 
 ```text
-app/build/outputs/apk/debug/app-debug.apk
+app/build/outputs/apk/release/app-release-unsigned.apk
 ```
 
 ## 发布构建
@@ -84,12 +84,12 @@ app/build/outputs/apk/debug/app-debug.apk
 
 ## 后续优化方向
 
-- 拆分 `DashboardRepository`，按统计、渠道、分组、日志、API Key 分出领域仓库。
 - 拆分 `OctopusApiService` 和 `ApiModels.kt`，降低单文件复杂度。
+- 继续收窄各页面 ViewModel 的状态与操作边界。
 - 优化 `BaseUrlInterceptor`，避免每次请求都阻塞读取 DataStore。
 - 收紧 release 签名、混淆压缩和明文流量策略。
 - 完善增删改操作的 loading、错误提示和成功反馈。
 
 ## CI
 
-仓库包含 Android GitHub Actions workflow，会在推送和 PR 时构建 APK 并上传构建产物。
+仓库包含 Android GitHub Actions workflow，会在推送和 PR 时执行 release 构建并上传 release 构建产物。

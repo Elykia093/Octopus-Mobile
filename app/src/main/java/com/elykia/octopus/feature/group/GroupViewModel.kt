@@ -7,7 +7,9 @@ import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.Group
 import com.elykia.octopus.core.data.model.GroupItem
 import com.elykia.octopus.core.data.model.LlmChannel
-import com.elykia.octopus.core.data.repository.DashboardRepository
+import com.elykia.octopus.core.data.repository.ChannelRepository
+import com.elykia.octopus.core.data.repository.GroupRepository
+import com.elykia.octopus.core.data.repository.ModelRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +37,9 @@ internal fun GroupUiState.shouldShowPageError(): Boolean =
 
 @HiltViewModel
 class GroupViewModel @Inject constructor(
-    private val repository: DashboardRepository,
+    private val groupRepository: GroupRepository,
+    private val channelRepository: ChannelRepository,
+    private val modelRepository: ModelRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(GroupUiState())
     val uiState: StateFlow<GroupUiState> = _uiState
@@ -48,9 +52,9 @@ class GroupViewModel @Inject constructor(
         viewModelScope.launch {
             val previous = _uiState.value
             _uiState.value = previous.copy(loading = true, error = null)
-            val groupsDeferred = async { repository.groups() }
-            val channelsDeferred = async { repository.channels() }
-            val modelChannelsDeferred = async { repository.modelChannels() }
+            val groupsDeferred = async { groupRepository.groups() }
+            val channelsDeferred = async { channelRepository.channels() }
+            val modelChannelsDeferred = async { modelRepository.modelChannels() }
             _uiState.value = buildGroupRefreshState(
                 previous = previous,
                 groupsResult = groupsDeferred.await(),
@@ -103,7 +107,7 @@ class GroupViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     batchOperationProgress = "删除中 ${index + 1}/${selectedIds.size}..."
                 )
-                when (repository.deleteGroup(id)) {
+                when (groupRepository.deleteGroup(id)) {
                     is AppResult.Success -> successCount++
                     is AppResult.Error -> failCount++
                 }
@@ -127,7 +131,7 @@ class GroupViewModel @Inject constructor(
         viewModelScope.launch {
             if (_uiState.value.submitting) return@launch
             _uiState.value = _uiState.value.copy(submitting = true, operationError = null)
-            when (val result = repository.deleteGroup(id)) {
+            when (val result = groupRepository.deleteGroup(id)) {
                 is AppResult.Success -> {
                     _uiState.value = _uiState.value.copy(submitting = false)
                     refresh()
@@ -154,7 +158,7 @@ class GroupViewModel @Inject constructor(
         viewModelScope.launch {
             if (_uiState.value.submitting) return@launch
             _uiState.value = _uiState.value.copy(submitting = true, operationError = null)
-            when (val result = repository.createGroup(
+            when (val result = groupRepository.createGroup(
                 Group(
                     name = name.trim(),
                     mode = mode,
@@ -194,7 +198,7 @@ class GroupViewModel @Inject constructor(
         viewModelScope.launch {
             if (_uiState.value.submitting) return@launch
             _uiState.value = _uiState.value.copy(submitting = true, operationError = null)
-            when (val result = repository.updateGroup(
+            when (val result = groupRepository.updateGroup(
                 buildGroupUpdateRequest(
                     group = group,
                     name = name,

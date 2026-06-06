@@ -65,7 +65,7 @@ class ImportPayloadCheckTest {
     @Test
     fun importDataRejectsOversizedContentBeforeCallingService() = runBlocking {
         val serviceCalled = AtomicBoolean(false)
-        val repository = DashboardRepository(
+        val repository = DataTransferRepository(
             apiService = failingService { serviceCalled.set(true) },
             executor = NetworkExecutor(
                 Json {
@@ -90,7 +90,7 @@ class ImportPayloadCheckTest {
     @Test
     fun importDataRejectsInvalidJsonBeforeCallingService() = runBlocking {
         val serviceCalled = AtomicBoolean(false)
-        val repository = DashboardRepository(
+        val repository = DataTransferRepository(
             apiService = failingService { serviceCalled.set(true) },
             executor = NetworkExecutor(
                 Json {
@@ -114,7 +114,7 @@ class ImportPayloadCheckTest {
 
     @Test
     fun exportDataRethrowsCancellationException() = runBlocking {
-        val repository = DashboardRepository(
+        val repository = DataTransferRepository(
             apiService = exportCancellingService(),
             executor = NetworkExecutor(
                 Json {

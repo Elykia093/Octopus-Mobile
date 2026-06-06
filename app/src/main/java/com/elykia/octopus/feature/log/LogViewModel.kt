@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.data.model.RelayLog
-import com.elykia.octopus.core.data.repository.DashboardRepository
+import com.elykia.octopus.core.data.repository.LogRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,7 +49,7 @@ internal fun LogUiState.clearLogsFailed(message: String): LogUiState = copy(
 
 @HiltViewModel
 class LogViewModel @Inject constructor(
-    private val repository: DashboardRepository,
+    private val repository: LogRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LogUiState())
     val uiState: StateFlow<LogUiState> = _uiState

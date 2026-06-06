@@ -7,8 +7,12 @@ import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.data.model.ApiKeyMutationRequest
 import com.elykia.octopus.core.data.model.LatestInfo
 import com.elykia.octopus.core.data.model.SettingItem
+import com.elykia.octopus.core.data.repository.ApiKeyRepository
 import com.elykia.octopus.core.data.repository.AppRepository
-import com.elykia.octopus.core.data.repository.DashboardRepository
+import com.elykia.octopus.core.data.repository.ChannelRepository
+import com.elykia.octopus.core.data.repository.DataTransferRepository
+import com.elykia.octopus.core.data.repository.ModelRepository
+import com.elykia.octopus.core.data.repository.UpdateRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -113,7 +117,11 @@ internal fun SettingUiState.actionFailed(message: String): SettingUiState = copy
 @HiltViewModel
 class SettingViewModel @Inject constructor(
     private val appRepository: AppRepository,
-    private val dashboardRepository: DashboardRepository,
+    private val apiKeyRepository: ApiKeyRepository,
+    private val updateRepository: UpdateRepository,
+    private val modelRepository: ModelRepository,
+    private val channelRepository: ChannelRepository,
+    private val dataTransferRepository: DataTransferRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SettingUiState())
     val uiState: StateFlow<SettingUiState> = _uiState
@@ -127,10 +135,10 @@ class SettingViewModel @Inject constructor(
             val previous = _uiState.value
             _uiState.value = previous.copy(loading = true, error = null)
             val settingsDeferred = async { appRepository.settings() }
-            val apiKeysDeferred = async { dashboardRepository.apiKeys() }
-            val latestDeferred = async { dashboardRepository.latestInfo() }
-            val versionDeferred = async { dashboardRepository.currentVersion() }
-            val modelTimeDeferred = async { dashboardRepository.modelLastUpdateTime() }
+            val apiKeysDeferred = async { apiKeyRepository.apiKeys() }
+            val latestDeferred = async { updateRepository.latestInfo() }
+            val versionDeferred = async { updateRepository.currentVersion() }
+            val modelTimeDeferred = async { modelRepository.modelLastUpdateTime() }
             val authDeferred = async { appRepository.currentAuth() }
             val configDeferred = async { appRepository.currentServerConfig() }
 
@@ -159,8 +167,8 @@ class SettingViewModel @Inject constructor(
         viewModelScope.launch {
             if (_uiState.value.actionSubmitting) return@launch
             _uiState.value = _uiState.value.actionStarted()
-            val latest = dashboardRepository.latestInfo()
-            val current = dashboardRepository.currentVersion()
+            val latest = updateRepository.latestInfo()
+            val current = updateRepository.currentVersion()
             val latestData = (latest as? AppResult.Success)?.data
             val currentData = (current as? AppResult.Success)?.data
             if (latestData != null || currentData != null) {
@@ -210,7 +218,7 @@ class SettingViewModel @Inject constructor(
         viewModelScope.launch {
             if (_uiState.value.actionSubmitting) return@launch
             _uiState.value = _uiState.value.actionStarted()
-            when (val result = dashboardRepository.triggerUpdate()) {
+            when (val result = updateRepository.triggerUpdate()) {
                 is AppResult.Success -> {
                     _uiState.value = _uiState.value.actionSucceeded(result.data.ifBlank { "更新任务已触发。" })
                     refresh()
@@ -224,7 +232,7 @@ class SettingViewModel @Inject constructor(
         viewModelScope.launch {
             if (_uiState.value.actionSubmitting) return@launch
             _uiState.value = _uiState.value.actionStarted()
-            when (val result = dashboardRepository.refreshModelPrice()) {
+            when (val result = modelRepository.refreshModelPrice()) {
                 is AppResult.Success -> {
                     _uiState.value = _uiState.value.actionSucceeded(result.data?.takeIf { it.isNotBlank() } ?: "模型价格已刷新。")
                     refresh()
@@ -238,7 +246,7 @@ class SettingViewModel @Inject constructor(
         viewModelScope.launch {
             if (_uiState.value.actionSubmitting) return@launch
             _uiState.value = _uiState.value.actionStarted()
-            when (val result = dashboardRepository.syncChannelModels()) {
+            when (val result = channelRepository.syncChannelModels()) {
                 is AppResult.Success -> {
                     _uiState.value = _uiState.value.actionSucceeded(result.data?.takeIf { it.isNotBlank() } ?: "渠道模型已同步。")
                     refresh()
@@ -252,7 +260,7 @@ class SettingViewModel @Inject constructor(
         viewModelScope.launch {
             if (_uiState.value.dataTransferSubmitting) return@launch
             _uiState.value = _uiState.value.dataTransferStarted()
-            when (val result = dashboardRepository.exportData(includeLogs = false, includeStats = false)) {
+            when (val result = dataTransferRepository.exportData(includeLogs = false, includeStats = false)) {
                 is AppResult.Success -> runCatching { onReady(result.data) }
                     .onFailure { exception ->
                         _uiState.value = _uiState.value.dataTransferFailed(exception.message ?: "启动导出失败。")
@@ -266,7 +274,7 @@ class SettingViewModel @Inject constructor(
         viewModelScope.launch {
             if (_uiState.value.dataTransferSubmitting) return@launch
             _uiState.value = _uiState.value.dataTransferStarted()
-            when (val result = dashboardRepository.importData(fileName, content)) {
+            when (val result = dataTransferRepository.importData(fileName, content)) {
                 is AppResult.Success -> {
                     val rows = result.data.rowsAffected.values.sum()
                     _uiState.value = _uiState.value.dataTransferSucceeded("导入完成，更新 $rows 行。")
@@ -297,7 +305,7 @@ class SettingViewModel @Inject constructor(
         viewModelScope.launch {
             if (_uiState.value.apiKeySubmitting) return@launch
             _uiState.value = _uiState.value.apiKeyOperationStarted()
-            when (val result = dashboardRepository.updateApiKey(item.copy(enabled = enabled))) {
+            when (val result = apiKeyRepository.updateApiKey(item.copy(enabled = enabled))) {
                 is AppResult.Success -> {
                     _uiState.value = _uiState.value.apiKeyOperationSucceeded()
                     refresh()
@@ -319,7 +327,7 @@ class SettingViewModel @Inject constructor(
             if (_uiState.value.apiKeySubmitting) return@launch
             _uiState.value = _uiState.value.apiKeyOperationStarted()
             when (
-                val result = dashboardRepository.createApiKey(
+                val result = apiKeyRepository.createApiKey(
                 ApiKeyMutationRequest(
                     name = name,
                     enabled = enabled,
@@ -360,7 +368,7 @@ class SettingViewModel @Inject constructor(
         viewModelScope.launch {
             if (_uiState.value.apiKeySubmitting) return@launch
             _uiState.value = _uiState.value.apiKeyOperationStarted()
-            when (val result = dashboardRepository.updateApiKey(item)) {
+            when (val result = apiKeyRepository.updateApiKey(item)) {
                 is AppResult.Success -> {
                     _uiState.value = _uiState.value.apiKeyOperationSucceeded()
                     onSuccess()
@@ -375,7 +383,7 @@ class SettingViewModel @Inject constructor(
         viewModelScope.launch {
             if (_uiState.value.apiKeySubmitting) return@launch
             _uiState.value = _uiState.value.apiKeyOperationStarted()
-            when (val result = dashboardRepository.deleteApiKey(id)) {
+            when (val result = apiKeyRepository.deleteApiKey(id)) {
                 is AppResult.Success -> {
                     _uiState.value = _uiState.value.apiKeyOperationSucceeded()
                     refresh()
@@ -424,7 +432,7 @@ class SettingViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     batchApiKeyOperationProgress = "删除中 ${index + 1}/${selectedIds.size}..."
                 )
-                when (dashboardRepository.deleteApiKey(id)) {
+                when (apiKeyRepository.deleteApiKey(id)) {
                     is AppResult.Success -> successCount++
                     is AppResult.Error -> failCount++
                 }
@@ -461,7 +469,7 @@ class SettingViewModel @Inject constructor(
                 )
                 val apiKey = apiKeysMap[id]
                 if (apiKey != null) {
-                    when (dashboardRepository.updateApiKey(apiKey.copy(enabled = enabled))) {
+                    when (apiKeyRepository.updateApiKey(apiKey.copy(enabled = enabled))) {
                         is AppResult.Success -> successCount++
                         is AppResult.Error -> failCount++
                     }
