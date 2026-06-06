@@ -9,8 +9,9 @@ import com.elykia.octopus.core.data.model.AuthState
 import com.elykia.octopus.core.data.model.ServerConfig
 import com.elykia.octopus.core.data.model.SettingItem
 import com.elykia.octopus.core.data.model.UserLoginRequest
+import com.elykia.octopus.core.data.remote.AuthApiService
 import com.elykia.octopus.core.data.remote.NetworkExecutor
-import com.elykia.octopus.core.data.remote.OctopusApiService
+import com.elykia.octopus.core.data.remote.SettingApiService
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -21,7 +22,8 @@ import javax.inject.Singleton
 
 @Singleton
 class AppRepository @Inject constructor(
-    private val apiService: OctopusApiService,
+    private val authApiService: AuthApiService,
+    private val settingApiService: SettingApiService,
     private val preferenceStore: PreferenceStore,
     private val secureSessionStore: SecureSessionStore,
     private val sessionManager: SessionManager,
@@ -69,7 +71,7 @@ class AppRepository @Inject constructor(
 
     suspend fun login(username: String, password: String, expireDays: Int): AppResult<AuthState> = withContext(dispatchers.io) {
         when (val result = networkExecutor.execute {
-            apiService.login(
+            authApiService.login(
                 UserLoginRequest(
                     username = username,
                     password = password,
@@ -114,7 +116,7 @@ class AppRepository @Inject constructor(
             return@withContext AppResult.Success(false)
         }
         sessionManager.update(auth)
-        when (val result = networkExecutor.execute { apiService.status() }) {
+        when (val result = networkExecutor.execute { authApiService.status() }) {
             is AppResult.Success -> AppResult.Success(true)
             is AppResult.Error -> result
         }
@@ -129,11 +131,11 @@ class AppRepository @Inject constructor(
     }
 
     suspend fun settings(): AppResult<List<SettingItem>> = withContext(dispatchers.io) {
-        networkExecutor.execute { apiService.settings() }
+        networkExecutor.execute { settingApiService.settings() }
     }
 
     suspend fun saveSetting(setting: SettingItem): AppResult<SettingItem> = withContext(dispatchers.io) {
-        networkExecutor.execute { apiService.setSetting(setting) }
+        networkExecutor.execute { settingApiService.setSetting(setting) }
     }
 }
 

@@ -2,8 +2,8 @@ package com.elykia.octopus.core.data.repository
 
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.common.DispatchersProvider
+import com.elykia.octopus.core.data.remote.DataTransferApiService
 import com.elykia.octopus.core.data.remote.NetworkExecutor
-import com.elykia.octopus.core.data.remote.OctopusApiService
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
@@ -138,32 +138,32 @@ class ImportPayloadCheckTest {
     }
 }
 
-private fun failingService(onCall: () -> Unit): OctopusApiService =
+private fun failingService(onCall: () -> Unit): DataTransferApiService =
     Proxy.newProxyInstance(
-        OctopusApiService::class.java.classLoader,
-        arrayOf(OctopusApiService::class.java),
+        DataTransferApiService::class.java.classLoader,
+        arrayOf(DataTransferApiService::class.java),
     ) { _, method, _ ->
         when (method.name) {
-            "toString" -> "FailingOctopusApiService"
+            "toString" -> "FailingDataTransferApiService"
             "hashCode" -> System.identityHashCode(method)
             "equals" -> false
             else -> {
                 onCall()
-                throw AssertionError("OctopusApiService should not be called.")
+                throw AssertionError("DataTransferApiService should not be called.")
             }
         }
-    } as OctopusApiService
+    } as DataTransferApiService
 
-private fun exportCancellingService(): OctopusApiService =
+private fun exportCancellingService(): DataTransferApiService =
     Proxy.newProxyInstance(
-        OctopusApiService::class.java.classLoader,
-        arrayOf(OctopusApiService::class.java),
+        DataTransferApiService::class.java.classLoader,
+        arrayOf(DataTransferApiService::class.java),
     ) { _, method, _ ->
         when (method.name) {
             "exportData" -> throw CancellationException("export left")
-            "toString" -> "ExportCancellingOctopusApiService"
+            "toString" -> "ExportCancellingDataTransferApiService"
             "hashCode" -> System.identityHashCode(method)
             "equals" -> false
             else -> throw AssertionError("Only exportData should be called.")
         }
-    } as OctopusApiService
+    } as DataTransferApiService

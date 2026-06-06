@@ -1,0 +1,38 @@
+package com.elykia.octopus.core.data.model
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class ChannelAttempt(
+    @SerialName("channel_id") val channelId: Int,
+    @SerialName("channel_key_id") val channelKeyId: Int? = null,
+    @SerialName("channel_name") val channelName: String,
+    @SerialName("model_name") val modelName: String,
+    @SerialName("attempt_num") val attemptNum: Int,
+    val status: String,
+    val duration: Int,
+    val sticky: Boolean? = null,
+    val msg: String? = null,
+)
+
+@Serializable
+data class RelayLog(
+    val id: Long,
+    val time: Long,
+    @SerialName("request_model_name") val requestModelName: String,
+    @SerialName("request_api_key_name") val requestApiKeyName: String? = null,
+    @SerialName("channel") val channelId: Int,
+    @SerialName("channel_name") val channelName: String,
+    @SerialName("actual_model_name") val actualModelName: String,
+    @SerialName("input_tokens") val inputTokens: Int,
+    @SerialName("output_tokens") val outputTokens: Int,
+    val ftut: Int,
+    @SerialName("use_time") val useTime: Int,
+    val cost: Double,
+    @SerialName("request_content") val requestContent: String,
+    @SerialName("response_content") val responseContent: String,
+    val error: String,
+    val attempts: List<ChannelAttempt> = emptyList(),
+    @SerialName("total_attempts") val totalAttempts: Int = 0,
+)

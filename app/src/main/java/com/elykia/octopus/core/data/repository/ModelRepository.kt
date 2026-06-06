@@ -4,15 +4,15 @@ import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.common.DispatchersProvider
 import com.elykia.octopus.core.data.model.LlmChannel
 import com.elykia.octopus.core.data.model.LlmInfo
+import com.elykia.octopus.core.data.remote.ModelApiService
 import com.elykia.octopus.core.data.remote.NetworkExecutor
-import com.elykia.octopus.core.data.remote.OctopusApiService
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ModelRepository @Inject constructor(
-    private val apiService: OctopusApiService,
+    private val apiService: ModelApiService,
     private val executor: NetworkExecutor,
     private val dispatchers: DispatchersProvider,
 ) {

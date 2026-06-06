@@ -3,8 +3,8 @@ package com.elykia.octopus.core.data.repository
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.common.DispatchersProvider
 import com.elykia.octopus.core.data.model.ApiKeyItem
+import com.elykia.octopus.core.data.remote.ApiKeyApiService
 import com.elykia.octopus.core.data.remote.NetworkExecutor
-import com.elykia.octopus.core.data.remote.OctopusApiService
 import com.google.common.truth.Truth.assertThat
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.coroutines.runBlocking
@@ -131,7 +131,7 @@ class ApiKeyRepositoryContractTest {
             .baseUrl(server.url("/"))
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
-            .create(OctopusApiService::class.java)
+            .create(ApiKeyApiService::class.java)
 
         return ApiKeyRepository(
             apiService = service,

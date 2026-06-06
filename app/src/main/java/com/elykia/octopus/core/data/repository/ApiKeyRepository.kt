@@ -4,15 +4,15 @@ import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.common.DispatchersProvider
 import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.data.model.ApiKeyMutationRequest
+import com.elykia.octopus.core.data.remote.ApiKeyApiService
 import com.elykia.octopus.core.data.remote.NetworkExecutor
-import com.elykia.octopus.core.data.remote.OctopusApiService
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ApiKeyRepository @Inject constructor(
-    private val apiService: OctopusApiService,
+    private val apiService: ApiKeyApiService,
     private val executor: NetworkExecutor,
     private val dispatchers: DispatchersProvider,
 ) {

@@ -3,9 +3,18 @@ package com.elykia.octopus.core.di
 import com.elykia.octopus.core.data.local.PreferenceStore
 import com.elykia.octopus.core.data.local.SecureSessionStore
 import com.elykia.octopus.core.data.local.SessionManager
+import com.elykia.octopus.core.data.remote.ApiKeyApiService
+import com.elykia.octopus.core.data.remote.AuthApiService
+import com.elykia.octopus.core.data.remote.ChannelApiService
+import com.elykia.octopus.core.data.remote.DataTransferApiService
+import com.elykia.octopus.core.data.remote.GroupApiService
+import com.elykia.octopus.core.data.remote.LogApiService
+import com.elykia.octopus.core.data.remote.ModelApiService
 import com.elykia.octopus.core.data.remote.NetworkExecutor
-import com.elykia.octopus.core.data.remote.OctopusApiService
 import com.elykia.octopus.core.data.remote.ServerUrlResolver
+import com.elykia.octopus.core.data.remote.SettingApiService
+import com.elykia.octopus.core.data.remote.StatsApiService
+import com.elykia.octopus.core.data.remote.UpdateApiService
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
 import dagger.Provides
@@ -132,5 +141,42 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideApiService(retrofit: Retrofit): OctopusApiService = retrofit.create(OctopusApiService::class.java)
+    fun provideAuthApiService(retrofit: Retrofit): AuthApiService = retrofit.create(AuthApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideStatsApiService(retrofit: Retrofit): StatsApiService = retrofit.create(StatsApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideChannelApiService(retrofit: Retrofit): ChannelApiService = retrofit.create(ChannelApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideGroupApiService(retrofit: Retrofit): GroupApiService = retrofit.create(GroupApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideModelApiService(retrofit: Retrofit): ModelApiService = retrofit.create(ModelApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideLogApiService(retrofit: Retrofit): LogApiService = retrofit.create(LogApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSettingApiService(retrofit: Retrofit): SettingApiService = retrofit.create(SettingApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideApiKeyApiService(retrofit: Retrofit): ApiKeyApiService = retrofit.create(ApiKeyApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideUpdateApiService(retrofit: Retrofit): UpdateApiService = retrofit.create(UpdateApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideDataTransferApiService(retrofit: Retrofit): DataTransferApiService =
+        retrofit.create(DataTransferApiService::class.java)
 }

@@ -6,15 +6,15 @@ import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.ChannelEnableRequest
 import com.elykia.octopus.core.data.model.ChannelFetchModelRequest
 import com.elykia.octopus.core.data.model.ChannelUpdateRequest
+import com.elykia.octopus.core.data.remote.ChannelApiService
 import com.elykia.octopus.core.data.remote.NetworkExecutor
-import com.elykia.octopus.core.data.remote.OctopusApiService
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ChannelRepository @Inject constructor(
-    private val apiService: OctopusApiService,
+    private val apiService: ChannelApiService,
     private val executor: NetworkExecutor,
     private val dispatchers: DispatchersProvider,
 ) {

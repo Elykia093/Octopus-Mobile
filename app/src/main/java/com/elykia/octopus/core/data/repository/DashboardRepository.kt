@@ -7,14 +7,14 @@ import com.elykia.octopus.core.data.model.StatsDaily
 import com.elykia.octopus.core.data.model.StatsHourly
 import com.elykia.octopus.core.data.model.StatsTotal
 import com.elykia.octopus.core.data.remote.NetworkExecutor
-import com.elykia.octopus.core.data.remote.OctopusApiService
+import com.elykia.octopus.core.data.remote.StatsApiService
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class DashboardRepository @Inject constructor(
-    private val apiService: OctopusApiService,
+    private val apiService: StatsApiService,
     private val executor: NetworkExecutor,
     private val dispatchers: DispatchersProvider,
 ) {

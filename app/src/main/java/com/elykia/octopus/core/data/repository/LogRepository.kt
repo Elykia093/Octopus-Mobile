@@ -3,8 +3,8 @@ package com.elykia.octopus.core.data.repository
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.common.DispatchersProvider
 import com.elykia.octopus.core.data.model.RelayLog
+import com.elykia.octopus.core.data.remote.LogApiService
 import com.elykia.octopus.core.data.remote.NetworkExecutor
-import com.elykia.octopus.core.data.remote.OctopusApiService
 import com.elykia.octopus.core.data.remote.sanitizeErrorMessage
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -12,7 +12,7 @@ import javax.inject.Singleton
 
 @Singleton
 class LogRepository @Inject constructor(
-    private val apiService: OctopusApiService,
+    private val apiService: LogApiService,
     private val executor: NetworkExecutor,
     private val dispatchers: DispatchersProvider,
 ) {
