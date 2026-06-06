@@ -91,46 +91,48 @@ fun FloatingDockBar(
     onSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val dockShape = RoundedCornerShape(28.dp)
-    val itemShape = RoundedCornerShape(18.dp)
+    val dockShape = RoundedCornerShape(24.dp)
+    val itemShape = RoundedCornerShape(16.dp)
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         if (items.isEmpty()) return@BoxWithConstraints
 
         val compactDock = items.size >= 6 && maxWidth < 344.dp
         val ultraCompactDock = items.size >= 6 && maxWidth < 316.dp
+        val showLabels = items.size <= 6 && maxWidth >= 352.dp
         val sidePadding = when {
             ultraCompactDock -> 0.dp
             compactDock -> 4.dp
-            else -> 10.dp
+            else -> 8.dp
         }
         val gap = when {
             ultraCompactDock -> 0.dp
             compactDock -> 4.dp
-            else -> 6.dp
+            else -> 5.dp
         }
-        val dockMaxWidth = minOf(maxWidth, 348.dp)
+        val dockMaxWidth = minOf(maxWidth, 364.dp)
         val availableItemWidth = (dockMaxWidth - sidePadding * 2f - gap * (items.size - 1).toFloat()) / items.size.toFloat()
-        val maxItemSize = 48.dp
+        val maxItemSize = if (showLabels) 50.dp else 48.dp
         val minItemSize = if (availableItemWidth >= 44.dp) 44.dp else availableItemWidth
         val itemSize = availableItemWidth.coerceIn(minItemSize, maxItemSize)
-        val iconSize = (itemSize * 0.48f).coerceIn(19.dp, 24.dp)
-        val dockWidth = (itemSize * items.size.toFloat() + sidePadding * 2f + gap * (items.size - 1).toFloat()).coerceAtMost(348.dp)
+        val itemHeight = if (showLabels) 50.dp else itemSize
+        val iconSize = if (showLabels) 20.dp else (itemSize * 0.48f).coerceIn(19.dp, 24.dp)
+        val dockWidth = (itemSize * items.size.toFloat() + sidePadding * 2f + gap * (items.size - 1).toFloat()).coerceAtMost(364.dp)
 
         Row(
             modifier = Modifier
                 .align(Alignment.Center)
                 .width(dockWidth)
                 .shadow(
-                    elevation = 12.dp,
+                    elevation = 8.dp,
                     shape = dockShape,
                     clip = false,
-                    ambientColor = Color.Black.copy(alpha = 0.035f),
-                    spotColor = Color.Black.copy(alpha = 0.11f),
+                    ambientColor = Color.Black.copy(alpha = 0.03f),
+                    spotColor = Color.Black.copy(alpha = 0.08f),
                 )
                 .clip(dockShape)
-                .background(OctopusTokens.Card.copy(alpha = 0.97f))
-                .border(1.dp, OctopusTokens.Border.copy(alpha = 0.78f), dockShape)
-                .padding(horizontal = sidePadding, vertical = 8.dp),
+                .background(OctopusTokens.Card.copy(alpha = 0.96f))
+                .border(1.dp, OctopusTokens.Border.copy(alpha = 0.72f), dockShape)
+                .padding(horizontal = sidePadding, vertical = if (showLabels) 5.dp else 7.dp),
             horizontalArrangement = Arrangement.spacedBy(gap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -138,18 +140,44 @@ fun FloatingDockBar(
                 val selected = item.key == selectedKey
                 Box(
                     modifier = Modifier
-                        .size(itemSize)
+                        .width(itemSize)
+                        .height(itemHeight)
                         .clip(itemShape)
                         .background(if (selected) OctopusTokens.SelectedNav.copy(alpha = 0.94f) else Color.Transparent)
                         .clickable { onSelected(item.key) },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.label,
-                        tint = if (selected) OctopusTokens.TextPrimary else OctopusTokens.NavMuted,
-                        modifier = Modifier.size(iconSize),
-                    )
+                    val itemColor = if (selected) OctopusTokens.TextPrimary else OctopusTokens.NavMuted
+                    if (showLabels) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.label,
+                                tint = itemColor,
+                                modifier = Modifier.size(iconSize),
+                            )
+                            Text(
+                                text = item.label,
+                                style = MiuixTheme.textStyles.body2,
+                                color = itemColor,
+                                fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                fontSize = 10.sp,
+                                lineHeight = 12.sp,
+                            )
+                        }
+                    } else {
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription = item.label,
+                            tint = itemColor,
+                            modifier = Modifier.size(iconSize),
+                        )
+                    }
                 }
             }
         }

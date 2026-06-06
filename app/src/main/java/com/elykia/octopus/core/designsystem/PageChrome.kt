@@ -87,7 +87,8 @@ fun PageHeader(
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val compactHeader = maxWidth < 360.dp
         val showBrand = maxWidth >= 340.dp
-        val horizontalGap = if (compactHeader) 8.dp else 12.dp
+        val horizontalGap = if (compactHeader) 8.dp else 10.dp
+        val titleShape = RoundedCornerShape(if (compactHeader) 18.dp else 20.dp)
 
         Row(
             modifier = Modifier
@@ -103,34 +104,51 @@ fun PageHeader(
             horizontalArrangement = Arrangement.spacedBy(horizontalGap),
         ) {
             if (showBrand) {
-                val brandSize = if (compactHeader) 34.dp else 40.dp
-                val brandShape = RoundedCornerShape(if (compactHeader) 12.dp else 14.dp)
-                Box(
-                    modifier = Modifier
-                        .size(brandSize)
-                        .clip(brandShape)
-                        .background(OctopusTokens.Muted.copy(alpha = 0.72f))
-                        .border(1.dp, OctopusTokens.Border.copy(alpha = 0.62f), brandShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    OctopusBrandMark(size = if (compactHeader) 24.dp else 28.dp)
-                }
+                HeaderBrandSurface(compactHeader = compactHeader)
             }
-            Text(
-                text = title,
-                style = MiuixTheme.textStyles.title2,
-                fontWeight = FontWeight.SemiBold,
-                color = OctopusTokens.TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(if (compactHeader) 38.dp else 40.dp)
+                    .clip(titleShape)
+                    .background(OctopusTokens.Card.copy(alpha = 0.96f))
+                    .border(1.dp, OctopusTokens.Border.copy(alpha = 0.68f), titleShape)
+                    .padding(horizontal = if (compactHeader) 12.dp else 14.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Text(
+                    text = title,
+                    style = MiuixTheme.textStyles.title3,
+                    fontWeight = FontWeight.SemiBold,
+                    color = OctopusTokens.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 content = actions,
             )
         }
+    }
+}
+
+@Composable
+private fun HeaderBrandSurface(
+    compactHeader: Boolean,
+) {
+    val brandSize = if (compactHeader) 36.dp else 40.dp
+
+    Box(
+        modifier = Modifier
+            .size(brandSize)
+            .clip(CircleShape)
+            .background(OctopusTokens.PrimarySoft.copy(alpha = 0.82f))
+            .border(1.dp, OctopusTokens.Accent.copy(alpha = 0.18f), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        OctopusBrandMark(size = if (compactHeader) 24.dp else 27.dp)
     }
 }
 
@@ -143,16 +161,17 @@ fun PageActionButton(
 ) {
     Box(
         modifier = Modifier
-            .size(42.dp)
+            .size(40.dp)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
+        val shape = CircleShape
         Box(
             modifier = Modifier
                 .size(36.dp)
-                .clip(CircleShape)
-                .background(OctopusTokens.Muted.copy(alpha = 0.78f))
-                .border(1.dp, OctopusTokens.Border.copy(alpha = 0.62f), CircleShape),
+                .clip(shape)
+                .background(OctopusTokens.Card.copy(alpha = if (enabled) 0.92f else 0.52f))
+                .border(1.dp, OctopusTokens.Border.copy(alpha = 0.66f), shape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -196,22 +215,22 @@ fun AppListCard(
     padding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
     content: @Composable () -> Unit,
 ) {
-    val shape = RoundedCornerShape(22.dp)
+    val shape = RoundedCornerShape(18.dp)
     val clickableModifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 3.dp,
+                elevation = 1.dp,
                 shape = shape,
                 clip = false,
-                ambientColor = Color.Black.copy(alpha = 0.025f),
-                spotColor = Color.Black.copy(alpha = 0.065f),
+                ambientColor = Color.Black.copy(alpha = 0.018f),
+                spotColor = Color.Black.copy(alpha = 0.035f),
             )
             .clip(shape)
             .background(OctopusTokens.Card.copy(alpha = 0.99f))
-            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.72f), shape)
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.64f), shape)
             .then(clickableModifier)
             .padding(padding),
     ) {
