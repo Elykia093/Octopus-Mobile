@@ -18,6 +18,7 @@ enum class MainTab(
     val icon: ImageVector,
 ) {
     Home("home", R.string.nav_home, AppMiuixIcons.Home),
+    Site("site", R.string.nav_site, AppMiuixIcons.Site),
     Channel("channel", R.string.nav_channel, AppMiuixIcons.Channel),
     Group("group", R.string.nav_group, AppMiuixIcons.Group),
     Model("model", R.string.nav_model, AppMiuixIcons.Model),

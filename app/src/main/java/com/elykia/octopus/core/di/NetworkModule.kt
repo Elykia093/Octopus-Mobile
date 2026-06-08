@@ -13,6 +13,7 @@ import com.elykia.octopus.core.data.remote.NetworkExecutor
 import com.elykia.octopus.core.data.remote.ServerUrlResolver
 import com.elykia.octopus.core.data.remote.ServerUrlProvider
 import com.elykia.octopus.core.data.remote.SettingApiService
+import com.elykia.octopus.core.data.remote.SiteApiService
 import com.elykia.octopus.core.data.remote.StatsApiService
 import com.elykia.octopus.core.data.remote.UpdateApiService
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -90,6 +91,7 @@ object NetworkModule {
         ignoreUnknownKeys = true
         explicitNulls = false
         isLenient = true
+        coerceInputValues = true
     }
 
     @Provides
@@ -175,4 +177,8 @@ object NetworkModule {
     @Singleton
     fun provideDataTransferApiService(retrofit: Retrofit): DataTransferApiService =
         retrofit.create(DataTransferApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSiteApiService(retrofit: Retrofit): SiteApiService = retrofit.create(SiteApiService::class.java)
 }

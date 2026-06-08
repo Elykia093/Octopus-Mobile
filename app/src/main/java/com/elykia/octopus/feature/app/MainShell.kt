@@ -22,6 +22,7 @@ import com.elykia.octopus.feature.home.HomeScreen
 import com.elykia.octopus.feature.log.LogScreen
 import com.elykia.octopus.feature.model.ModelScreen
 import com.elykia.octopus.feature.setting.SettingScreen
+import com.elykia.octopus.feature.site.SiteScreen
 import com.elykia.octopus.navigation.MainTab
 import top.yukonga.miuix.kmp.basic.Scaffold
 
@@ -62,6 +63,7 @@ fun MainShell(
                     securityMessage = securityMessage,
                     onClearSecurityMessage = onClearSecurityMessage,
                 )
+                MainTab.Site -> SiteScreen(contentPadding = contentPadding)
                 MainTab.Channel -> ChannelScreen(contentPadding = contentPadding)
                 MainTab.Group -> GroupScreen(contentPadding = contentPadding)
                 MainTab.Model -> ModelScreen(contentPadding = contentPadding)
