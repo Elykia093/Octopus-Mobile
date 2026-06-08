@@ -10,15 +10,32 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
+data class LogPage(
+    val logs: List<RelayLog> = emptyList(),
+    val hasMore: Boolean = false,
+    val total: Int = 0,
+    val warning: String? = null,
+)
+
 @Singleton
 class LogRepository @Inject constructor(
     private val apiService: LogApiService,
     private val executor: NetworkExecutor,
     private val dispatchers: DispatchersProvider,
 ) {
-    suspend fun logs(page: Int = 1, pageSize: Int = 20): AppResult<List<RelayLog>> = withContext(dispatchers.io) {
+    suspend fun logs(page: Int = 1, pageSize: Int = 20): AppResult<LogPage> = withContext(dispatchers.io) {
         when (val result = executor.executeNullable { apiService.logs(page, pageSize) }) {
-            is AppResult.Success -> AppResult.Success(result.data?.map { it.withHiddenContent() } ?: emptyList())
+            is AppResult.Success -> {
+                val pageData = result.data
+                AppResult.Success(
+                    LogPage(
+                        logs = pageData?.logs?.map { it.withHiddenContent() } ?: emptyList(),
+                        hasMore = pageData?.hasMore ?: false,
+                        total = pageData?.total ?: 0,
+                        warning = pageData?.warning?.sanitizeErrorMessage(),
+                    )
+                )
+            }
             is AppResult.Error -> result
         }
     }

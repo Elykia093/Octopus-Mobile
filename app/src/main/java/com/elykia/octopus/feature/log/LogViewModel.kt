@@ -84,13 +84,14 @@ class LogViewModel @Inject constructor(
             when (val result = repository.logs(page = nextPage, pageSize = 20)) {
                 is AppResult.Success -> {
                     if (requestGeneration != loadGeneration) return@launch
-                    val mergedLogs = if (refresh) result.data else _uiState.value.logs + result.data
+                    val pageData = result.data
+                    val mergedLogs = if (refresh) pageData.logs else _uiState.value.logs + pageData.logs
                     _uiState.value = _uiState.value.copy(
                         loading = false,
                         loadingMore = false,
                         logs = mergedLogs,
                         page = nextPage + 1,
-                        hasMore = result.data.size >= 20,
+                        hasMore = pageData.hasMore,
                         error = null,
                         pagingError = null,
                     )

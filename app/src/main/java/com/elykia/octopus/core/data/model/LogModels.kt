@@ -4,6 +4,22 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class LogCursor(
+    val time: Long = 0,
+    val id: Long = 0,
+)
+
+@Serializable
+data class LogPageResponse(
+    val logs: List<RelayLog> = emptyList(),
+    val total: Int = 0,
+    @SerialName("has_more") val hasMore: Boolean = false,
+    @SerialName("next_cursor") val nextCursor: LogCursor? = null,
+    @SerialName("search_mode") val searchMode: String? = null,
+    val warning: String? = null,
+)
+
+@Serializable
 data class ChannelAttempt(
     @SerialName("channel_id") val channelId: Int,
     @SerialName("channel_key_id") val channelKeyId: Int? = null,

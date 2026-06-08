@@ -2,7 +2,6 @@ package com.elykia.octopus.core.data.repository
 
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.common.DispatchersProvider
-import com.elykia.octopus.core.data.model.RelayLog
 import com.elykia.octopus.core.data.remote.LogApiService
 import com.elykia.octopus.core.data.remote.NetworkExecutor
 import com.google.common.truth.Truth.assertThat
@@ -23,7 +22,7 @@ class LogRepositoryContractTest {
     }
 
     @Test
-    fun logsTreatsSuccessfulNullDataAsEmptyList() = runBlocking {
+    fun logsTreatsSuccessfulNullDataAsEmptyPage() = runBlocking {
         val server = MockWebServer().apply {
             enqueue(
                 MockResponse()
@@ -46,8 +45,69 @@ class LogRepositoryContractTest {
 
             val result = repository.logs(page = 2, pageSize = 20)
 
-            assertThat(result).isEqualTo(AppResult.Success(emptyList<RelayLog>()))
-            assertThat(server.takeRequest().path).isEqualTo("/api/v1/log/list?page=2&page_size=20")
+            assertThat(result).isEqualTo(AppResult.Success(LogPage()))
+            assertThat(server.takeRequest().path)
+                .isEqualTo("/api/v1/log/list?page=2&page_size=20&include_content=false&with_total=false&pagination=page")
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun logsReadsObjectPageResponseAndHidesContent() = runBlocking {
+        val server = MockWebServer().apply {
+            enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody(
+                        """
+                        {
+                          "code": 200,
+                          "message": "success",
+                          "data": {
+                            "logs": [
+                              {
+                                "id": 9,
+                                "time": 100,
+                                "request_model_name": "gpt-test",
+                                "request_api_key_name": "mobile",
+                                "channel": 1,
+                                "channel_name": "OpenAI",
+                                "actual_model_name": "gpt-test",
+                                "input_tokens": 10,
+                                "output_tokens": 20,
+                                "ftut": 30,
+                                "use_time": 40,
+                                "cost": 0.5,
+                                "request_content": "secret request",
+                                "response_content": "secret response",
+                                "error": "Bearer sk-secret-value"
+                              }
+                            ],
+                            "total": 12,
+                            "has_more": true,
+                            "next_cursor": { "time": 99, "id": 8 },
+                            "warning": "partial"
+                          }
+                        }
+                        """.trimIndent(),
+                    ),
+            )
+            start()
+        }
+
+        try {
+            val repository = repositoryFor(server)
+
+            val result = repository.logs(page = 1, pageSize = 20)
+
+            assertThat(result).isInstanceOf(AppResult.Success::class.java)
+            val page = (result as AppResult.Success).data
+            assertThat(page.total).isEqualTo(12)
+            assertThat(page.hasMore).isTrue()
+            assertThat(page.logs.single().requestContent).isEmpty()
+            assertThat(page.logs.single().responseContent).isEmpty()
+            assertThat(page.logs.single().error).doesNotContain("sk-secret-value")
         } finally {
             server.shutdown()
         }
