@@ -6,6 +6,8 @@ import com.elykia.octopus.core.data.local.PreferenceStore
 import com.elykia.octopus.core.data.local.SecureSessionStore
 import com.elykia.octopus.core.data.local.SessionManager
 import com.elykia.octopus.core.data.model.AuthState
+import com.elykia.octopus.core.data.model.ChangePasswordRequest
+import com.elykia.octopus.core.data.model.ChangeUsernameRequest
 import com.elykia.octopus.core.data.model.ServerConfig
 import com.elykia.octopus.core.data.model.SettingItem
 import com.elykia.octopus.core.data.model.UserLoginRequest
@@ -133,6 +135,23 @@ class AppRepository @Inject constructor(
         }
         sessionManager.clear()
         AppResult.Success(Unit)
+    }
+
+    suspend fun changeUsername(newUsername: String): AppResult<String> = withContext(dispatchers.io) {
+        networkExecutor.execute {
+            authApiService.changeUsername(ChangeUsernameRequest(newUsername = newUsername))
+        }
+    }
+
+    suspend fun changePassword(oldPassword: String, newPassword: String): AppResult<String> = withContext(dispatchers.io) {
+        networkExecutor.execute {
+            authApiService.changePassword(
+                ChangePasswordRequest(
+                    oldPassword = oldPassword,
+                    newPassword = newPassword,
+                )
+            )
+        }
     }
 
     suspend fun settings(): AppResult<List<SettingItem>> = withContext(dispatchers.io) {

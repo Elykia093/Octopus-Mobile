@@ -17,6 +17,17 @@ data class UserLoginResponse(
 )
 
 @Serializable
+data class ChangePasswordRequest(
+    @SerialName("old_password") val oldPassword: String,
+    @SerialName("new_password") val newPassword: String,
+)
+
+@Serializable
+data class ChangeUsernameRequest(
+    @SerialName("new_username") val newUsername: String,
+)
+
+@Serializable
 data class AuthState(
     val token: String = "",
     val expireAt: String? = null,

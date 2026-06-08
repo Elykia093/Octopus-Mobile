@@ -34,9 +34,11 @@ data class SettingUiState(
     val language: String = "system",
     val themeMode: Int = 0,
     val modelLastUpdateTime: String? = null,
+    val channelLastSyncTime: String? = null,
     val error: String? = null,
     val versionInfoError: String? = null,
     val modelLastUpdateError: String? = null,
+    val channelLastSyncError: String? = null,
     val dataTransferSubmitting: Boolean = false,
     val dataTransferMessage: String? = null,
     val dataTransferError: String? = null,
@@ -107,6 +109,7 @@ class SettingViewModel @Inject constructor(
             val latestDeferred = async { updateRepository.latestInfo() }
             val versionDeferred = async { updateRepository.currentVersion() }
             val modelTimeDeferred = async { modelRepository.modelLastUpdateTime() }
+            val channelTimeDeferred = async { channelRepository.lastSyncTime() }
             val authDeferred = async { appRepository.currentAuth() }
             val configDeferred = async { appRepository.currentServerConfig() }
 
@@ -116,12 +119,14 @@ class SettingViewModel @Inject constructor(
             val latest = latestDeferred.await()
             val version = versionDeferred.await()
             val modelTime = modelTimeDeferred.await()
+            val channelTime = channelTimeDeferred.await()
             _uiState.value = buildSettingRefreshState(
                 previous = previous,
                 settingsResult = settings,
                 latestResult = latest,
                 versionResult = version,
                 modelTimeResult = modelTime,
+                channelTimeResult = channelTime,
                 username = auth.username,
                 language = config.language,
                 themeMode = config.themeMode,
@@ -175,6 +180,28 @@ class SettingViewModel @Inject constructor(
                     _uiState.value = _uiState.value.actionSucceeded("外观设置已保存。")
                     refresh()
                 }
+                is AppResult.Error -> _uiState.value = _uiState.value.actionFailed(result.message)
+            }
+        }
+    }
+
+    fun changeUsername(newUsername: String) {
+        viewModelScope.launch {
+            if (_uiState.value.actionSubmitting) return@launch
+            _uiState.value = _uiState.value.actionStarted()
+            when (val result = appRepository.changeUsername(newUsername.trim())) {
+                is AppResult.Success -> finishAccountChange(result.data.ifBlank { "用户名已修改，请重新登录。" })
+                is AppResult.Error -> _uiState.value = _uiState.value.actionFailed(result.message)
+            }
+        }
+    }
+
+    fun changePassword(oldPassword: String, newPassword: String) {
+        viewModelScope.launch {
+            if (_uiState.value.actionSubmitting) return@launch
+            _uiState.value = _uiState.value.actionStarted()
+            when (val result = appRepository.changePassword(oldPassword, newPassword)) {
+                is AppResult.Success -> finishAccountChange(result.data.ifBlank { "密码已修改，请重新登录。" })
                 is AppResult.Error -> _uiState.value = _uiState.value.actionFailed(result.message)
             }
         }
@@ -266,6 +293,13 @@ class SettingViewModel @Inject constructor(
     fun clearActionStatus() {
         _uiState.value = _uiState.value.copy(actionMessage = null, actionError = null)
     }
+
+    private suspend fun finishAccountChange(message: String) {
+        when (val logout = appRepository.logout()) {
+            is AppResult.Success -> _uiState.value = _uiState.value.actionSucceeded(message)
+            is AppResult.Error -> _uiState.value = _uiState.value.actionFailed(logout.message)
+        }
+    }
 }
 
 internal fun buildSettingRefreshState(
@@ -274,12 +308,14 @@ internal fun buildSettingRefreshState(
     latestResult: AppResult<LatestInfo>,
     versionResult: AppResult<String>,
     modelTimeResult: AppResult<String>,
+    channelTimeResult: AppResult<String>,
     username: String,
     language: String,
     themeMode: Int,
 ): SettingUiState {
     val versionInfoError = latestResult.errorMessageOrNull() ?: versionResult.errorMessageOrNull()
     val modelLastUpdateError = modelTimeResult.errorMessageOrNull()
+    val channelLastSyncError = channelTimeResult.errorMessageOrNull()
 
     return when (settingsResult) {
         is AppResult.Success -> previous.copy(
@@ -289,24 +325,28 @@ internal fun buildSettingRefreshState(
             latestInfo = latestResult.dataOrPreviousNullable(previous.latestInfo),
             currentVersion = versionResult.dataOrPreviousNullable(previous.currentVersion),
             modelLastUpdateTime = modelTimeResult.dataOrPreviousNullable(previous.modelLastUpdateTime),
+            channelLastSyncTime = channelTimeResult.dataOrPreviousNullable(previous.channelLastSyncTime),
             username = username,
             language = language,
             themeMode = themeMode,
             error = null,
             versionInfoError = versionInfoError,
             modelLastUpdateError = modelLastUpdateError,
+            channelLastSyncError = channelLastSyncError,
         )
         is AppResult.Error -> previous.copy(
             loading = false,
             latestInfo = latestResult.dataOrPreviousNullable(previous.latestInfo),
             currentVersion = versionResult.dataOrPreviousNullable(previous.currentVersion),
             modelLastUpdateTime = modelTimeResult.dataOrPreviousNullable(previous.modelLastUpdateTime),
+            channelLastSyncTime = channelTimeResult.dataOrPreviousNullable(previous.channelLastSyncTime),
             username = username,
             language = language,
             themeMode = themeMode,
             error = settingsResult.message,
             versionInfoError = versionInfoError,
             modelLastUpdateError = modelLastUpdateError,
+            channelLastSyncError = channelLastSyncError,
         )
     }
 }

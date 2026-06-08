@@ -41,6 +41,10 @@ class ChannelRepository @Inject constructor(
         executor.executeNullable { apiService.syncChannelModels() }
     }
 
+    suspend fun lastSyncTime(): AppResult<String> = withContext(dispatchers.io) {
+        executor.execute { apiService.lastSyncTime() }
+    }
+
     suspend fun deleteChannel(id: Int): AppResult<String?> = withContext(dispatchers.io) {
         executor.executeNullable { apiService.deleteChannel(id) }
     }

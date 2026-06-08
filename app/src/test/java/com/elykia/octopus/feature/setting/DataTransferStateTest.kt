@@ -110,6 +110,7 @@ class DataTransferStateTest {
             latestResult = AppResult.Success(LatestInfo(tagName = "v1.0.0", publishedAt = "2026-06-01")),
             versionResult = AppResult.Success("v0.9.0"),
             modelTimeResult = AppResult.Success("2026-06-01"),
+            channelTimeResult = AppResult.Success("2026-06-02"),
             username = "admin",
             language = "zh-CN",
             themeMode = 1,
@@ -121,8 +122,10 @@ class DataTransferStateTest {
         assertThat(state.latestInfo?.tagName).isEqualTo("v1.0.0")
         assertThat(state.currentVersion).isEqualTo("v0.9.0")
         assertThat(state.modelLastUpdateTime).isEqualTo("2026-06-01")
+        assertThat(state.channelLastSyncTime).isEqualTo("2026-06-02")
         assertThat(state.versionInfoError).isNull()
         assertThat(state.modelLastUpdateError).isNull()
+        assertThat(state.channelLastSyncError).isNull()
         assertThat(state.username).isEqualTo("admin")
         assertThat(state.language).isEqualTo("zh-CN")
         assertThat(state.themeMode).isEqualTo(1)
@@ -143,8 +146,10 @@ class DataTransferStateTest {
             latestInfo = LatestInfo(tagName = "old", publishedAt = "2026-05-01"),
             currentVersion = "old-current",
             modelLastUpdateTime = "old-time",
+            channelLastSyncTime = "old-sync",
             versionInfoError = "old version error",
             modelLastUpdateError = "old model error",
+            channelLastSyncError = "old channel error",
         )
 
         val state = buildSettingRefreshState(
@@ -153,6 +158,7 @@ class DataTransferStateTest {
             latestResult = AppResult.Success(LatestInfo(tagName = "new", publishedAt = "2026-06-01")),
             versionResult = AppResult.Error("version failed"),
             modelTimeResult = AppResult.Success("new-time"),
+            channelTimeResult = AppResult.Error("sync time failed"),
             username = "operator",
             language = "en",
             themeMode = 2,
@@ -165,8 +171,10 @@ class DataTransferStateTest {
         assertThat(state.latestInfo?.tagName).isEqualTo("new")
         assertThat(state.currentVersion).isEqualTo("old-current")
         assertThat(state.modelLastUpdateTime).isEqualTo("new-time")
+        assertThat(state.channelLastSyncTime).isEqualTo("old-sync")
         assertThat(state.versionInfoError).isEqualTo("version failed")
         assertThat(state.modelLastUpdateError).isNull()
+        assertThat(state.channelLastSyncError).isEqualTo("sync time failed")
         assertThat(state.username).isEqualTo("operator")
         assertThat(state.language).isEqualTo("en")
         assertThat(state.themeMode).isEqualTo(2)
@@ -237,5 +245,26 @@ class DataTransferStateTest {
         assertThat(canSubmitSettingEdit("proxy_url", "https://user:pass@proxy.example.com")).isFalse()
         assertThat(canSubmitSettingEdit("cors_allow_origins", "https://app.example.com")).isTrue()
         assertThat(canSubmitSettingEdit("cors_allow_origins", "https://app.example.com/path")).isFalse()
+    }
+
+    @Test
+    fun accountValidationRequiresUsernameAndMatchingPassword() {
+        assertThat(validateUsernameChange("")).isEqualTo(AccountValidationIssue.UsernameBlank)
+        assertThat(validateUsernameChange(" admin ")).isNull()
+
+        assertThat(validatePasswordChange("", "newpass", "newpass"))
+            .isEqualTo(AccountValidationIssue.OldPasswordBlank)
+        assertThat(validatePasswordChange("old", "", ""))
+            .isEqualTo(AccountValidationIssue.NewPasswordBlank)
+        assertThat(validatePasswordChange("old", "newpass", "different"))
+            .isEqualTo(AccountValidationIssue.PasswordMismatch)
+        assertThat(validatePasswordChange("old", "12345", "12345"))
+            .isEqualTo(AccountValidationIssue.PasswordTooShort)
+        assertThat(validatePasswordChange("old", "123456", "123456")).isNull()
+
+        assertThat(canSubmitUsernameChange("admin", submitting = false)).isTrue()
+        assertThat(canSubmitUsernameChange("", submitting = false)).isFalse()
+        assertThat(canSubmitPasswordChange("old", "123456", "123456", submitting = false)).isTrue()
+        assertThat(canSubmitPasswordChange("old", "123456", "123456", submitting = true)).isFalse()
     }
 }

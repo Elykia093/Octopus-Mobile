@@ -1,6 +1,8 @@
 package com.elykia.octopus.core.data.remote
 
 import com.elykia.octopus.core.data.model.ApiEnvelope
+import com.elykia.octopus.core.data.model.ChangePasswordRequest
+import com.elykia.octopus.core.data.model.ChangeUsernameRequest
 import com.elykia.octopus.core.data.model.UserLoginRequest
 import com.elykia.octopus.core.data.model.UserLoginResponse
 import retrofit2.http.Body
@@ -13,4 +15,10 @@ interface AuthApiService {
 
     @GET("/api/v1/user/status")
     suspend fun status(): ApiEnvelope<String>
+
+    @POST("/api/v1/user/change-password")
+    suspend fun changePassword(@Body request: ChangePasswordRequest): ApiEnvelope<String>
+
+    @POST("/api/v1/user/change-username")
+    suspend fun changeUsername(@Body request: ChangeUsernameRequest): ApiEnvelope<String>
 }

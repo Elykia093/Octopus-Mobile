@@ -27,6 +27,9 @@ interface ChannelApiService {
     @POST("/api/v1/channel/sync")
     suspend fun syncChannelModels(@Body body: Map<String, String> = emptyMap()): ApiEnvelope<String?>
 
+    @GET("/api/v1/channel/last-sync-time")
+    suspend fun lastSyncTime(): ApiEnvelope<String>
+
     @POST("/api/v1/channel/enable")
     suspend fun enableChannel(@Body request: ChannelEnableRequest): ApiEnvelope<String?>
 

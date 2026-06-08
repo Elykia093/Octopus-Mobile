@@ -34,6 +34,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,6 +50,7 @@ import com.elykia.octopus.core.designsystem.LoadingStateCard
 import com.elykia.octopus.core.designsystem.OctopusBrandMark
 import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.OperationErrorCard
+import com.elykia.octopus.core.designsystem.SecureVisibleWindow
 import com.elykia.octopus.core.designsystem.SoftIconTile
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import top.yukonga.miuix.kmp.basic.Switch
@@ -74,6 +77,7 @@ fun SettingScreen(
     var language by remember(uiState.language) { mutableStateOf(uiState.language) }
     var themeMode by remember(uiState.themeMode) { mutableIntStateOf(uiState.themeMode) }
     var editingItem by remember { mutableStateOf<SettingItem?>(null) }
+    var accountAction by remember { mutableStateOf<AccountAction?>(null) }
     var confirmAction by remember { mutableStateOf<HighImpactSettingAction?>(null) }
     var pendingExportBytes by remember { mutableStateOf<ByteArray?>(null) }
     var pendingImportFile by remember { mutableStateOf<PendingImportFile?>(null) }
@@ -163,6 +167,26 @@ fun SettingScreen(
                 }
 
                 item {
+                    SettingSectionCard(title = stringResource(R.string.setting_account_title)) {
+                        PreferenceRow(
+                            icon = AppMiuixIcons.Info,
+                            title = stringResource(R.string.setting_account_change_username),
+                            value = uiState.username.ifBlank { stringResource(R.string.common_unknown) },
+                            enabled = !uiState.actionSubmitting,
+                            onClick = { accountAction = AccountAction.Username },
+                        )
+                        SettingDivider()
+                        PreferenceRow(
+                            icon = AppMiuixIcons.ApiKey,
+                            title = stringResource(R.string.setting_account_change_password),
+                            value = stringResource(R.string.setting_account_relogin_summary),
+                            enabled = !uiState.actionSubmitting,
+                            onClick = { accountAction = AccountAction.Password },
+                        )
+                    }
+                }
+
+                item {
                     SettingSectionCard(title = stringResource(R.string.setting_preferences_title)) {
                         PreferenceRow(
                             icon = AppMiuixIcons.Setting,
@@ -221,9 +245,14 @@ fun SettingScreen(
                         PreferenceRow(
                             icon = AppMiuixIcons.Sync,
                             title = stringResource(R.string.setting_action_sync_channel),
+                            value = uiState.channelLastSyncTime ?: stringResource(R.string.common_unknown),
                             enabled = !uiState.actionSubmitting,
                             onClick = { confirmAction = HighImpactSettingAction.SyncChannel },
                         )
+                        uiState.channelLastSyncError?.takeIf { it.isNotBlank() }?.let { error ->
+                            SettingDivider()
+                            OperationErrorCard(message = error)
+                        }
                         SettingDivider()
                         PreferenceRow(
                             icon = AppMiuixIcons.ArrowDown,
@@ -310,6 +339,32 @@ fun SettingScreen(
                 editingItem = null
             },
         )
+    }
+
+    accountAction?.let { action ->
+        when (action) {
+            AccountAction.Username -> ChangeUsernameDialog(
+                currentUsername = uiState.username,
+                submitting = uiState.actionSubmitting,
+                onConfirm = { username ->
+                    accountAction = null
+                    viewModel.changeUsername(username)
+                },
+                onDismiss = {
+                    if (!uiState.actionSubmitting) accountAction = null
+                },
+            )
+            AccountAction.Password -> ChangePasswordDialog(
+                submitting = uiState.actionSubmitting,
+                onConfirm = { oldPassword, newPassword ->
+                    accountAction = null
+                    viewModel.changePassword(oldPassword, newPassword)
+                },
+                onDismiss = {
+                    if (!uiState.actionSubmitting) accountAction = null
+                },
+            )
+        }
     }
 
     confirmAction?.let { action ->
@@ -484,6 +539,11 @@ private data class PendingImportFile(
     val fileName: String,
     val content: ByteArray,
 )
+
+private enum class AccountAction {
+    Username,
+    Password,
+}
 
 private enum class HighImpactSettingAction(
     val titleRes: Int,
@@ -663,6 +723,39 @@ internal fun validateSettingValue(key: String, value: String): SettingValidation
 internal fun canSubmitSettingEdit(key: String, value: String): Boolean =
     validateSettingValue(key, value) == null
 
+internal enum class AccountValidationIssue {
+    UsernameBlank,
+    OldPasswordBlank,
+    NewPasswordBlank,
+    PasswordMismatch,
+    PasswordTooShort,
+}
+
+internal fun validateUsernameChange(username: String): AccountValidationIssue? =
+    if (username.trim().isBlank()) AccountValidationIssue.UsernameBlank else null
+
+internal fun validatePasswordChange(
+    oldPassword: String,
+    newPassword: String,
+    confirmPassword: String,
+): AccountValidationIssue? = when {
+    oldPassword.isBlank() -> AccountValidationIssue.OldPasswordBlank
+    newPassword.isBlank() -> AccountValidationIssue.NewPasswordBlank
+    newPassword != confirmPassword -> AccountValidationIssue.PasswordMismatch
+    newPassword.length < MIN_ACCOUNT_PASSWORD_LENGTH -> AccountValidationIssue.PasswordTooShort
+    else -> null
+}
+
+internal fun canSubmitUsernameChange(username: String, submitting: Boolean): Boolean =
+    !submitting && validateUsernameChange(username) == null
+
+internal fun canSubmitPasswordChange(
+    oldPassword: String,
+    newPassword: String,
+    confirmPassword: String,
+    submitting: Boolean,
+): Boolean = !submitting && validatePasswordChange(oldPassword, newPassword, confirmPassword) == null
+
 private fun String.isValidSettingUrl(): Boolean {
     val url = trim().toHttpUrlOrNull() ?: return false
     return url.scheme in setOf("http", "https") &&
@@ -691,6 +784,158 @@ private fun settingValidationMessage(issue: SettingValidationIssue): String = wh
     SettingValidationIssue.InvalidNumber -> stringResource(R.string.setting_edit_invalid_number)
     SettingValidationIssue.InvalidUrl -> stringResource(R.string.message_invalid_url)
     SettingValidationIssue.InvalidCors -> stringResource(R.string.setting_edit_invalid_cors)
+}
+
+@Composable
+private fun accountValidationMessage(issue: AccountValidationIssue): String = when (issue) {
+    AccountValidationIssue.UsernameBlank -> stringResource(R.string.setting_account_invalid_username)
+    AccountValidationIssue.OldPasswordBlank -> stringResource(R.string.setting_account_invalid_old_password)
+    AccountValidationIssue.NewPasswordBlank -> stringResource(R.string.setting_account_invalid_new_password)
+    AccountValidationIssue.PasswordMismatch -> stringResource(R.string.setting_account_password_mismatch)
+    AccountValidationIssue.PasswordTooShort -> stringResource(R.string.setting_account_password_too_short)
+}
+
+@Composable
+private fun ChangeUsernameDialog(
+    currentUsername: String,
+    submitting: Boolean,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var username by remember(currentUsername) { mutableStateOf(currentUsername) }
+    var validationIssue by remember(currentUsername) { mutableStateOf<AccountValidationIssue?>(null) }
+    val currentValidationIssue = validationIssue
+
+    OverlayDialog(
+        show = true,
+        title = stringResource(R.string.setting_account_change_username),
+        summary = stringResource(R.string.setting_account_relogin_summary),
+        onDismissRequest = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            TextField(
+                value = username,
+                onValueChange = {
+                    username = it
+                    validationIssue = null
+                },
+                label = stringResource(R.string.setting_account_new_username_hint),
+                useLabelAsPlaceholder = true,
+                singleLine = true,
+                enabled = !submitting,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            currentValidationIssue?.let { issue ->
+                OperationErrorCard(message = accountValidationMessage(issue))
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(text = stringResource(R.string.common_cancel), enabled = !submitting, onClick = onDismiss)
+                TextButton(
+                    text = if (submitting) stringResource(R.string.common_saving) else stringResource(R.string.common_confirm),
+                    enabled = canSubmitUsernameChange(username, submitting),
+                    onClick = {
+                        val issue = validateUsernameChange(username)
+                        if (issue != null) {
+                            validationIssue = issue
+                            return@TextButton
+                        }
+                        onConfirm(username.trim())
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChangePasswordDialog(
+    submitting: Boolean,
+    onConfirm: (String, String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    SecureVisibleWindow()
+    var oldPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var validationIssue by remember { mutableStateOf<AccountValidationIssue?>(null) }
+    val currentValidationIssue = validationIssue
+    val passwordVisualTransformation: VisualTransformation = PasswordVisualTransformation()
+
+    OverlayDialog(
+        show = true,
+        title = stringResource(R.string.setting_account_change_password),
+        summary = stringResource(R.string.setting_account_relogin_summary),
+        onDismissRequest = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            TextField(
+                value = oldPassword,
+                onValueChange = {
+                    oldPassword = it
+                    validationIssue = null
+                },
+                label = stringResource(R.string.setting_account_old_password_hint),
+                useLabelAsPlaceholder = true,
+                singleLine = true,
+                visualTransformation = passwordVisualTransformation,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                enabled = !submitting,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            TextField(
+                value = newPassword,
+                onValueChange = {
+                    newPassword = it
+                    validationIssue = null
+                },
+                label = stringResource(R.string.setting_account_new_password_hint),
+                useLabelAsPlaceholder = true,
+                singleLine = true,
+                visualTransformation = passwordVisualTransformation,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                enabled = !submitting,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            TextField(
+                value = confirmPassword,
+                onValueChange = {
+                    confirmPassword = it
+                    validationIssue = null
+                },
+                label = stringResource(R.string.setting_account_confirm_password_hint),
+                useLabelAsPlaceholder = true,
+                singleLine = true,
+                visualTransformation = passwordVisualTransformation,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                enabled = !submitting,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            currentValidationIssue?.let { issue ->
+                OperationErrorCard(message = accountValidationMessage(issue))
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(text = stringResource(R.string.common_cancel), enabled = !submitting, onClick = onDismiss)
+                TextButton(
+                    text = if (submitting) stringResource(R.string.common_saving) else stringResource(R.string.common_confirm),
+                    enabled = canSubmitPasswordChange(oldPassword, newPassword, confirmPassword, submitting),
+                    onClick = {
+                        val issue = validatePasswordChange(oldPassword, newPassword, confirmPassword)
+                        if (issue != null) {
+                            validationIssue = issue
+                            return@TextButton
+                        }
+                        onConfirm(oldPassword, newPassword)
+                    },
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -814,5 +1059,6 @@ private fun displayNameForUri(
 }
 
 private const val MAX_IMPORT_FILE_BYTES = 20 * 1024 * 1024
+private const val MIN_ACCOUNT_PASSWORD_LENGTH = 6
 
 private class ImportFileTooLargeException : IOException()
