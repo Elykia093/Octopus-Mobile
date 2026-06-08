@@ -233,3 +233,28 @@ data class SiteCheckinResult(
     val message: String = "",
     val reward: String? = null,
 )
+
+@Serializable
+data class AllApiHubImportResult(
+    @SerialName("created_sites") val createdSites: Int = 0,
+    @SerialName("reused_sites") val reusedSites: Int = 0,
+    @SerialName("created_accounts") val createdAccounts: Int = 0,
+    @SerialName("updated_accounts") val updatedAccounts: Int = 0,
+    @SerialName("skipped_accounts") val skippedAccounts: Int = 0,
+    @SerialName("scheduled_sync_accounts") val scheduledSyncAccounts: Int = 0,
+    val warnings: List<String> = emptyList(),
+)
+
+@Serializable
+data class MetApiImportResult(
+    @SerialName("created_sites") val createdSites: Int = 0,
+    @SerialName("reused_sites") val reusedSites: Int = 0,
+    @SerialName("created_accounts") val createdAccounts: Int = 0,
+    @SerialName("updated_accounts") val updatedAccounts: Int = 0,
+    @SerialName("skipped_accounts") val skippedAccounts: Int = 0,
+    @SerialName("imported_tokens") val importedTokens: Int = 0,
+    @SerialName("imported_groups") val importedGroups: Int = 0,
+    @SerialName("imported_models") val importedModels: Int = 0,
+    @SerialName("disabled_models") val disabledModels: Int = 0,
+    val warnings: List<String> = emptyList(),
+)

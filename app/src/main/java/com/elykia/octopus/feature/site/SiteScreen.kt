@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -75,6 +76,7 @@ fun SiteScreen(
     var siteToDelete by remember { mutableStateOf<Site?>(null) }
     var accountToDelete by remember { mutableStateOf<SiteAccount?>(null) }
     var showArchived by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
 
     val editingSite = editingSiteId?.let { id -> uiState.sites.firstOrNull { it.id == id } }
     val accountDialogSite = accountDialogSiteId?.let { id -> uiState.sites.firstOrNull { it.id == id } }
@@ -121,6 +123,15 @@ fun SiteScreen(
                 onClick = {
                     showArchived = true
                     viewModel.refreshArchived()
+                },
+            )
+            PageActionButton(
+                icon = AppMiuixIcons.ArrowDown,
+                contentDescription = stringResource(R.string.site_import_title),
+                enabled = !uiState.loading && !uiState.shouldShowPageError() && !uiState.submitting,
+                onClick = {
+                    viewModel.clearOperationFeedback()
+                    showImportDialog = true
                 },
             )
             PageActionButton(
@@ -249,6 +260,23 @@ fun SiteScreen(
         },
     )
 
+    SiteImportDialog(
+        visible = showImportDialog,
+        submitting = uiState.submitting,
+        operationError = uiState.operationError,
+        onConfirm = { source, payload ->
+            viewModel.importSites(source, payload) {
+                showImportDialog = false
+            }
+        },
+        onDismiss = {
+            if (!uiState.submitting) {
+                showImportDialog = false
+                viewModel.clearOperationFeedback()
+            }
+        },
+    )
+
     SiteAccountEditorDialog(
         visible = accountDialogSite != null,
         title = if (editingAccount == null) {
@@ -324,6 +352,57 @@ fun SiteScreen(
         },
         onDismiss = { accountToDelete = null },
     )
+}
+
+@Composable
+private fun SiteImportDialog(
+    visible: Boolean,
+    submitting: Boolean,
+    operationError: String?,
+    onConfirm: (SiteImportSource, String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    if (!visible) return
+    var source by remember(visible) { mutableStateOf(SiteImportSource.AllApiHub) }
+    var payload by remember(visible) { mutableStateOf("") }
+
+    OverlayDialog(
+        show = visible,
+        title = stringResource(R.string.site_import_title),
+        summary = stringResource(R.string.site_import_summary),
+        onDismissRequest = { if (!submitting) onDismiss() },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            operationError?.takeIf { it.isNotBlank() }?.let { OperationErrorCard(message = it) }
+            DialogLabel(text = stringResource(R.string.site_import_source_label))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SiteImportSource.entries.forEach { option ->
+                    ToolbarChip(
+                        text = importSourceLabel(option),
+                        selected = source == option,
+                        onClick = { if (!submitting) source = option },
+                    )
+                }
+            }
+            TextField(
+                value = payload,
+                onValueChange = { payload = it },
+                label = stringResource(R.string.site_import_payload_hint),
+                useLabelAsPlaceholder = true,
+                singleLine = false,
+                enabled = !submitting,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp),
+            )
+            DialogButtons(
+                submitting = submitting,
+                canSubmit = !submitting && payload.isNotBlank(),
+                onDismiss = onDismiss,
+                onConfirm = { onConfirm(source, payload) },
+            )
+        }
+    }
 }
 
 @Composable
@@ -924,6 +1003,12 @@ private fun DialogLabel(text: String) {
         fontWeight = FontWeight.SemiBold,
         color = OctopusTokens.TextPrimary,
     )
+}
+
+@Composable
+private fun importSourceLabel(source: SiteImportSource): String = when (source) {
+    SiteImportSource.AllApiHub -> stringResource(R.string.site_import_source_all_api_hub)
+    SiteImportSource.MetApi -> stringResource(R.string.site_import_source_metapi)
 }
 
 @Composable

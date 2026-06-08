@@ -212,6 +212,103 @@ class SiteRepositoryContractTest {
         }
     }
 
+    @Test
+    fun importAllApiHubPostsRawJsonPayload() = runBlocking {
+        val server = MockWebServer().apply {
+            enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody(
+                        """
+                        {
+                          "code": 200,
+                          "message": "success",
+                          "data": {
+                            "created_sites": 1,
+                            "reused_sites": 2,
+                            "created_accounts": 3,
+                            "updated_accounts": 4,
+                            "skipped_accounts": 5,
+                            "scheduled_sync_accounts": 6,
+                            "warnings": ["kept masked token"]
+                          }
+                        }
+                        """.trimIndent(),
+                    ),
+            )
+            start()
+        }
+
+        try {
+            val repository = repositoryFor(server)
+
+            val result = repository.importAllApiHub("""{"accounts":[]}""")
+
+            assertThat(result).isInstanceOf(AppResult.Success::class.java)
+            val data = (result as AppResult.Success).data
+            assertThat(data.createdSites).isEqualTo(1)
+            assertThat(data.scheduledSyncAccounts).isEqualTo(6)
+            assertThat(data.warnings).containsExactly("kept masked token")
+            val request = server.takeRequest()
+            assertThat(request.path).isEqualTo("/api/v1/site/import/all-api-hub")
+            assertThat(request.method).isEqualTo("POST")
+            assertThat(request.getHeader("Content-Type")).contains("application/json")
+            assertThat(request.body.readUtf8()).isEqualTo("""{"accounts":[]}""")
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun importMetApiPostsRawJsonPayload() = runBlocking {
+        val server = MockWebServer().apply {
+            enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody(
+                        """
+                        {
+                          "code": 200,
+                          "message": "success",
+                          "data": {
+                            "created_sites": 1,
+                            "reused_sites": 0,
+                            "created_accounts": 2,
+                            "updated_accounts": 3,
+                            "skipped_accounts": 4,
+                            "imported_tokens": 5,
+                            "imported_groups": 6,
+                            "imported_models": 7,
+                            "disabled_models": 8,
+                            "warnings": []
+                          }
+                        }
+                        """.trimIndent(),
+                    ),
+            )
+            start()
+        }
+
+        try {
+            val repository = repositoryFor(server)
+
+            val result = repository.importMetApi("""{"site_accounts":[]}""")
+
+            assertThat(result).isInstanceOf(AppResult.Success::class.java)
+            val data = (result as AppResult.Success).data
+            assertThat(data.createdAccounts).isEqualTo(2)
+            assertThat(data.importedTokens).isEqualTo(5)
+            assertThat(data.disabledModels).isEqualTo(8)
+            val request = server.takeRequest()
+            assertThat(request.path).isEqualTo("/api/v1/site/import/metapi")
+            assertThat(request.method).isEqualTo("POST")
+            assertThat(request.getHeader("Content-Type")).contains("application/json")
+            assertThat(request.body.readUtf8()).isEqualTo("""{"site_accounts":[]}""")
+        } finally {
+            server.shutdown()
+        }
+    }
+
     private fun repositoryFor(server: MockWebServer): SiteRepository {
         val service = Retrofit.Builder()
             .baseUrl(server.url("/"))

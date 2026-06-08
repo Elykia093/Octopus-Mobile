@@ -1,7 +1,9 @@
 package com.elykia.octopus.core.data.remote
 
 import com.elykia.octopus.core.data.model.ApiEnvelope
+import com.elykia.octopus.core.data.model.AllApiHubImportResult
 import com.elykia.octopus.core.data.model.EntityEnableRequest
+import com.elykia.octopus.core.data.model.MetApiImportResult
 import com.elykia.octopus.core.data.model.Site
 import com.elykia.octopus.core.data.model.SiteAccount
 import com.elykia.octopus.core.data.model.SiteAccountCreateRequest
@@ -10,6 +12,7 @@ import com.elykia.octopus.core.data.model.SiteCheckinResult
 import com.elykia.octopus.core.data.model.SiteCreateRequest
 import com.elykia.octopus.core.data.model.SiteSyncResult
 import com.elykia.octopus.core.data.model.SiteUpdateRequest
+import okhttp3.RequestBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -22,6 +25,12 @@ interface SiteApiService {
 
     @GET("/api/v1/site/archived")
     suspend fun archivedSites(): ApiEnvelope<List<Site>?>
+
+    @POST("/api/v1/site/import/all-api-hub")
+    suspend fun importAllApiHub(@Body body: RequestBody): ApiEnvelope<AllApiHubImportResult>
+
+    @POST("/api/v1/site/import/metapi")
+    suspend fun importMetApi(@Body body: RequestBody): ApiEnvelope<MetApiImportResult>
 
     @POST("/api/v1/site/create")
     suspend fun createSite(@Body request: SiteCreateRequest): ApiEnvelope<Site>

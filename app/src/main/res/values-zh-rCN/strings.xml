@@ -138,6 +138,12 @@
     <string name="site_edit_title">编辑站点</string>
     <string name="site_account_create_title">创建账号</string>
     <string name="site_account_edit_title">编辑账号</string>
+    <string name="site_import_title">导入站点</string>
+    <string name="site_import_summary">粘贴 All API Hub 或 MetAPI 导出的 JSON 内容。</string>
+    <string name="site_import_source_label">导入来源</string>
+    <string name="site_import_source_all_api_hub">All API Hub</string>
+    <string name="site_import_source_metapi">MetAPI</string>
+    <string name="site_import_payload_hint">粘贴 JSON 导出内容</string>
     <string name="site_name_hint">站点名称</string>
     <string name="site_base_url_hint">https://example.com</string>
     <string name="site_platform_label">平台</string>

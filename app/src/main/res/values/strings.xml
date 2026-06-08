@@ -138,6 +138,12 @@
     <string name="site_edit_title">Edit site</string>
     <string name="site_account_create_title">Create account</string>
     <string name="site_account_edit_title">Edit account</string>
+    <string name="site_import_title">Import sites</string>
+    <string name="site_import_summary">Paste an exported JSON payload from All API Hub or MetAPI.</string>
+    <string name="site_import_source_label">Import source</string>
+    <string name="site_import_source_all_api_hub">All API Hub</string>
+    <string name="site_import_source_metapi">MetAPI</string>
+    <string name="site_import_payload_hint">Paste JSON export</string>
     <string name="site_name_hint">Site name</string>
     <string name="site_base_url_hint">https://example.com</string>
     <string name="site_platform_label">Platform</string>

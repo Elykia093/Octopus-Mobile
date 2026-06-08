@@ -2,7 +2,9 @@ package com.elykia.octopus.core.data.repository
 
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.common.DispatchersProvider
+import com.elykia.octopus.core.data.model.AllApiHubImportResult
 import com.elykia.octopus.core.data.model.EntityEnableRequest
+import com.elykia.octopus.core.data.model.MetApiImportResult
 import com.elykia.octopus.core.data.model.Site
 import com.elykia.octopus.core.data.model.SiteAccount
 import com.elykia.octopus.core.data.model.SiteAccountCreateRequest
@@ -16,6 +18,8 @@ import com.elykia.octopus.core.data.remote.NetworkExecutor
 import com.elykia.octopus.core.data.remote.SiteApiService
 import com.elykia.octopus.core.data.remote.sanitizeErrorMessage
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -37,6 +41,14 @@ class SiteRepository @Inject constructor(
             is AppResult.Success -> AppResult.Success(result.data?.map { it.withHiddenSecrets() } ?: emptyList())
             is AppResult.Error -> result
         }
+    }
+
+    suspend fun importAllApiHub(payload: String): AppResult<AllApiHubImportResult> = withContext(dispatchers.io) {
+        executor.execute { apiService.importAllApiHub(payload.toImportRequestBody()) }
+    }
+
+    suspend fun importMetApi(payload: String): AppResult<MetApiImportResult> = withContext(dispatchers.io) {
+        executor.execute { apiService.importMetApi(payload.toImportRequestBody()) }
     }
 
     suspend fun createSite(request: SiteCreateRequest): AppResult<Site> = withContext(dispatchers.io) {
@@ -127,3 +139,7 @@ internal fun SiteAccount.withHiddenSecrets(): SiteAccount = copy(
 )
 
 private fun SiteToken.withHiddenSecret(): SiteToken = copy(token = "")
+
+private fun String.toImportRequestBody() = trim().toRequestBody(SITE_IMPORT_MEDIA_TYPE)
+
+private val SITE_IMPORT_MEDIA_TYPE = "application/json".toMediaType()

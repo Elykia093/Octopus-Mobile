@@ -44,6 +44,11 @@ data class SiteAccountEditorValues(
     val checkinRandomWindowMinutes: String = "120",
 )
 
+enum class SiteImportSource {
+    AllApiHub,
+    MetApi,
+}
+
 fun Site?.toSiteEditorValues(): SiteEditorValues {
     val site = this ?: return SiteEditorValues()
     return SiteEditorValues(
