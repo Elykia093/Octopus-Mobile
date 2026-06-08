@@ -37,6 +37,7 @@ import com.elykia.octopus.core.designsystem.OctopusBrandMark
 import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.PageContainer
 import com.elykia.octopus.core.designsystem.SecureVisibleWindow
+import com.elykia.octopus.core.designsystem.ToolbarChip
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -58,7 +59,7 @@ fun LoginScreen(
     val scrollState = rememberScrollState()
     val visibleError = uiState.error ?: loginInlineError(uiState)
 
-    if (uiState.password.isNotBlank()) {
+    if (uiState.password.isNotBlank() || uiState.apiKey.isNotBlank()) {
         SecureVisibleWindow()
     }
 
@@ -109,50 +110,92 @@ fun LoginScreen(
                         )
                     }
 
-                    TextField(
-                        value = uiState.username,
-                        onValueChange = viewModel::updateUsername,
-                        label = stringResource(R.string.login_placeholder_username),
-                        useLabelAsPlaceholder = true,
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ToolbarChip(
+                            text = stringResource(R.string.login_mode_user),
+                            selected = uiState.mode == LoginMode.User,
+                            onClick = { viewModel.updateMode(LoginMode.User) },
+                        )
+                        ToolbarChip(
+                            text = stringResource(R.string.login_mode_apikey),
+                            selected = uiState.mode == LoginMode.ApiKey,
+                            onClick = { viewModel.updateMode(LoginMode.ApiKey) },
+                        )
+                    }
 
-                    TextField(
-                        value = uiState.password,
-                        onValueChange = viewModel::updatePassword,
-                        label = stringResource(R.string.login_label_password),
-                        useLabelAsPlaceholder = true,
-                        singleLine = true,
-                        visualTransformation = if (uiState.passwordVisible) {
-                            VisualTransformation.None
-                        } else {
-                            PasswordVisualTransformation()
-                        },
-                        trailingIcon = {
-                            IconButton(onClick = { viewModel.updatePasswordVisible(!uiState.passwordVisible) }) {
-                                Icon(
-                                    imageVector = if (uiState.passwordVisible) AppMiuixIcons.Info else AppMiuixIcons.ApiKey,
-                                    contentDescription = if (uiState.passwordVisible) {
-                                        stringResource(R.string.login_action_hide_password)
-                                    } else {
-                                        stringResource(R.string.login_action_show_password)
-                                    },
-                                )
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    if (uiState.mode == LoginMode.User) {
+                        TextField(
+                            value = uiState.username,
+                            onValueChange = viewModel::updateUsername,
+                            label = stringResource(R.string.login_placeholder_username),
+                            useLabelAsPlaceholder = true,
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
 
-                    TextField(
-                        value = uiState.expireDays,
-                        onValueChange = viewModel::updateExpireDays,
-                        label = stringResource(R.string.login_label_expire_days),
-                        useLabelAsPlaceholder = true,
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                        TextField(
+                            value = uiState.password,
+                            onValueChange = viewModel::updatePassword,
+                            label = stringResource(R.string.login_label_password),
+                            useLabelAsPlaceholder = true,
+                            singleLine = true,
+                            visualTransformation = if (uiState.passwordVisible) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { viewModel.updatePasswordVisible(!uiState.passwordVisible) }) {
+                                    Icon(
+                                        imageVector = if (uiState.passwordVisible) AppMiuixIcons.Info else AppMiuixIcons.ApiKey,
+                                        contentDescription = if (uiState.passwordVisible) {
+                                            stringResource(R.string.login_action_hide_password)
+                                        } else {
+                                            stringResource(R.string.login_action_show_password)
+                                        },
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+
+                        TextField(
+                            value = uiState.expireDays,
+                            onValueChange = viewModel::updateExpireDays,
+                            label = stringResource(R.string.login_label_expire_days),
+                            useLabelAsPlaceholder = true,
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        TextField(
+                            value = uiState.apiKey,
+                            onValueChange = viewModel::updateApiKey,
+                            label = stringResource(R.string.login_label_apikey),
+                            useLabelAsPlaceholder = true,
+                            singleLine = true,
+                            visualTransformation = if (uiState.passwordVisible) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            trailingIcon = {
+                                IconButton(onClick = { viewModel.updatePasswordVisible(!uiState.passwordVisible) }) {
+                                    Icon(
+                                        imageVector = if (uiState.passwordVisible) AppMiuixIcons.Info else AppMiuixIcons.ApiKey,
+                                        contentDescription = if (uiState.passwordVisible) {
+                                            stringResource(R.string.login_action_hide_password)
+                                        } else {
+                                            stringResource(R.string.login_action_show_password)
+                                        },
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
 
                     Button(
                         onClick = { viewModel.submit(onLoggedIn) },

@@ -9,6 +9,7 @@ sealed class OctopusDestination(val route: String) {
     data object Launch : OctopusDestination("launch")
     data object Login : OctopusDestination("login")
     data object Main : OctopusDestination("main")
+    data object Dashboard : OctopusDestination("dashboard")
 }
 
 enum class MainTab(

@@ -2,6 +2,7 @@ package com.elykia.octopus.core.data.repository
 
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.common.DispatchersProvider
+import com.elykia.octopus.core.data.model.ApiKeyDashboard
 import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.data.model.ApiKeyMutationRequest
 import com.elykia.octopus.core.data.remote.ApiKeyApiService
@@ -21,6 +22,10 @@ class ApiKeyRepository @Inject constructor(
             is AppResult.Success -> AppResult.Success(result.data.map { it.withHiddenApiKey() })
             is AppResult.Error -> result
         }
+    }
+
+    suspend fun dashboardStats(): AppResult<ApiKeyDashboard> = withContext(dispatchers.io) {
+        executor.execute { apiService.dashboardStats() }
     }
 
     suspend fun createApiKey(request: ApiKeyMutationRequest): AppResult<ApiKeyItem> = withContext(dispatchers.io) {

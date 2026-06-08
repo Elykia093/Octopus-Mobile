@@ -126,6 +126,61 @@ class ApiKeyRepositoryContractTest {
         }
     }
 
+    @Test
+    fun dashboardStatsReadsStatsAndInfo() = runBlocking {
+        val server = MockWebServer().apply {
+            enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody(
+                        """
+                        {
+                          "code": 200,
+                          "message": "success",
+                          "data": {
+                            "stats": {
+                              "api_key_id": 7,
+                              "input_token": 10,
+                              "output_token": 20,
+                              "input_cost": 0.1,
+                              "output_cost": 0.2,
+                              "wait_time": 300,
+                              "request_success": 4,
+                              "request_failed": 1
+                            },
+                            "info": {
+                              "id": 7,
+                              "name": "Mobile",
+                              "api_key": "sk-dashboard-secret",
+                              "enabled": true,
+                              "expire_at": 0,
+                              "max_cost": 2.5,
+                              "supported_models": "gpt-test"
+                            }
+                          }
+                        }
+                        """.trimIndent(),
+                    ),
+            )
+            start()
+        }
+
+        try {
+            val repository = repositoryFor(server)
+            val result = repository.dashboardStats()
+
+            assertThat(result).isInstanceOf(AppResult.Success::class.java)
+            val data = (result as AppResult.Success).data
+            assertThat(data.stats.apiKeyId).isEqualTo(7)
+            assertThat(data.stats.requestSuccess).isEqualTo(4)
+            assertThat(data.info.apiKey).isEqualTo("sk-dashboard-secret")
+            assertThat(data.info.supportedModels).isEqualTo("gpt-test")
+            assertThat(server.takeRequest().path).isEqualTo("/api/v1/apikey/stats")
+        } finally {
+            server.shutdown()
+        }
+    }
+
     private fun repositoryFor(server: MockWebServer): ApiKeyRepository {
         val service = Retrofit.Builder()
             .baseUrl(server.url("/"))

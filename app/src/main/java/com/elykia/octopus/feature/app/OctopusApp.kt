@@ -14,6 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import com.elykia.octopus.R
 import com.elykia.octopus.core.designsystem.LoadingPane
 import com.elykia.octopus.core.designsystem.OctopusTheme
+import com.elykia.octopus.feature.apikey.ApiKeyDashboardScreen
 import com.elykia.octopus.feature.auth.LoginScreen
 import com.elykia.octopus.feature.auth.LoginViewModel
 import com.elykia.octopus.navigation.OctopusDestination
@@ -41,8 +42,13 @@ fun OctopusApp(
             }
 
             is LaunchState.Ready -> {
-                if (currentRoute != OctopusDestination.Main.route) {
-                    navController.navigate(OctopusDestination.Main.route) {
+                val targetRoute = if ((launchState as LaunchState.Ready).authState.apiKeyMode) {
+                    OctopusDestination.Dashboard.route
+                } else {
+                    OctopusDestination.Main.route
+                }
+                if (currentRoute != targetRoute) {
+                    navController.navigate(targetRoute) {
                         popUpTo(navController.graph.findStartDestination().id)
                         launchSingleTop = true
                     }
@@ -81,7 +87,8 @@ fun OctopusApp(
                     }
 
                     is LaunchState.Ready -> {
-                        MainShell(
+                        ReadyContent(
+                            launchState = launchState as LaunchState.Ready,
                             onLogout = appViewModel::logout,
                             securityMessage = securityMessage,
                             onClearSecurityMessage = appViewModel::clearSecurityMessage,
@@ -114,6 +121,36 @@ fun OctopusApp(
                     onClearSecurityMessage = appViewModel::clearSecurityMessage,
                 )
             }
+
+            composable(OctopusDestination.Dashboard.route) {
+                ApiKeyDashboardScreen(
+                    onLogout = appViewModel::logout,
+                    securityMessage = securityMessage,
+                    onClearSecurityMessage = appViewModel::clearSecurityMessage,
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun ReadyContent(
+    launchState: LaunchState.Ready,
+    onLogout: () -> Unit,
+    securityMessage: String?,
+    onClearSecurityMessage: () -> Unit,
+) {
+    if (launchState.authState.apiKeyMode) {
+        ApiKeyDashboardScreen(
+            onLogout = onLogout,
+            securityMessage = securityMessage,
+            onClearSecurityMessage = onClearSecurityMessage,
+        )
+    } else {
+        MainShell(
+            onLogout = onLogout,
+            securityMessage = securityMessage,
+            onClearSecurityMessage = onClearSecurityMessage,
+        )
     }
 }

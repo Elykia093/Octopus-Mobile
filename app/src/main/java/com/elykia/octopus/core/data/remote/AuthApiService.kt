@@ -7,6 +7,7 @@ import com.elykia.octopus.core.data.model.UserLoginRequest
 import com.elykia.octopus.core.data.model.UserLoginResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
 
 interface AuthApiService {
@@ -15,6 +16,9 @@ interface AuthApiService {
 
     @GET("/api/v1/user/status")
     suspend fun status(): ApiEnvelope<String>
+
+    @GET("/api/v1/apikey/login")
+    suspend fun apiKeyLogin(@Header("Authorization") authorization: String): ApiEnvelope<String?>
 
     @POST("/api/v1/user/change-password")
     suspend fun changePassword(@Body request: ChangePasswordRequest): ApiEnvelope<String>

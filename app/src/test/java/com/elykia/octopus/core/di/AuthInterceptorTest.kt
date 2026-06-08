@@ -34,6 +34,34 @@ class AuthInterceptorTest {
     }
 
     @Test
+    fun authInterceptorKeepsExplicitAuthorizationHeader() {
+        val server = MockWebServer().apply {
+            enqueue(MockResponse().setResponseCode(200))
+            start()
+        }
+        val sessionManager = SessionManager().apply {
+            update(AuthState(token = "session-token", serverUrl = server.url("/").toString().trimEnd('/')))
+        }
+
+        try {
+            val client = OkHttpClient.Builder()
+                .addInterceptor(AuthInterceptor(sessionManager) {})
+                .build()
+
+            client.newCall(
+                Request.Builder()
+                    .url(server.url("/api/v1/apikey/login"))
+                    .header("Authorization", "Bearer explicit-api-key")
+                    .build()
+            ).execute().close()
+
+            assertThat(server.takeRequest().getHeader("Authorization")).isEqualTo("Bearer explicit-api-key")
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
     fun authInterceptorClearsSessionOnUnauthorizedResponseWithToken() {
         var unauthorizedCleared = false
         val server = MockWebServer().apply {

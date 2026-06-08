@@ -50,7 +50,7 @@ internal class AuthInterceptor(
         val requestBuilder = request.newBuilder()
         val auth = sessionManager.currentAuth()
         val token = auth.token
-        if (token.isNotBlank() && auth.isBoundTo(request.url)) {
+        if (request.header("Authorization").isNullOrBlank() && token.isNotBlank() && auth.isBoundTo(request.url)) {
             requestBuilder.header("Authorization", "Bearer $token")
         }
         val response = chain.proceed(requestBuilder.build())

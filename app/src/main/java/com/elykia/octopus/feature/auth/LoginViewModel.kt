@@ -10,11 +10,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class LoginMode { User, ApiKey }
+
 data class LoginUiState(
+    val mode: LoginMode = LoginMode.User,
     val serverUrl: String = "",
     val showServerField: Boolean = false,
     val username: String = DEFAULT_LOGIN_USERNAME,
     val password: String = "",
+    val apiKey: String = "",
     val passwordVisible: Boolean = false,
     val expireDays: String = "7",
     val isLoading: Boolean = false,
@@ -39,12 +43,20 @@ class LoginViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(serverUrl = value, error = null)
     }
 
+    fun updateMode(value: LoginMode) {
+        _uiState.value = _uiState.value.copy(mode = value, error = null)
+    }
+
     fun updateUsername(value: String) {
         _uiState.value = _uiState.value.copy(username = value, error = null)
     }
 
     fun updatePassword(value: String) {
         _uiState.value = _uiState.value.copy(password = value, error = null)
+    }
+
+    fun updateApiKey(value: String) {
+        _uiState.value = _uiState.value.copy(apiKey = value, error = null)
     }
 
     fun updatePasswordVisible(value: Boolean) {
@@ -65,15 +77,6 @@ class LoginViewModel @Inject constructor(
                 return@launch
             }
             _uiState.value = state.copy(isLoading = true, error = null)
-            val days = parseLoginExpireDays(state.expireDays)
-            if (days == null) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "请输入 1 到 3650 之间的令牌天数。",
-                )
-                return@launch
-            }
-
             // 如果需要先保存服务器地址
             if (state.showServerField) {
                 when (val saveResult = appRepository.saveServerUrl(state.serverUrl)) {
@@ -85,8 +88,22 @@ class LoginViewModel @Inject constructor(
                 }
             }
 
-            // 登录
-            when (val result = appRepository.login(state.username.trim(), state.password, days)) {
+            val result = when (state.mode) {
+                LoginMode.User -> {
+                    val days = parseLoginExpireDays(state.expireDays)
+                    if (days == null) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = "请输入 1 到 3650 之间的令牌天数。",
+                        )
+                        return@launch
+                    }
+                    appRepository.login(state.username.trim(), state.password, days)
+                }
+                LoginMode.ApiKey -> appRepository.loginApiKey(state.apiKey.trim())
+            }
+
+            when (result) {
                 is AppResult.Success -> {
                     _uiState.value = _uiState.value.copy(isLoading = false)
                     onSuccess()
@@ -106,6 +123,7 @@ internal fun loginInlineError(state: LoginUiState): String? {
     val error = loginInputError(state) ?: return null
     val userHasStartedInput = state.username != DEFAULT_LOGIN_USERNAME ||
         state.password.isNotBlank() ||
+        state.apiKey.isNotEmpty() ||
         (state.showServerField && state.serverUrl.isNotBlank()) ||
         (state.expireDays.isNotBlank() && parseLoginExpireDays(state.expireDays) == null)
     return error.takeIf { userHasStartedInput }
@@ -113,6 +131,8 @@ internal fun loginInlineError(state: LoginUiState): String? {
 
 internal fun loginInputError(state: LoginUiState): String? = when {
     state.showServerField && state.serverUrl.isBlank() -> "请输入服务器地址。"
+    state.mode == LoginMode.ApiKey && state.apiKey.isBlank() -> "请输入 API 密钥。"
+    state.mode == LoginMode.ApiKey -> null
     state.username.isBlank() -> "请输入用户名。"
     state.password.isBlank() -> "请输入密码。"
     parseLoginExpireDays(state.expireDays) == null -> "请输入 1 到 3650 之间的令牌天数。"

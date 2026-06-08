@@ -1,6 +1,7 @@
 package com.elykia.octopus.core.data.remote
 
 import com.elykia.octopus.core.data.model.ApiEnvelope
+import com.elykia.octopus.core.data.model.ApiKeyDashboard
 import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.data.model.ApiKeyMutationRequest
 import retrofit2.http.Body
@@ -12,6 +13,9 @@ import retrofit2.http.Path
 interface ApiKeyApiService {
     @GET("/api/v1/apikey/list")
     suspend fun apiKeys(): ApiEnvelope<List<ApiKeyItem>>
+
+    @GET("/api/v1/apikey/stats")
+    suspend fun dashboardStats(): ApiEnvelope<ApiKeyDashboard>
 
     @POST("/api/v1/apikey/create")
     suspend fun createApiKey(@Body request: ApiKeyMutationRequest): ApiEnvelope<ApiKeyItem>

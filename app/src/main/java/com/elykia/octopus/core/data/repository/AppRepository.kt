@@ -108,6 +108,34 @@ class AppRepository @Inject constructor(
         }
     }
 
+    suspend fun loginApiKey(apiKey: String): AppResult<AuthState> = withContext(dispatchers.io) {
+        val trimmedApiKey = apiKey.trim()
+        when (val result = networkExecutor.executeNullable {
+            authApiService.apiKeyLogin(bearerAuthorization(trimmedApiKey))
+        }) {
+            is AppResult.Success -> {
+                val auth = AuthState(
+                    token = trimmedApiKey,
+                    username = API_KEY_AUTH_USERNAME,
+                    apiKeyMode = true,
+                    serverUrl = normalizeServerIdentity(preferenceStore.serverConfig.first().baseUrl),
+                )
+                when (
+                    val saved = persistLoginAuth(
+                        auth = auth,
+                        saveAuth = secureSessionStore::save,
+                        updateSession = sessionManager::update,
+                    )
+                ) {
+                    is AppResult.Success -> saved
+                    is AppResult.Error -> saved
+                }
+            }
+
+            is AppResult.Error -> result
+        }
+    }
+
     suspend fun validateSession(): AppResult<Boolean> = withContext(dispatchers.io) {
         val auth = secureSessionStore.load()
         if (auth.token.isBlank()) {
@@ -123,9 +151,18 @@ class AppRepository @Inject constructor(
             return@withContext AppResult.Success(false)
         }
         sessionManager.update(auth)
-        when (val result = networkExecutor.execute { authApiService.status() }) {
-            is AppResult.Success -> AppResult.Success(true)
-            is AppResult.Error -> result
+        if (auth.apiKeyMode) {
+            when (val result = networkExecutor.executeNullable {
+                authApiService.apiKeyLogin(bearerAuthorization(auth.token))
+            }) {
+                is AppResult.Success -> AppResult.Success(true)
+                is AppResult.Error -> result
+            }
+        } else {
+            when (val result = networkExecutor.execute { authApiService.status() }) {
+                is AppResult.Success -> AppResult.Success(true)
+                is AppResult.Error -> result
+            }
         }
     }
 
@@ -208,3 +245,7 @@ internal suspend fun runServerConfigMutation(
 }
 
 internal const val SERVER_CONFIG_SAVE_FAILED_MESSAGE = "保存本地配置失败，请稍后重试。"
+
+private fun bearerAuthorization(token: String): String = "Bearer $token"
+
+private const val API_KEY_AUTH_USERNAME = "API Key"
