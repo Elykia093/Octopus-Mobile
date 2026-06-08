@@ -1,5 +1,6 @@
 package com.elykia.octopus.feature.channel
 
+import com.elykia.octopus.core.data.model.BaseUrl
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -22,51 +23,63 @@ class ChannelSecurityTest {
     fun canSubmitChannelEditorRequiresValidNameUrlAndEditableState() {
         assertThat(
             canSubmitChannelEditor(
-                name = "OpenAI",
-                baseUrl = "https://api.example.com/v1",
+                values = ChannelEditorValues(
+                    name = "OpenAI",
+                    baseUrls = listOf(BaseUrl("https://api.example.com/v1")),
+                    keys = listOf(ChannelKeyEditorItem(channelKey = "sk-test")),
+                ),
                 submitting = false,
-                basicEditSupported = true,
             )
         ).isTrue()
 
         assertThat(
             canSubmitChannelEditor(
-                name = " ",
-                baseUrl = "https://api.example.com/v1",
+                values = ChannelEditorValues(
+                    name = " ",
+                    baseUrls = listOf(BaseUrl("https://api.example.com/v1")),
+                    keys = listOf(ChannelKeyEditorItem(channelKey = "sk-test")),
+                ),
                 submitting = false,
-                basicEditSupported = true,
             )
         ).isFalse()
         assertThat(
             canSubmitChannelEditor(
-                name = "OpenAI",
-                baseUrl = "http://api.example.com/v1",
+                values = ChannelEditorValues(
+                    name = "OpenAI",
+                    baseUrls = listOf(BaseUrl("http://api.example.com/v1")),
+                    keys = listOf(ChannelKeyEditorItem(channelKey = "sk-test")),
+                ),
                 submitting = false,
-                basicEditSupported = true,
             )
         ).isFalse()
         assertThat(
             canSubmitChannelEditor(
-                name = "OpenAI",
-                baseUrl = "https://api.example.com/v1?token=secret",
+                values = ChannelEditorValues(
+                    name = "OpenAI",
+                    baseUrls = listOf(BaseUrl("https://api.example.com/v1?token=secret")),
+                    keys = listOf(ChannelKeyEditorItem(channelKey = "sk-test")),
+                ),
                 submitting = false,
-                basicEditSupported = true,
             )
         ).isFalse()
         assertThat(
             canSubmitChannelEditor(
-                name = "OpenAI",
-                baseUrl = "https://api.example.com/v1",
+                values = ChannelEditorValues(
+                    name = "OpenAI",
+                    baseUrls = listOf(BaseUrl("https://api.example.com/v1")),
+                    keys = listOf(ChannelKeyEditorItem(channelKey = "sk-test")),
+                ),
                 submitting = true,
-                basicEditSupported = true,
             )
         ).isFalse()
         assertThat(
             canSubmitChannelEditor(
-                name = "OpenAI",
-                baseUrl = "https://api.example.com/v1",
+                values = ChannelEditorValues(
+                    name = "OpenAI",
+                    baseUrls = listOf(BaseUrl("https://api.example.com/v1")),
+                    keys = emptyList(),
+                ),
                 submitting = false,
-                basicEditSupported = false,
             )
         ).isFalse()
     }

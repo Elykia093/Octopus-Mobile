@@ -202,13 +202,13 @@ fun ChannelScreen(
         initialChannel = null,
         submitting = uiState.submitting,
         operationError = uiState.operationError,
-        onFetchModels = { type, baseUrl, apiKey, proxy ->
-            viewModel.fetchModels(type, baseUrl, apiKey, proxy) {
-                selectedChannelForFetch = Channel(name = "", type = type)
+        onFetchModels = { values ->
+            viewModel.fetchModels(values) {
+                selectedChannelForFetch = Channel(name = "", type = values.type)
             }
         },
-        onConfirm = { name, type, enabled, baseUrl, apiKey, model, customModel, proxy, autoSync ->
-            viewModel.createChannel(name, type, enabled, baseUrl, apiKey, model, customModel, proxy, autoSync) {
+        onConfirm = { values ->
+            viewModel.createChannel(values) {
                 showCreateDialog = false
                 viewModel.clearOperationError()
             }
@@ -227,15 +227,15 @@ fun ChannelScreen(
         initialChannel = editingChannel,
         submitting = uiState.submitting,
         operationError = uiState.operationError,
-        onFetchModels = { type, baseUrl, apiKey, proxy ->
+        onFetchModels = { values ->
             val current = editingChannel
-            viewModel.fetchModels(type, baseUrl, apiKey, proxy) {
+            viewModel.fetchModels(values) {
                 selectedChannelForFetch = current
             }
         },
-        onConfirm = { name, type, enabled, baseUrl, apiKey, model, customModel, proxy, autoSync ->
+        onConfirm = { values ->
             editingChannel?.let { current ->
-                viewModel.updateChannel(current, name, type, enabled, baseUrl, apiKey, model, customModel, proxy, autoSync) {
+                viewModel.updateChannel(current, values) {
                     editingChannelId = null
                     viewModel.clearOperationError()
                 }

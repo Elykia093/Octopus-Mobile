@@ -18,27 +18,22 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.elykia.octopus.R
+import com.elykia.octopus.core.data.model.BaseUrl
 import com.elykia.octopus.core.data.model.Channel
+import com.elykia.octopus.core.data.model.CustomHeader
 import com.elykia.octopus.core.designsystem.DialogScrollableColumn
 import com.elykia.octopus.core.designsystem.OperationErrorCard
 import com.elykia.octopus.core.designsystem.SecureVisibleWindow
 import com.elykia.octopus.core.designsystem.ToolbarChip
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 
-/**
- * Channel 编辑器对话框
- */
 @Composable
 fun ChannelEditorDialog(
     visible: Boolean,
@@ -46,30 +41,18 @@ fun ChannelEditorDialog(
     initialChannel: Channel?,
     submitting: Boolean,
     operationError: String?,
-    onFetchModels: (Int, String, String, Boolean) -> Unit,
-    onConfirm: (String, Int, Boolean, String, String, String, String, Boolean, Boolean) -> Unit,
+    onFetchModels: (ChannelEditorValues) -> Unit,
+    onConfirm: (ChannelEditorValues) -> Unit,
     onDismiss: () -> Unit,
 ) {
     if (!visible) return
 
     SecureVisibleWindow()
 
-    var name by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.name.orEmpty()) }
-    var type by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.type ?: 0) }
-    var enabled by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.enabled ?: true) }
-    var baseUrl by remember(initialChannel?.id, visible) {
-        mutableStateOf(initialChannel?.baseUrls?.firstOrNull()?.url.orEmpty())
+    var values by remember(initialChannel?.id, visible) {
+        mutableStateOf(initialChannel.toEditorValues())
     }
-    var apiKey by remember(initialChannel?.id, visible) {
-        mutableStateOf("")
-    }
-    var apiKeyVisible by remember(initialChannel?.id, visible) { mutableStateOf(false) }
-    var model by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.model.orEmpty()) }
-    var customModel by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.customModel.orEmpty()) }
-    var proxy by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.proxy ?: false) }
-    var autoSync by remember(initialChannel?.id, visible) { mutableStateOf(initialChannel?.autoSync ?: false) }
-    val fetchRequiresNewKey = initialChannel != null && initialChannel.keys.isNotEmpty() && apiKey.isBlank()
-    val basicEditSupported = initialChannel?.canUseBasicMobileEditor() ?: true
+    val fetchRequiresKey = values.keys.none { it.channelKey.isNotBlank() }
     val editorScrollState = rememberScrollState()
 
     OverlayDialog(
@@ -82,85 +65,23 @@ fun ChannelEditorDialog(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             DialogScrollableColumn(
-                fraction = 0.64f,
+                fraction = 0.68f,
                 scrollState = editorScrollState,
             ) {
                 operationError?.takeIf { it.isNotBlank() }?.let { error ->
                     OperationErrorCard(message = error)
                 }
-                if (!basicEditSupported) {
-                    OperationErrorCard(message = stringResource(R.string.channel_basic_editor_unsupported))
-                }
+
                 TextField(
-                    value = name,
-                    onValueChange = { name = it },
+                    value = values.name,
+                    onValueChange = { values = values.copy(name = it) },
                     label = stringResource(R.string.channel_name_hint),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
-                    enabled = !submitting && basicEditSupported,
+                    enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                TextField(
-                    value = baseUrl,
-                    onValueChange = { baseUrl = it },
-                    label = stringResource(R.string.channel_base_url_hint),
-                    useLabelAsPlaceholder = true,
-                    singleLine = true,
-                    enabled = !submitting && basicEditSupported,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                TextField(
-                    value = apiKey,
-                    onValueChange = { apiKey = it },
-                    label = if (initialChannel == null) {
-                        stringResource(R.string.channel_api_key_hint)
-                    } else {
-                        stringResource(R.string.channel_api_key_replace_hint)
-                    },
-                    useLabelAsPlaceholder = true,
-                    singleLine = true,
-                    visualTransformation = if (apiKeyVisible) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    trailingIcon = {
-                        IconButton(
-                            onClick = { apiKeyVisible = !apiKeyVisible },
-                            enabled = !submitting && basicEditSupported,
-                        ) {
-                            Icon(
-                                imageVector = if (apiKeyVisible) AppMiuixIcons.Info else AppMiuixIcons.ApiKey,
-                                contentDescription = if (apiKeyVisible) {
-                                    stringResource(R.string.login_action_hide_password)
-                                } else {
-                                    stringResource(R.string.login_action_show_password)
-                                },
-                            )
-                        }
-                    },
-                    enabled = !submitting && basicEditSupported,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                TextField(
-                    value = model,
-                    onValueChange = { model = it },
-                    label = stringResource(R.string.channel_model_hint),
-                    useLabelAsPlaceholder = true,
-                    singleLine = true,
-                    enabled = !submitting && basicEditSupported,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                TextField(
-                    value = customModel,
-                    onValueChange = { customModel = it },
-                    label = stringResource(R.string.channel_custom_model_hint),
-                    useLabelAsPlaceholder = true,
-                    singleLine = true,
-                    enabled = !submitting && basicEditSupported,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+
                 Text(
                     text = stringResource(R.string.channel_type_label),
                     style = MiuixTheme.textStyles.main,
@@ -171,50 +92,135 @@ fun ChannelEditorDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     (0..5).forEach { optionType ->
-                        ChannelTypeOption(type = optionType, selectedType = type) {
-                            if (!submitting && basicEditSupported) type = optionType
+                        ChannelTypeOption(type = optionType, selectedType = values.type) {
+                            if (!submitting) values = values.copy(type = optionType)
                         }
                     }
                 }
-                Row(
+
+                ChannelSwitchRow(
+                    label = stringResource(R.string.channel_enabled_label),
+                    checked = values.enabled,
+                    enabled = !submitting,
+                    onCheckedChange = { values = values.copy(enabled = it) },
+                )
+                ChannelSwitchRow(
+                    label = stringResource(R.string.channel_proxy_label),
+                    checked = values.proxy,
+                    enabled = !submitting,
+                    onCheckedChange = { values = values.copy(proxy = it) },
+                )
+                ChannelSwitchRow(
+                    label = stringResource(R.string.channel_auto_sync_label),
+                    checked = values.autoSync,
+                    enabled = !submitting,
+                    onCheckedChange = { values = values.copy(autoSync = it) },
+                )
+
+                EditableBaseUrlList(
+                    baseUrls = values.baseUrls,
+                    submitting = submitting,
+                    onChange = { values = values.copy(baseUrls = it) },
+                )
+                EditableKeyList(
+                    keys = values.keys,
+                    submitting = submitting,
+                    onChange = { values = values.copy(keys = it) },
+                )
+
+                TextField(
+                    value = values.model,
+                    onValueChange = { values = values.copy(model = it) },
+                    label = stringResource(R.string.channel_model_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = false,
+                    maxLines = 3,
+                    enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(text = stringResource(R.string.channel_enabled_label), style = MiuixTheme.textStyles.main)
-                    Switch(checked = enabled, onCheckedChange = { if (!submitting && basicEditSupported) enabled = it })
-                }
-                Row(
+                )
+                TextField(
+                    value = values.customModel,
+                    onValueChange = { values = values.copy(customModel = it) },
+                    label = stringResource(R.string.channel_custom_model_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = false,
+                    maxLines = 3,
+                    enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                )
+
+                Text(
+                    text = stringResource(R.string.channel_advanced_title),
+                    style = MiuixTheme.textStyles.main,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = stringResource(R.string.channel_auto_group_label),
+                    style = MiuixTheme.textStyles.body2,
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(text = stringResource(R.string.channel_proxy_label), style = MiuixTheme.textStyles.main)
-                    Switch(checked = proxy, onCheckedChange = { if (!submitting && basicEditSupported) proxy = it })
+                    (0..3).forEach { autoGroup ->
+                        ToolbarChip(
+                            text = autoGroupName(autoGroup),
+                            selected = values.autoGroup == autoGroup,
+                            onClick = {
+                                if (!submitting) values = values.copy(autoGroup = autoGroup)
+                            },
+                        )
+                    }
                 }
-                Row(
+                TextField(
+                    value = values.channelProxy,
+                    onValueChange = { values = values.copy(channelProxy = it) },
+                    label = stringResource(R.string.channel_proxy_url_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = true,
+                    enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(text = stringResource(R.string.channel_auto_sync_label), style = MiuixTheme.textStyles.main)
-                    Switch(checked = autoSync, onCheckedChange = { if (!submitting && basicEditSupported) autoSync = it })
-                }
+                )
+                EditableHeaderList(
+                    headers = values.customHeader,
+                    submitting = submitting,
+                    onChange = { values = values.copy(customHeader = it) },
+                )
+                TextField(
+                    value = values.matchRegex,
+                    onValueChange = { values = values.copy(matchRegex = it) },
+                    label = stringResource(R.string.channel_match_regex_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = true,
+                    enabled = !submitting,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TextField(
+                    value = values.paramOverride,
+                    onValueChange = { values = values.copy(paramOverride = it) },
+                    label = stringResource(R.string.channel_param_override_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = false,
+                    maxLines = 5,
+                    enabled = !submitting,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Start,
             ) {
                 TextButton(
                     text = stringResource(
-                        if (fetchRequiresNewKey) {
+                        if (fetchRequiresKey) {
                             R.string.channel_fetch_model_needs_key
                         } else {
                             R.string.action_fetch_model
                         },
                     ),
-                    enabled = !submitting && basicEditSupported && !fetchRequiresNewKey,
-                    onClick = { onFetchModels(type, baseUrl, apiKey, proxy) },
+                    enabled = !submitting && !fetchRequiresKey && hasValidChannelBaseUrls(values.baseUrls),
+                    onClick = { onFetchModels(values) },
                 )
             }
             Row(
@@ -228,18 +234,207 @@ fun ChannelEditorDialog(
                     } else {
                         stringResource(R.string.common_confirm)
                     },
-                    enabled = canSubmitChannelEditor(
-                        name = name,
-                        baseUrl = baseUrl,
-                        submitting = submitting,
-                        basicEditSupported = basicEditSupported,
-                    ),
-                    onClick = {
-                        onConfirm(name.trim(), type, enabled, baseUrl.trim(), apiKey.trim(), model.trim(), customModel.trim(), proxy, autoSync)
-                    },
+                    enabled = canSubmitChannelEditor(values = values, submitting = submitting),
+                    onClick = { onConfirm(values) },
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun EditableBaseUrlList(
+    baseUrls: List<BaseUrl>,
+    submitting: Boolean,
+    onChange: (List<BaseUrl>) -> Unit,
+) {
+    ChannelSectionHeader(
+        title = stringResource(R.string.channel_base_urls_label, baseUrls.size),
+        enabled = !submitting,
+        onAdd = { onChange(baseUrls + BaseUrl(url = "")) },
+    )
+    baseUrls.forEachIndexed { index, baseUrl ->
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextField(
+                value = baseUrl.url,
+                onValueChange = { next ->
+                    onChange(baseUrls.mapIndexed { i, item -> if (i == index) item.copy(url = next) else item })
+                },
+                label = stringResource(R.string.channel_base_url_hint),
+                useLabelAsPlaceholder = true,
+                singleLine = true,
+                enabled = !submitting,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(
+                text = stringResource(R.string.common_delete),
+                enabled = !submitting && baseUrls.size > 1,
+                onClick = { onChange(baseUrls.filterIndexed { i, _ -> i != index }) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun EditableKeyList(
+    keys: List<ChannelKeyEditorItem>,
+    submitting: Boolean,
+    onChange: (List<ChannelKeyEditorItem>) -> Unit,
+) {
+    ChannelSectionHeader(
+        title = stringResource(R.string.channel_keys_label, keys.size),
+        enabled = !submitting,
+        onAdd = { onChange(keys + ChannelKeyEditorItem()) },
+    )
+    keys.forEachIndexed { index, key ->
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextField(
+                    value = key.channelKey,
+                    onValueChange = { next ->
+                        onChange(keys.mapIndexed { i, item -> if (i == index) item.copy(channelKey = next) else item })
+                    },
+                    label = if (key.id == null) {
+                        stringResource(R.string.channel_api_key_hint)
+                    } else {
+                        stringResource(R.string.channel_api_key_replace_hint)
+                    },
+                    useLabelAsPlaceholder = true,
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    enabled = !submitting,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(
+                    checked = key.enabled,
+                    onCheckedChange = { checked ->
+                        if (!submitting) {
+                            onChange(keys.mapIndexed { i, item -> if (i == index) item.copy(enabled = checked) else item })
+                        }
+                    },
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextField(
+                    value = key.remark,
+                    onValueChange = { next ->
+                        onChange(keys.mapIndexed { i, item -> if (i == index) item.copy(remark = next) else item })
+                    },
+                    label = stringResource(R.string.channel_key_remark_hint),
+                    useLabelAsPlaceholder = true,
+                    singleLine = true,
+                    enabled = !submitting,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(
+                    text = stringResource(R.string.common_delete),
+                    enabled = !submitting && keys.size > 1,
+                    onClick = { onChange(keys.filterIndexed { i, _ -> i != index }) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditableHeaderList(
+    headers: List<CustomHeader>,
+    submitting: Boolean,
+    onChange: (List<CustomHeader>) -> Unit,
+) {
+    ChannelSectionHeader(
+        title = stringResource(R.string.channel_custom_headers_label, headers.size),
+        enabled = !submitting,
+        onAdd = { onChange(headers + CustomHeader(headerKey = "", headerValue = "")) },
+    )
+    headers.forEachIndexed { index, header ->
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextField(
+                value = header.headerKey,
+                onValueChange = { next ->
+                    onChange(headers.mapIndexed { i, item -> if (i == index) item.copy(headerKey = next) else item })
+                },
+                label = stringResource(R.string.channel_header_key_hint),
+                useLabelAsPlaceholder = true,
+                singleLine = true,
+                enabled = !submitting,
+                modifier = Modifier.weight(1f),
+            )
+            TextField(
+                value = header.headerValue,
+                onValueChange = { next ->
+                    onChange(headers.mapIndexed { i, item -> if (i == index) item.copy(headerValue = next) else item })
+                },
+                label = stringResource(R.string.channel_header_value_hint),
+                useLabelAsPlaceholder = true,
+                singleLine = true,
+                enabled = !submitting,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(
+                text = stringResource(R.string.common_delete),
+                enabled = !submitting && headers.size > 1,
+                onClick = { onChange(headers.filterIndexed { i, _ -> i != index }) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChannelSectionHeader(
+    title: String,
+    enabled: Boolean,
+    onAdd: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = MiuixTheme.textStyles.main,
+            fontWeight = FontWeight.SemiBold,
+        )
+        TextButton(
+            text = stringResource(R.string.channel_add_row),
+            enabled = enabled,
+            onClick = onAdd,
+        )
+    }
+}
+
+@Composable
+private fun ChannelSwitchRow(
+    label: String,
+    checked: Boolean,
+    enabled: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = label, style = MiuixTheme.textStyles.main)
+        Switch(checked = checked, onCheckedChange = { if (enabled) onCheckedChange(it) })
     }
 }
 
@@ -254,4 +449,13 @@ private fun ChannelTypeOption(
         selected = selectedType == type,
         onClick = onSelect,
     )
+}
+
+@Composable
+private fun autoGroupName(value: Int): String = when (value) {
+    0 -> stringResource(R.string.channel_auto_group_none)
+    1 -> stringResource(R.string.channel_auto_group_fuzzy)
+    2 -> stringResource(R.string.channel_auto_group_exact)
+    3 -> stringResource(R.string.channel_auto_group_regex)
+    else -> stringResource(R.string.channel_auto_group_unknown, value)
 }

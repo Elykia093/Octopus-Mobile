@@ -3,12 +3,10 @@ package com.elykia.octopus.feature.channel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.common.AppResult
-import com.elykia.octopus.core.data.model.BaseUrl
 import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.ChannelKey
 import com.elykia.octopus.core.data.model.ChannelKeyAddRequest
 import com.elykia.octopus.core.data.model.ChannelFetchModelRequest
-import com.elykia.octopus.core.data.model.ChannelUpdateRequest
 import com.elykia.octopus.core.data.repository.ChannelRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -103,31 +101,19 @@ class ChannelViewModel @Inject constructor(
         }
     }
 
-    fun fetchModels(
-        type: Int,
-        baseUrl: String,
-        apiKey: String,
-        proxy: Boolean,
-        onSuccess: () -> Unit = {},
-    ) {
+    fun fetchModels(values: ChannelEditorValues, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             if (_uiState.value.submitting) return@launch
-            val normalizedBaseUrl = baseUrl.trim()
-            if (!hasValidChannelBaseUrl(normalizedBaseUrl)) {
+            if (!hasValidChannelBaseUrls(values.baseUrls)) {
                 _uiState.value = _uiState.value.channelOperationFailed("请输入有效的 HTTPS 渠道地址。")
                 return@launch
             }
+            if (!values.keys.any { it.channelKey.isNotBlank() }) {
+                _uiState.value = _uiState.value.channelOperationFailed("请输入可用于抓取模型的渠道密钥。")
+                return@launch
+            }
             _uiState.value = _uiState.value.channelOperationStarted()
-            val result = repository.fetchChannelModels(
-                ChannelFetchModelRequest(
-                    type = type,
-                    baseUrls = normalizedBaseUrl.takeIf { it.isNotEmpty() }?.let { listOf(BaseUrl(url = it)) } ?: emptyList(),
-                    keys = apiKey.trim().takeIf { it.isNotEmpty() }?.let {
-                        listOf(ChannelKeyAddRequest(channelKey = it))
-                    } ?: emptyList(),
-                    proxy = proxy,
-                )
-            )
+            val result = repository.fetchChannelModels(values.toFetchRequest())
             when (result) {
                 is AppResult.Success -> {
                     _uiState.value = _uiState.value.copy(
@@ -272,40 +258,17 @@ class ChannelViewModel @Inject constructor(
     }
 
     fun createChannel(
-        name: String,
-        type: Int,
-        enabled: Boolean,
-        baseUrl: String,
-        apiKey: String,
-        model: String,
-        customModel: String,
-        proxy: Boolean,
-        autoSync: Boolean,
+        values: ChannelEditorValues,
         onSuccess: () -> Unit = {},
     ) {
         viewModelScope.launch {
             if (_uiState.value.submitting) return@launch
-            val normalizedBaseUrl = baseUrl.trim()
-            if (!hasValidChannelBaseUrl(normalizedBaseUrl)) {
-                _uiState.value = _uiState.value.channelOperationFailed("请输入有效的 HTTPS 渠道地址。")
+            if (!canSubmitChannelEditor(values, submitting = false)) {
+                _uiState.value = _uiState.value.channelOperationFailed("请输入有效的渠道名称、HTTPS 地址和渠道密钥。")
                 return@launch
             }
             _uiState.value = _uiState.value.channelOperationStarted()
-            when (val result = repository.createChannel(
-                Channel(
-                    name = name.trim(),
-                    type = type,
-                    enabled = enabled,
-                    baseUrls = normalizedBaseUrl.takeIf { it.isNotEmpty() }?.let { listOf(BaseUrl(url = it)) } ?: emptyList(),
-                    keys = apiKey.trim().takeIf { it.isNotEmpty() }?.let {
-                        listOf(ChannelKey(channelKey = it, channelId = 0))
-                    } ?: emptyList(),
-                    model = model.trim(),
-                    customModel = customModel.trim(),
-                    proxy = proxy,
-                    autoSync = autoSync,
-                )
-            )) {
+            when (val result = repository.createChannel(values.toCreateChannel())) {
                 is AppResult.Success -> {
                     _uiState.value = _uiState.value.channelOperationSucceeded()
                     onSuccess()
@@ -318,65 +281,17 @@ class ChannelViewModel @Inject constructor(
 
     fun updateChannel(
         channel: Channel,
-        name: String,
-        type: Int,
-        enabled: Boolean,
-        baseUrl: String,
-        apiKey: String,
-        model: String,
-        customModel: String,
-        proxy: Boolean,
-        autoSync: Boolean,
+        values: ChannelEditorValues,
         onSuccess: () -> Unit = {},
     ) {
         viewModelScope.launch {
             if (_uiState.value.submitting) return@launch
-            if (!channel.canUseBasicMobileEditor()) {
-                _uiState.value = _uiState.value.channelOperationFailed("当前移动端仅支持基础渠道编辑，请在 Web 端维护多 Key、多地址或高级配置。")
-                return@launch
-            }
-            val normalizedBaseUrl = baseUrl.trim()
-            if (!hasValidChannelBaseUrl(normalizedBaseUrl)) {
-                _uiState.value = _uiState.value.channelOperationFailed("请输入有效的 HTTPS 渠道地址。")
+            if (!canSubmitChannelEditor(values, submitting = false)) {
+                _uiState.value = _uiState.value.channelOperationFailed("请输入有效的渠道名称、HTTPS 地址和至少一个渠道密钥。")
                 return@launch
             }
             _uiState.value = _uiState.value.channelOperationStarted()
-            val existingKey = channel.keys.firstOrNull()
-            val trimmedKey = apiKey.trim()
-            val keysToAdd = if (existingKey == null && trimmedKey.isNotEmpty()) {
-                listOf(ChannelKeyAddRequest(channelKey = trimmedKey, enabled = true))
-            } else {
-                emptyList()
-            }
-            val keysToUpdate = if (existingKey != null && trimmedKey.isNotEmpty()) {
-                listOf(
-                    com.elykia.octopus.core.data.model.ChannelKeyUpdateRequest(
-                        id = existingKey.id,
-                        enabled = true,
-                        channelKey = trimmedKey,
-                        remark = existingKey.remark,
-                    )
-                )
-            } else {
-                emptyList()
-            }
-
-            when (val result = repository.updateChannel(
-                ChannelUpdateRequest(
-                    id = channel.id,
-                    name = name.trim(),
-                    type = type,
-                    enabled = enabled,
-                    baseUrls = normalizedBaseUrl.takeIf { it.isNotEmpty() }?.let { listOf(BaseUrl(url = it)) } ?: emptyList(),
-                    model = model.trim(),
-                    customModel = customModel.trim(),
-                    proxy = proxy,
-                    autoSync = autoSync,
-                    keysToAdd = keysToAdd,
-                    keysToUpdate = keysToUpdate,
-                    keysToDelete = emptyList(),
-                )
-            )) {
+            when (val result = repository.updateChannel(buildChannelUpdateRequest(channel, values))) {
                 is AppResult.Success -> {
                     _uiState.value = _uiState.value.channelOperationSucceeded()
                     onSuccess()
@@ -387,6 +302,50 @@ class ChannelViewModel @Inject constructor(
         }
     }
 }
+
+private fun ChannelEditorValues.toCreateChannel(): Channel = Channel(
+    name = name.trim(),
+    type = type,
+    enabled = enabled,
+    baseUrls = normalizedBaseUrls(),
+    keys = keys
+        .filter { it.channelKey.trim().isNotBlank() }
+        .map {
+            ChannelKey(
+                channelKey = it.channelKey.trim(),
+                channelId = 0,
+                enabled = it.enabled,
+                remark = it.remark.trim(),
+            )
+        },
+    model = model.trim(),
+    customModel = customModel.trim(),
+    proxy = proxy,
+    autoSync = autoSync,
+    autoGroup = autoGroup,
+    customHeader = normalizedHeaders(),
+    channelProxy = trimmedChannelProxy(),
+    paramOverride = trimmedParamOverride(),
+    matchRegex = trimmedMatchRegex(),
+)
+
+private fun ChannelEditorValues.toFetchRequest(): ChannelFetchModelRequest = ChannelFetchModelRequest(
+    type = type,
+    baseUrls = normalizedBaseUrls(),
+    keys = keys
+        .filter { it.channelKey.trim().isNotBlank() }
+        .map {
+            ChannelKeyAddRequest(
+                enabled = it.enabled,
+                channelKey = it.channelKey.trim(),
+                remark = it.remark.trim(),
+            )
+        },
+    proxy = proxy,
+    channelProxy = trimmedChannelProxy().takeIf { it.isNotBlank() },
+    matchRegex = trimmedMatchRegex().takeIf { it.isNotBlank() },
+    customHeader = normalizedHeaders(),
+)
 
 private fun Channel.toFetchRequest(): ChannelFetchModelRequest = ChannelFetchModelRequest(
     type = type,
