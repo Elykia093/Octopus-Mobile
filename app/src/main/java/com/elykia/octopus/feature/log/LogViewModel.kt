@@ -21,6 +21,9 @@ data class LogUiState(
     val error: String? = null,
     val pagingError: String? = null,
     val clearError: String? = null,
+    val detailLoading: Boolean = false,
+    val detailLog: RelayLog? = null,
+    val detailError: String? = null,
 )
 
 internal fun LogUiState.shouldShowPageError(): Boolean =
@@ -121,5 +124,38 @@ class LogViewModel @Inject constructor(
                 is AppResult.Error -> _uiState.value = _uiState.value.clearLogsFailed(result.message)
             }
         }
+    }
+
+    fun openDetail(log: RelayLog) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                detailLoading = true,
+                detailLog = log,
+                detailError = null,
+            )
+            when (val result = repository.logDetail(log.id)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        detailLoading = false,
+                        detailLog = result.data,
+                        detailError = null,
+                    )
+                }
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        detailLoading = false,
+                        detailError = result.message,
+                    )
+                }
+            }
+        }
+    }
+
+    fun closeDetail() {
+        _uiState.value = _uiState.value.copy(
+            detailLoading = false,
+            detailLog = null,
+            detailError = null,
+        )
     }
 }

@@ -380,6 +380,13 @@
     <string name="log_metric_cost">Cost</string>
     <string name="log_clear_title">Clear logs</string>
     <string name="log_clear_summary">This action will clear all history logs.</string>
+    <string name="log_detail_title">Log detail</string>
+    <string name="log_detail_summary">Request and response payload.</string>
+    <string name="log_request_content">Request</string>
+    <string name="log_response_content">Response</string>
+    <string name="log_error_content">Error</string>
+    <string name="log_no_request_content">No request content.</string>
+    <string name="log_no_response_content">No response content.</string>
     <string name="log_cost_line">Cost %1$.4f · Time %2$d ms · Attempts %3$d</string>
     <string name="log_item_summary">%1$s -> %2$s · %3$s · %4$d ms · %5$d attempts</string>
 

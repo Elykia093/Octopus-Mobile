@@ -113,6 +113,69 @@ class LogRepositoryContractTest {
         }
     }
 
+    @Test
+    fun logDetailLoadsContentAndSanitizesSensitiveText() = runBlocking {
+        val server = MockWebServer().apply {
+            enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody(
+                        """
+                        {
+                          "code": 200,
+                          "message": "success",
+                          "data": {
+                            "id": 9,
+                            "time": 100,
+                            "request_model_name": "gpt-test",
+                            "request_api_key_name": "mobile",
+                            "channel": 1,
+                            "channel_name": "OpenAI",
+                            "actual_model_name": "gpt-test",
+                            "input_tokens": 10,
+                            "output_tokens": 20,
+                            "ftut": 30,
+                            "use_time": 40,
+                            "cost": 0.5,
+                            "request_content": "Authorization: Bearer sk-request-secret",
+                            "response_content": "token=sk-response-secret",
+                            "error": "Bearer sk-error-secret",
+                            "attempts": [
+                              {
+                                "channel_id": 1,
+                                "channel_name": "OpenAI",
+                                "model_name": "gpt-test",
+                                "attempt_num": 1,
+                                "status": "failed",
+                                "duration": 40,
+                                "msg": "api_key=sk-attempt-secret"
+                              }
+                            ]
+                          }
+                        }
+                        """.trimIndent(),
+                    ),
+            )
+            start()
+        }
+
+        try {
+            val repository = repositoryFor(server)
+
+            val result = repository.logDetail(9)
+
+            assertThat(result).isInstanceOf(AppResult.Success::class.java)
+            val detail = (result as AppResult.Success).data
+            assertThat(detail.requestContent).doesNotContain("sk-request-secret")
+            assertThat(detail.responseContent).doesNotContain("sk-response-secret")
+            assertThat(detail.error).doesNotContain("sk-error-secret")
+            assertThat(detail.attempts.single().msg).doesNotContain("sk-attempt-secret")
+            assertThat(server.takeRequest().path).isEqualTo("/api/v1/log/9")
+        } finally {
+            server.shutdown()
+        }
+    }
+
     private fun repositoryFor(server: MockWebServer): LogRepository {
         val service = Retrofit.Builder()
             .baseUrl(server.url("/"))

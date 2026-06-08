@@ -43,11 +43,27 @@ class LogRepository @Inject constructor(
     suspend fun clearLogs(): AppResult<String?> = withContext(dispatchers.io) {
         executor.executeNullable { apiService.clearLogs() }
     }
+
+    suspend fun logDetail(id: Long): AppResult<RelayLog> = withContext(dispatchers.io) {
+        when (val result = executor.execute { apiService.logDetail(id) }) {
+            is AppResult.Success -> AppResult.Success(result.data.withVisibleContent())
+            is AppResult.Error -> result
+        }
+    }
 }
 
 internal fun RelayLog.withHiddenContent(): RelayLog = copy(
     requestContent = "",
     responseContent = "",
+    error = error.sanitizeErrorMessage(),
+    attempts = attempts.map { attempt ->
+        attempt.copy(msg = attempt.msg?.sanitizeErrorMessage())
+    },
+)
+
+private fun RelayLog.withVisibleContent(): RelayLog = copy(
+    requestContent = requestContent.sanitizeErrorMessage(),
+    responseContent = responseContent.sanitizeErrorMessage(),
     error = error.sanitizeErrorMessage(),
     attempts = attempts.map { attempt ->
         attempt.copy(msg = attempt.msg?.sanitizeErrorMessage())

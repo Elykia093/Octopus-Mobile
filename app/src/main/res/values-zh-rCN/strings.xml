@@ -380,6 +380,13 @@
     <string name="log_metric_cost">费用</string>
     <string name="log_clear_title">清空日志</string>
     <string name="log_clear_summary">此操作将清空全部历史日志。</string>
+    <string name="log_detail_title">日志详情</string>
+    <string name="log_detail_summary">请求与响应内容。</string>
+    <string name="log_request_content">请求</string>
+    <string name="log_response_content">响应</string>
+    <string name="log_error_content">错误</string>
+    <string name="log_no_request_content">暂无请求内容。</string>
+    <string name="log_no_response_content">暂无响应内容。</string>
     <string name="log_cost_line">费用 %1$.4f · 耗时 %2$d ms · 尝试 %3$d 次</string>
     <string name="log_item_summary">%1$s -> %2$s · %3$s · %4$d ms · %5$d 次尝试</string>
 

@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -34,6 +36,7 @@ import com.elykia.octopus.core.data.model.RelayLog
 import com.elykia.octopus.core.designsystem.AppLazyPageScaffold
 import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
+import com.elykia.octopus.core.designsystem.DialogScrollableColumn
 import com.elykia.octopus.core.designsystem.ErrorStateCard
 import com.elykia.octopus.core.designsystem.InlineEmptyCard
 import com.elykia.octopus.core.designsystem.LoadingStateCard
@@ -42,6 +45,7 @@ import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.OperationErrorCard
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
+import com.elykia.octopus.core.designsystem.SecureVisibleWindow
 import com.elykia.octopus.core.designsystem.ToolbarChip
 import com.elykia.octopus.core.designsystem.formatCount
 import com.elykia.octopus.core.designsystem.formatDurationMs
@@ -49,6 +53,8 @@ import com.elykia.octopus.core.designsystem.formatMoney
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -137,7 +143,10 @@ fun LogScreen(
                     }
                     else -> {
                         items(logs, key = { it.id }) { log ->
-                            LogRow(log = log)
+                            LogRow(
+                                log = log,
+                                onClick = { viewModel.openDetail(log) },
+                            )
                         }
                         uiState.pagingError?.let { pagingError ->
                             item {
@@ -177,16 +186,112 @@ fun LogScreen(
         },
         onDismiss = { confirmClear = false },
     )
+
+    LogDetailDialog(
+        log = uiState.detailLog,
+        loading = uiState.detailLoading,
+        error = uiState.detailError,
+        onDismiss = viewModel::closeDetail,
+    )
+}
+
+@Composable
+private fun LogDetailDialog(
+    log: RelayLog?,
+    loading: Boolean,
+    error: String?,
+    onDismiss: () -> Unit,
+) {
+    if (log == null && !loading && error == null) return
+    val visibleContent = listOfNotNull(log?.requestContent, log?.responseContent, log?.error)
+        .any { it.isNotBlank() }
+    if (visibleContent) {
+        SecureVisibleWindow()
+    }
+    val scrollState = rememberScrollState()
+
+    OverlayDialog(
+        show = true,
+        title = stringResource(R.string.log_detail_title),
+        summary = log?.requestModelName ?: stringResource(R.string.log_detail_summary),
+        onDismissRequest = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            when {
+                loading && log?.requestContent.isNullOrBlank() && log?.responseContent.isNullOrBlank() ->
+                    LoadingStateCard(title = stringResource(R.string.log_detail_title))
+                error != null -> OperationErrorCard(message = error)
+            }
+
+            log?.let { detail ->
+                DialogScrollableColumn(fraction = 0.72f, scrollState = scrollState) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        LogDetailBlock(
+                            title = stringResource(R.string.log_request_content),
+                            content = detail.requestContent,
+                            fallback = stringResource(R.string.log_no_request_content),
+                        )
+                        LogDetailBlock(
+                            title = stringResource(R.string.log_response_content),
+                            content = detail.responseContent,
+                            fallback = stringResource(R.string.log_no_response_content),
+                        )
+                        if (detail.error.isNotBlank()) {
+                            LogDetailBlock(
+                                title = stringResource(R.string.log_error_content),
+                                content = detail.error,
+                                fallback = "",
+                                error = true,
+                            )
+                        }
+                    }
+                }
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(text = stringResource(R.string.action_close), onClick = onDismiss)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LogDetailBlock(
+    title: String,
+    content: String,
+    fallback: String,
+    error: Boolean = false,
+) {
+    AppListCard(padding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = title,
+                style = MiuixTheme.textStyles.main,
+                fontWeight = FontWeight.SemiBold,
+                color = OctopusTokens.TextPrimary,
+            )
+            Text(
+                text = content.ifBlank { fallback },
+                style = MiuixTheme.textStyles.body2,
+                color = if (error) MiuixTheme.colorScheme.error else OctopusTokens.TextSecondary,
+                fontFamily = FontFamily.Monospace,
+            )
+        }
+    }
 }
 
 @Composable
 private fun LogRow(
     log: RelayLog,
+    onClick: () -> Unit,
 ) {
     val hasError = log.error.isNotBlank()
     val statusColor = if (hasError) MiuixTheme.colorScheme.error else OctopusTokens.Accent
 
-    AppListCard(padding = PaddingValues(horizontal = 18.dp, vertical = 18.dp)) {
+    AppListCard(
+        onClick = onClick,
+        padding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top,
