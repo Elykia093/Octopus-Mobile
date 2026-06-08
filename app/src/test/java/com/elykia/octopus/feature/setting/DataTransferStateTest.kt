@@ -1,7 +1,6 @@
 package com.elykia.octopus.feature.setting
 
 import com.elykia.octopus.core.common.AppResult
-import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.data.model.LatestInfo
 import com.elykia.octopus.core.data.model.SettingItem
 import com.google.common.truth.Truth.assertThat
@@ -24,26 +23,6 @@ class DataTransferStateTest {
                 ),
                 error = "settings failed",
             ).shouldShowSettingsPageError()
-        ).isFalse()
-    }
-
-    @Test
-    fun apiKeyPageErrorOnlyFollowsApiKeyListFailureWithoutCachedKeys() {
-        assertThat(
-            SettingUiState(apiKeyListError = "keys failed")
-                .shouldShowApiKeyPageError()
-        ).isTrue()
-
-        assertThat(
-            SettingUiState(
-                apiKeys = listOf(ApiKeyItem(id = 1, name = "Cached", apiKey = "")),
-                apiKeyListError = "keys failed",
-            ).shouldShowApiKeyPageError()
-        ).isFalse()
-
-        assertThat(
-            SettingUiState(error = "settings failed")
-                .shouldShowApiKeyPageError()
         ).isFalse()
     }
 
@@ -104,7 +83,7 @@ class DataTransferStateTest {
 
     @Test
     fun partialRefreshErrorKeepsPreviousDataAndExposesError() {
-        val previous = listOf(com.elykia.octopus.core.data.model.ApiKeyItem(id = 1, name = "Main", apiKey = ""))
+        val previous = listOf(SettingItem("relay_log_keep_enabled", "true"))
 
         val result = AppResult.Error("api failed").dataOrPrevious(previous)
 
@@ -124,12 +103,10 @@ class DataTransferStateTest {
     fun settingRefreshSuccessClearsRecoveredPartialErrors() {
         val state = buildSettingRefreshState(
             previous = SettingUiState(
-                apiKeyListError = "old api error",
                 versionInfoError = "old version error",
                 modelLastUpdateError = "old model error",
             ),
             settingsResult = AppResult.Success(listOf(SettingItem("relay_log_keep_enabled", "true"))),
-            apiKeysResult = AppResult.Success(listOf(ApiKeyItem(id = 1, name = "Main", apiKey = ""))),
             latestResult = AppResult.Success(LatestInfo(tagName = "v1.0.0", publishedAt = "2026-06-01")),
             versionResult = AppResult.Success("v0.9.0"),
             modelTimeResult = AppResult.Success("2026-06-01"),
@@ -141,11 +118,9 @@ class DataTransferStateTest {
         assertThat(state.loading).isFalse()
         assertThat(state.error).isNull()
         assertThat(state.settings).containsExactly(SettingItem("relay_log_keep_enabled", "true"))
-        assertThat(state.apiKeys).containsExactly(ApiKeyItem(id = 1, name = "Main", apiKey = ""))
         assertThat(state.latestInfo?.tagName).isEqualTo("v1.0.0")
         assertThat(state.currentVersion).isEqualTo("v0.9.0")
         assertThat(state.modelLastUpdateTime).isEqualTo("2026-06-01")
-        assertThat(state.apiKeyListError).isNull()
         assertThat(state.versionInfoError).isNull()
         assertThat(state.modelLastUpdateError).isNull()
         assertThat(state.username).isEqualTo("admin")
@@ -155,7 +130,6 @@ class DataTransferStateTest {
 
     @Test
     fun settingRefreshFailureKeepsPreviousPageDataAndUpdatesPartialResults() {
-        val previousApiKeys = listOf(ApiKeyItem(id = 1, name = "Old", apiKey = ""))
         val previous = SettingUiState(
             settings = listOf(SettingItem("relay_log_keep_enabled", "false")),
             sections = listOf(
@@ -166,11 +140,9 @@ class DataTransferStateTest {
                     items = listOf(SettingItem("relay_log_keep_enabled", "false")),
                 )
             ),
-            apiKeys = previousApiKeys,
             latestInfo = LatestInfo(tagName = "old", publishedAt = "2026-05-01"),
             currentVersion = "old-current",
             modelLastUpdateTime = "old-time",
-            apiKeyListError = "old api error",
             versionInfoError = "old version error",
             modelLastUpdateError = "old model error",
         )
@@ -178,7 +150,6 @@ class DataTransferStateTest {
         val state = buildSettingRefreshState(
             previous = previous,
             settingsResult = AppResult.Error("settings failed"),
-            apiKeysResult = AppResult.Success(listOf(ApiKeyItem(id = 2, name = "New", apiKey = ""))),
             latestResult = AppResult.Success(LatestInfo(tagName = "new", publishedAt = "2026-06-01")),
             versionResult = AppResult.Error("version failed"),
             modelTimeResult = AppResult.Success("new-time"),
@@ -191,11 +162,9 @@ class DataTransferStateTest {
         assertThat(state.error).isEqualTo("settings failed")
         assertThat(state.settings).isEqualTo(previous.settings)
         assertThat(state.sections).isEqualTo(previous.sections)
-        assertThat(state.apiKeys).containsExactly(ApiKeyItem(id = 2, name = "New", apiKey = ""))
         assertThat(state.latestInfo?.tagName).isEqualTo("new")
         assertThat(state.currentVersion).isEqualTo("old-current")
         assertThat(state.modelLastUpdateTime).isEqualTo("new-time")
-        assertThat(state.apiKeyListError).isNull()
         assertThat(state.versionInfoError).isEqualTo("version failed")
         assertThat(state.modelLastUpdateError).isNull()
         assertThat(state.username).isEqualTo("operator")

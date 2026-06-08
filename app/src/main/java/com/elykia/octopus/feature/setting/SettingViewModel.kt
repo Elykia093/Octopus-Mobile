@@ -3,11 +3,8 @@ package com.elykia.octopus.feature.setting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.common.AppResult
-import com.elykia.octopus.core.data.model.ApiKeyItem
-import com.elykia.octopus.core.data.model.ApiKeyMutationRequest
 import com.elykia.octopus.core.data.model.LatestInfo
 import com.elykia.octopus.core.data.model.SettingItem
-import com.elykia.octopus.core.data.repository.ApiKeyRepository
 import com.elykia.octopus.core.data.repository.AppRepository
 import com.elykia.octopus.core.data.repository.ChannelRepository
 import com.elykia.octopus.core.data.repository.DataTransferRepository
@@ -31,52 +28,25 @@ data class SettingUiState(
     val loading: Boolean = true,
     val settings: List<SettingItem> = emptyList(),
     val sections: List<SettingSection> = emptyList(),
-    val apiKeys: List<ApiKeyItem> = emptyList(),
     val latestInfo: LatestInfo? = null,
     val currentVersion: String? = null,
     val username: String = "",
     val language: String = "system",
     val themeMode: Int = 0,
     val modelLastUpdateTime: String? = null,
-    val createdApiKey: ApiKeyItem? = null,
     val error: String? = null,
-    val apiKeyListError: String? = null,
     val versionInfoError: String? = null,
     val modelLastUpdateError: String? = null,
-    val apiKeySubmitting: Boolean = false,
-    val apiKeyOperationError: String? = null,
     val dataTransferSubmitting: Boolean = false,
     val dataTransferMessage: String? = null,
     val dataTransferError: String? = null,
     val actionSubmitting: Boolean = false,
     val actionMessage: String? = null,
     val actionError: String? = null,
-    val apiKeySelectionMode: Boolean = false,
-    val selectedApiKeyIds: Set<Int> = emptySet(),
-    val batchApiKeyOperationProgress: String? = null,
 )
 
 internal fun SettingUiState.shouldShowSettingsPageError(): Boolean =
     error != null && sections.isEmpty()
-
-internal fun SettingUiState.shouldShowApiKeyPageError(): Boolean =
-    apiKeyListError != null && apiKeys.isEmpty()
-
-internal fun SettingUiState.apiKeyOperationStarted(): SettingUiState = copy(
-    apiKeySubmitting = true,
-    apiKeyOperationError = null,
-    createdApiKey = null,
-)
-
-internal fun SettingUiState.apiKeyOperationSucceeded(): SettingUiState = copy(
-    apiKeySubmitting = false,
-    apiKeyOperationError = null,
-)
-
-internal fun SettingUiState.apiKeyOperationFailed(message: String): SettingUiState = copy(
-    apiKeySubmitting = false,
-    apiKeyOperationError = message,
-)
 
 internal fun SettingUiState.dataTransferStarted(): SettingUiState = copy(
     dataTransferSubmitting = true,
@@ -117,7 +87,6 @@ internal fun SettingUiState.actionFailed(message: String): SettingUiState = copy
 @HiltViewModel
 class SettingViewModel @Inject constructor(
     private val appRepository: AppRepository,
-    private val apiKeyRepository: ApiKeyRepository,
     private val updateRepository: UpdateRepository,
     private val modelRepository: ModelRepository,
     private val channelRepository: ChannelRepository,
@@ -135,7 +104,6 @@ class SettingViewModel @Inject constructor(
             val previous = _uiState.value
             _uiState.value = previous.copy(loading = true, error = null)
             val settingsDeferred = async { appRepository.settings() }
-            val apiKeysDeferred = async { apiKeyRepository.apiKeys() }
             val latestDeferred = async { updateRepository.latestInfo() }
             val versionDeferred = async { updateRepository.currentVersion() }
             val modelTimeDeferred = async { modelRepository.modelLastUpdateTime() }
@@ -145,14 +113,12 @@ class SettingViewModel @Inject constructor(
             val settings = settingsDeferred.await()
             val config = configDeferred.await()
             val auth = authDeferred.await()
-            val apiKeys = apiKeysDeferred.await()
             val latest = latestDeferred.await()
             val version = versionDeferred.await()
             val modelTime = modelTimeDeferred.await()
             _uiState.value = buildSettingRefreshState(
                 previous = previous,
                 settingsResult = settings,
-                apiKeysResult = apiKeys,
                 latestResult = latest,
                 versionResult = version,
                 modelTimeResult = modelTime,
@@ -300,201 +266,11 @@ class SettingViewModel @Inject constructor(
     fun clearActionStatus() {
         _uiState.value = _uiState.value.copy(actionMessage = null, actionError = null)
     }
-
-    fun setApiKeyEnabled(item: ApiKeyItem, enabled: Boolean) {
-        viewModelScope.launch {
-            if (_uiState.value.apiKeySubmitting) return@launch
-            _uiState.value = _uiState.value.apiKeyOperationStarted()
-            when (val result = apiKeyRepository.updateApiKey(item.copy(enabled = enabled))) {
-                is AppResult.Success -> {
-                    _uiState.value = _uiState.value.apiKeyOperationSucceeded()
-                    refresh()
-                }
-                is AppResult.Error -> _uiState.value = _uiState.value.apiKeyOperationFailed(result.message)
-            }
-        }
-    }
-
-    fun createApiKey(
-        name: String,
-        expireAt: Long,
-        maxCost: Double,
-        supportedModels: String,
-        enabled: Boolean,
-        onSuccess: () -> Unit = {},
-    ) {
-        viewModelScope.launch {
-            if (_uiState.value.apiKeySubmitting) return@launch
-            _uiState.value = _uiState.value.apiKeyOperationStarted()
-            when (
-                val result = apiKeyRepository.createApiKey(
-                ApiKeyMutationRequest(
-                    name = name,
-                    enabled = enabled,
-                    expireAt = expireAt,
-                    maxCost = maxCost,
-                    supportedModels = supportedModels,
-                )
-            )) {
-                is AppResult.Success -> {
-                    val visibleCreatedKey = result.data
-                    val hiddenListItem = visibleCreatedKey.copy(apiKey = "")
-                    _uiState.value = _uiState.value.copy(
-                        apiKeys = _uiState.value.apiKeys
-                            .filterNot { it.id == visibleCreatedKey.id } + hiddenListItem,
-                        apiKeySubmitting = false,
-                        apiKeyOperationError = null,
-                        createdApiKey = visibleCreatedKey,
-                    )
-                    onSuccess()
-                }
-                is AppResult.Error -> _uiState.value = _uiState.value.apiKeyOperationFailed(result.message)
-            }
-        }
-    }
-
-    fun clearApiKeyOperationError() {
-        _uiState.value = _uiState.value.copy(apiKeyOperationError = null)
-    }
-
-    fun dismissCreatedApiKey() {
-        _uiState.value = _uiState.value.copy(createdApiKey = null)
-    }
-
-    fun updateApiKey(
-        item: ApiKeyItem,
-        onSuccess: () -> Unit = {},
-    ) {
-        viewModelScope.launch {
-            if (_uiState.value.apiKeySubmitting) return@launch
-            _uiState.value = _uiState.value.apiKeyOperationStarted()
-            when (val result = apiKeyRepository.updateApiKey(item)) {
-                is AppResult.Success -> {
-                    _uiState.value = _uiState.value.apiKeyOperationSucceeded()
-                    onSuccess()
-                    refresh()
-                }
-                is AppResult.Error -> _uiState.value = _uiState.value.apiKeyOperationFailed(result.message)
-            }
-        }
-    }
-
-    fun deleteApiKey(id: Int) {
-        viewModelScope.launch {
-            if (_uiState.value.apiKeySubmitting) return@launch
-            _uiState.value = _uiState.value.apiKeyOperationStarted()
-            when (val result = apiKeyRepository.deleteApiKey(id)) {
-                is AppResult.Success -> {
-                    _uiState.value = _uiState.value.apiKeyOperationSucceeded()
-                    refresh()
-                }
-                is AppResult.Error -> _uiState.value = _uiState.value.apiKeyOperationFailed(result.message)
-            }
-        }
-    }
-
-    fun enterApiKeySelectionMode() {
-        _uiState.value = _uiState.value.copy(apiKeySelectionMode = true, selectedApiKeyIds = emptySet())
-    }
-
-    fun exitApiKeySelectionMode() {
-        _uiState.value = _uiState.value.copy(apiKeySelectionMode = false, selectedApiKeyIds = emptySet())
-    }
-
-    fun toggleApiKeySelection(id: Int) {
-        val currentSelected = _uiState.value.selectedApiKeyIds
-        _uiState.value = _uiState.value.copy(
-            selectedApiKeyIds = if (id in currentSelected) {
-                currentSelected - id
-            } else {
-                currentSelected + id
-            }
-        )
-    }
-
-    fun selectAllApiKeys() {
-        _uiState.value = _uiState.value.copy(
-            selectedApiKeyIds = _uiState.value.apiKeys.map { it.id }.toSet()
-        )
-    }
-
-    fun batchDeleteApiKeys(onComplete: () -> Unit = {}) {
-        viewModelScope.launch {
-            if (_uiState.value.apiKeySubmitting) return@launch
-            val selectedIds = _uiState.value.selectedApiKeyIds
-            if (selectedIds.isEmpty()) return@launch
-
-            _uiState.value = _uiState.value.apiKeyOperationStarted()
-            var successCount = 0
-            var failCount = 0
-
-            selectedIds.forEachIndexed { index, id ->
-                _uiState.value = _uiState.value.copy(
-                    batchApiKeyOperationProgress = "删除中 ${index + 1}/${selectedIds.size}..."
-                )
-                when (apiKeyRepository.deleteApiKey(id)) {
-                    is AppResult.Success -> successCount++
-                    is AppResult.Error -> failCount++
-                }
-            }
-
-            _uiState.value = _uiState.value.copy(
-                apiKeySubmitting = false,
-                batchApiKeyOperationProgress = null,
-                apiKeySelectionMode = false,
-                selectedApiKeyIds = emptySet(),
-                apiKeyOperationError = if (failCount > 0) {
-                    "批量删除完成：成功 $successCount 个，失败 $failCount 个"
-                } else null
-            )
-            refresh()
-            onComplete()
-        }
-    }
-
-    fun batchSetApiKeysEnabled(enabled: Boolean, onComplete: () -> Unit = {}) {
-        viewModelScope.launch {
-            if (_uiState.value.apiKeySubmitting) return@launch
-            val selectedIds = _uiState.value.selectedApiKeyIds
-            if (selectedIds.isEmpty()) return@launch
-
-            _uiState.value = _uiState.value.apiKeyOperationStarted()
-            var successCount = 0
-            var failCount = 0
-
-            val apiKeysMap = _uiState.value.apiKeys.associateBy { it.id }
-            selectedIds.forEachIndexed { index, id ->
-                _uiState.value = _uiState.value.copy(
-                    batchApiKeyOperationProgress = "${if (enabled) "启用" else "禁用"}中 ${index + 1}/${selectedIds.size}..."
-                )
-                val apiKey = apiKeysMap[id]
-                if (apiKey != null) {
-                    when (apiKeyRepository.updateApiKey(apiKey.copy(enabled = enabled))) {
-                        is AppResult.Success -> successCount++
-                        is AppResult.Error -> failCount++
-                    }
-                }
-            }
-
-            _uiState.value = _uiState.value.copy(
-                apiKeySubmitting = false,
-                batchApiKeyOperationProgress = null,
-                apiKeySelectionMode = false,
-                selectedApiKeyIds = emptySet(),
-                apiKeyOperationError = if (failCount > 0) {
-                    "批量操作完成：成功 $successCount 个，失败 $failCount 个"
-                } else null
-            )
-            refresh()
-            onComplete()
-        }
-    }
 }
 
 internal fun buildSettingRefreshState(
     previous: SettingUiState,
     settingsResult: AppResult<List<SettingItem>>,
-    apiKeysResult: AppResult<List<ApiKeyItem>>,
     latestResult: AppResult<LatestInfo>,
     versionResult: AppResult<String>,
     modelTimeResult: AppResult<String>,
@@ -502,7 +278,6 @@ internal fun buildSettingRefreshState(
     language: String,
     themeMode: Int,
 ): SettingUiState {
-    val apiKeyListError = apiKeysResult.errorMessageOrNull()
     val versionInfoError = latestResult.errorMessageOrNull() ?: versionResult.errorMessageOrNull()
     val modelLastUpdateError = modelTimeResult.errorMessageOrNull()
 
@@ -511,7 +286,6 @@ internal fun buildSettingRefreshState(
             loading = false,
             settings = settingsResult.data,
             sections = settingsResult.data.toSections(),
-            apiKeys = apiKeysResult.dataOrPrevious(previous.apiKeys),
             latestInfo = latestResult.dataOrPreviousNullable(previous.latestInfo),
             currentVersion = versionResult.dataOrPreviousNullable(previous.currentVersion),
             modelLastUpdateTime = modelTimeResult.dataOrPreviousNullable(previous.modelLastUpdateTime),
@@ -519,13 +293,11 @@ internal fun buildSettingRefreshState(
             language = language,
             themeMode = themeMode,
             error = null,
-            apiKeyListError = apiKeyListError,
             versionInfoError = versionInfoError,
             modelLastUpdateError = modelLastUpdateError,
         )
         is AppResult.Error -> previous.copy(
             loading = false,
-            apiKeys = apiKeysResult.dataOrPrevious(previous.apiKeys),
             latestInfo = latestResult.dataOrPreviousNullable(previous.latestInfo),
             currentVersion = versionResult.dataOrPreviousNullable(previous.currentVersion),
             modelLastUpdateTime = modelTimeResult.dataOrPreviousNullable(previous.modelLastUpdateTime),
@@ -533,7 +305,6 @@ internal fun buildSettingRefreshState(
             language = language,
             themeMode = themeMode,
             error = settingsResult.message,
-            apiKeyListError = apiKeyListError,
             versionInfoError = versionInfoError,
             modelLastUpdateError = modelLastUpdateError,
         )

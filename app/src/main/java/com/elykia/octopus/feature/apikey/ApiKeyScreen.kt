@@ -25,13 +25,11 @@ import com.elykia.octopus.core.designsystem.OperationErrorCard
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
-import com.elykia.octopus.feature.setting.SettingViewModel
-import com.elykia.octopus.feature.setting.shouldShowApiKeyPageError
 
 @Composable
 fun ApiKeyScreen(
     contentPadding: PaddingValues,
-    viewModel: SettingViewModel = hiltViewModel(),
+    viewModel: ApiKeyViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -122,9 +120,6 @@ fun ApiKeyScreen(
                         }
                     }
                     if (!showCreateDialog && editingItem == null) {
-                        uiState.error?.takeIf { it.isNotBlank() }?.let { error ->
-                            item { OperationErrorCard(message = error) }
-                        }
                         uiState.apiKeyListError?.takeIf { it.isNotBlank() }?.let { error ->
                             item { OperationErrorCard(message = error) }
                         }
