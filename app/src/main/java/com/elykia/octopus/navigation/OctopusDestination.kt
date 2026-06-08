@@ -19,6 +19,7 @@ enum class MainTab(
     Home("home", R.string.nav_home, AppMiuixIcons.Home),
     Channel("channel", R.string.nav_channel, AppMiuixIcons.Channel),
     Group("group", R.string.nav_group, AppMiuixIcons.Group),
+    Model("model", R.string.nav_model, AppMiuixIcons.Model),
     ApiKey("apikey", R.string.nav_apikey, AppMiuixIcons.ApiKey),
     Log("log", R.string.nav_log, AppMiuixIcons.Log),
     Setting("setting", R.string.nav_setting, AppMiuixIcons.Setting),

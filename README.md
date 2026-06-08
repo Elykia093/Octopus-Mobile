@@ -1,6 +1,6 @@
 # Octopus Mobile
 
-Octopus Mobile 是 `octopus` 的 Android 原生管理端，使用 Kotlin、Jetpack Compose 和 Miuix 构建。它面向手机端管理场景，提供服务连接、登录、统计看板、渠道、分组、API Key、日志和设置等常用管理能力。
+Octopus Mobile 是 `octopus` 的 Android 原生管理端，使用 Kotlin、Jetpack Compose 和 Miuix 构建。它面向手机端管理场景，提供服务连接、登录、统计看板、渠道、分组、模型价格、API Key、日志和设置等常用管理能力。
 
 ## 功能范围
 
@@ -8,6 +8,7 @@ Octopus Mobile 是 `octopus` 的 Android 原生管理端，使用 Kotlin、Jetpa
 - 首页统计概览、趋势图和排行
 - 渠道列表、创建、编辑、启停、删除和模型拉取
 - 分组列表、创建、编辑、删除和渠道成员配置
+- 模型价格列表、创建、编辑、删除和服务端价格刷新
 - API Key 列表、创建、编辑、删除和复制
 - 日志列表、搜索、分页加载和清空
 - 设置页、版本信息、模型价格刷新和渠道同步
@@ -43,6 +44,7 @@ app/src/main/java/com/elykia/octopus
 │   ├── group           # 分组页面、状态和请求构建逻辑
 │   ├── home            # 首页看板状态
 │   ├── log             # 日志页面与状态
+│   ├── model           # 模型价格页面与状态
 │   └── setting         # 设置页面与状态
 └── navigation          # 顶层路由和主 Tab 定义
 ```

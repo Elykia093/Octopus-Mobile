@@ -20,6 +20,7 @@ import com.elykia.octopus.feature.channel.ChannelScreen
 import com.elykia.octopus.feature.group.GroupScreen
 import com.elykia.octopus.feature.home.HomeScreen
 import com.elykia.octopus.feature.log.LogScreen
+import com.elykia.octopus.feature.model.ModelScreen
 import com.elykia.octopus.feature.setting.SettingScreen
 import com.elykia.octopus.navigation.MainTab
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -63,6 +64,7 @@ fun MainShell(
                 )
                 MainTab.Channel -> ChannelScreen(contentPadding = contentPadding)
                 MainTab.Group -> GroupScreen(contentPadding = contentPadding)
+                MainTab.Model -> ModelScreen(contentPadding = contentPadding)
                 MainTab.ApiKey -> ApiKeyScreen(contentPadding = contentPadding)
                 MainTab.Log -> LogScreen(contentPadding = contentPadding)
                 MainTab.Setting -> SettingScreen(contentPadding = contentPadding)

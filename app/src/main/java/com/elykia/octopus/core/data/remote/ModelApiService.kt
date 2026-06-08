@@ -14,6 +14,15 @@ interface ModelApiService {
     @GET("/api/v1/model/channel")
     suspend fun modelChannels(): ApiEnvelope<List<LlmChannel>>
 
+    @POST("/api/v1/model/create")
+    suspend fun createModel(@Body body: LlmInfo): ApiEnvelope<LlmInfo>
+
+    @POST("/api/v1/model/update")
+    suspend fun updateModel(@Body body: LlmInfo): ApiEnvelope<LlmInfo>
+
+    @POST("/api/v1/model/delete")
+    suspend fun deleteModel(@Body body: Map<String, String>): ApiEnvelope<String?>
+
     @POST("/api/v1/model/update-price")
     suspend fun updateModelPrice(@Body body: Map<String, String> = emptyMap()): ApiEnvelope<String?>
 

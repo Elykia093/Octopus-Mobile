@@ -18,5 +18,5 @@ Build the first Android native management app in `D:\Website\Octopus-Mobile` wit
 | API validation | done | `user/login`, `user/status`, main tabs, CRUD handlers confirmed |
 | Android bootstrap | done | `miuix`、Gradle 9.1.0、AGP 8.9.1、Kotlin 2.3.20、Hilt 2.58 编译链已打通 |
 | Core infrastructure | done | Theme、auth、storage、networking 已连通，并补强动态 base path / 401 / HTTP 错误消息 / 响应 code 判定 / 空响应泛型处理 |
-| Feature screens | in_progress | Home、Channel、Group、Model、Log、Setting 已可进入，后续补完交互深度 |
+| Feature screens | in_progress | Home、Channel、Group、Model、API Key、Log、Setting 已可进入；Model 已补独立价格管理入口，后续继续核 Web 深层交互差距 |
 | Verification | done | 本地 `assembleRelease` 已通过，`gradlew.bat -version` 在未配置 `JAVA_HOME` 时可自动探测 JDK，GitHub Actions 已切换为 release 构建与 release 产物上传 |

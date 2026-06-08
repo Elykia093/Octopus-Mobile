@@ -24,6 +24,18 @@ class ModelRepository @Inject constructor(
         executor.execute { apiService.modelChannels() }
     }
 
+    suspend fun createModel(model: LlmInfo): AppResult<LlmInfo> = withContext(dispatchers.io) {
+        executor.execute { apiService.createModel(model) }
+    }
+
+    suspend fun updateModel(model: LlmInfo): AppResult<LlmInfo> = withContext(dispatchers.io) {
+        executor.execute { apiService.updateModel(model) }
+    }
+
+    suspend fun deleteModel(name: String): AppResult<String?> = withContext(dispatchers.io) {
+        executor.executeNullable { apiService.deleteModel(mapOf("name" to name)) }
+    }
+
     suspend fun refreshModelPrice(): AppResult<String?> = withContext(dispatchers.io) {
         executor.executeNullable { apiService.updateModelPrice() }
     }
