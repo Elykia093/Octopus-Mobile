@@ -2,6 +2,7 @@ package com.elykia.octopus.core.data.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 object SitePlatform {
     const val NewApi = "new-api"
@@ -154,7 +155,7 @@ data class SiteUpdateRequest(
     @SerialName("base_url") val baseUrl: String? = null,
     val enabled: Boolean? = null,
     @SerialName("proxy_mode") val proxyMode: String? = null,
-    @SerialName("proxy_config_id") val proxyConfigId: Int? = null,
+    @SerialName("proxy_config_id") val proxyConfigId: JsonElement? = null,
     @SerialName("external_checkin_url") val externalCheckinUrl: String? = null,
     @SerialName("is_pinned") val isPinned: Boolean? = null,
     @SerialName("sort_order") val sortOrder: Int? = null,
@@ -198,7 +199,7 @@ data class SiteAccountUpdateRequest(
     @SerialName("token_expires_at") val tokenExpiresAt: Long? = null,
     @SerialName("platform_user_id") val platformUserId: Int? = null,
     @SerialName("proxy_mode") val proxyMode: String? = null,
-    @SerialName("proxy_config_id") val proxyConfigId: Int? = null,
+    @SerialName("proxy_config_id") val proxyConfigId: JsonElement? = null,
     val enabled: Boolean? = null,
     @SerialName("auto_sync") val autoSync: Boolean? = null,
     @SerialName("auto_checkin") val autoCheckin: Boolean? = null,

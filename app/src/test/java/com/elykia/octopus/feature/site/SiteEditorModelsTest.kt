@@ -1,11 +1,16 @@
 package com.elykia.octopus.feature.site
 
 import com.elykia.octopus.core.data.model.CustomHeader
+import com.elykia.octopus.core.data.model.ProxyMode
 import com.elykia.octopus.core.data.model.Site
 import com.elykia.octopus.core.data.model.SiteAccount
 import com.elykia.octopus.core.data.model.SiteCredentialType
 import com.elykia.octopus.core.data.model.SitePlatform
 import com.google.common.truth.Truth.assertThat
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.Json
 import org.junit.Test
 
 class SiteEditorModelsTest {
@@ -111,5 +116,96 @@ class SiteEditorModelsTest {
 
         assertThat(request.externalCheckinUrl).isEqualTo("")
         assertThat(request.customHeader).isEmpty()
+    }
+
+    @Test
+    fun sitePoolProxyRequiresConfigAndSendsProxyConfigId() {
+        val values = SiteEditorValues(
+            name = "Main",
+            baseUrl = "https://api.example.com",
+            proxyMode = ProxyMode.Pool,
+        )
+
+        assertThat(canSubmitSite(values, submitting = false)).isFalse()
+        assertThat(canSubmitSite(values.copy(proxyConfigId = 5), submitting = false)).isTrue()
+
+        val create = values.copy(proxyConfigId = 5).toCreateRequest()
+        val update = values.copy(proxyConfigId = 5).toUpdateRequest(
+            Site(
+                id = 1,
+                name = "Main",
+                baseUrl = "https://api.example.com",
+                proxyMode = ProxyMode.Direct,
+            ),
+        )
+
+        assertThat(create.proxyMode).isEqualTo(ProxyMode.Pool)
+        assertThat(create.proxyConfigId).isEqualTo(5)
+        assertThat(update.proxyMode).isEqualTo(ProxyMode.Pool)
+        assertThat(update.proxyConfigId).isEqualTo(JsonPrimitive(5))
+    }
+
+    @Test
+    fun accountPoolProxyRequiresConfigAndSendsProxyConfigId() {
+        val account = SiteAccount(
+            id = 8,
+            siteId = 3,
+            name = "Main",
+            credentialType = SiteCredentialType.AccessToken,
+            proxyMode = ProxyMode.Direct,
+        )
+        val values = account.toSiteAccountEditorValues().copy(proxyMode = ProxyMode.Pool)
+
+        assertThat(canSubmitSiteAccount(values, original = account, submitting = false)).isFalse()
+        assertThat(canSubmitSiteAccount(values.copy(proxyConfigId = 9), original = account, submitting = false)).isTrue()
+
+        val create = SiteAccountEditorValues(
+            name = "New",
+            credentialType = SiteCredentialType.AccessToken,
+            accessToken = "access-token",
+            proxyMode = ProxyMode.Pool,
+            proxyConfigId = 9,
+        ).toCreateRequest(siteId = 3)
+        val update = values.copy(proxyConfigId = 9).toUpdateRequest(account)
+
+        assertThat(create.proxyMode).isEqualTo(ProxyMode.Pool)
+        assertThat(create.proxyConfigId).isEqualTo(9)
+        assertThat(update.proxyMode).isEqualTo(ProxyMode.Pool)
+        assertThat(update.proxyConfigId).isEqualTo(JsonPrimitive(9))
+    }
+
+    @Test
+    fun updateClearsProxyConfigIdWhenLeavingPoolMode() {
+        val site = Site(
+            id = 1,
+            name = "Main",
+            baseUrl = "https://api.example.com",
+            proxyMode = ProxyMode.Pool,
+            proxyConfigId = 5,
+        )
+        val account = SiteAccount(
+            id = 8,
+            siteId = 3,
+            name = "Main",
+            credentialType = SiteCredentialType.AccessToken,
+            proxyMode = ProxyMode.Pool,
+            proxyConfigId = 9,
+        )
+
+        val siteRequest = site.toSiteEditorValues()
+            .copy(proxyMode = ProxyMode.Direct, proxyConfigId = null)
+            .toUpdateRequest(site)
+        val accountRequest = account.toSiteAccountEditorValues()
+            .copy(proxyMode = ProxyMode.Inherit, proxyConfigId = null)
+            .toUpdateRequest(account)
+
+        assertThat(siteRequest.proxyMode).isEqualTo(ProxyMode.Direct)
+        assertThat(siteRequest.proxyConfigId).isEqualTo(JsonNull)
+        assertThat(accountRequest.proxyMode).isEqualTo(ProxyMode.Inherit)
+        assertThat(accountRequest.proxyConfigId).isEqualTo(JsonNull)
+
+        val json = Json { explicitNulls = false }
+        assertThat(json.encodeToString(siteRequest)).contains(""""proxy_config_id":null""")
+        assertThat(json.encodeToString(accountRequest)).contains(""""proxy_config_id":null""")
     }
 }

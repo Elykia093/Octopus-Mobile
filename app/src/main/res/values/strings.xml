@@ -200,6 +200,9 @@
     <string name="site_proxy_system">System</string>
     <string name="site_proxy_inherit">Inherit</string>
     <string name="site_proxy_pool">Pool</string>
+    <string name="site_proxy_pool_config_label">Proxy configuration</string>
+    <string name="site_proxy_pool_empty">No enabled proxy configurations. Create one from Proxy Pool first.</string>
+    <string name="site_proxy_pool_disabled_selected">%1$s is disabled but still selected.</string>
 
     <string name="proxy_pool_title">Proxy Pool</string>
     <string name="proxy_pool_panel_summary">Manage reusable proxy configurations and their references.</string>

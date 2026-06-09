@@ -200,6 +200,9 @@
     <string name="site_proxy_system">系统代理</string>
     <string name="site_proxy_inherit">继承</string>
     <string name="site_proxy_pool">代理池</string>
+    <string name="site_proxy_pool_config_label">代理配置</string>
+    <string name="site_proxy_pool_empty">暂无可用代理配置，请先在代理池中创建。</string>
+    <string name="site_proxy_pool_disabled_selected">%1$s 已停用但仍被选中。</string>
 
     <string name="proxy_pool_title">代理池</string>
     <string name="proxy_pool_panel_summary">管理可复用代理配置与引用关系。</string>

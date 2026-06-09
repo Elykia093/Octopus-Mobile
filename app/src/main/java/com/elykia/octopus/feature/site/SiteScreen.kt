@@ -27,6 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.CustomHeader
+import com.elykia.octopus.core.data.model.ProxyConfiguration
 import com.elykia.octopus.core.data.model.ProxyMode
 import com.elykia.octopus.core.data.model.Site
 import com.elykia.octopus.core.data.model.SiteAccount
@@ -222,6 +223,8 @@ fun SiteScreen(
         visible = showCreateSite,
         title = stringResource(R.string.site_create_title),
         initialSite = null,
+        proxyConfigurations = uiState.proxyConfigurations,
+        proxyConfigurationError = uiState.proxyConfigurationError,
         submitting = uiState.submitting,
         operationError = uiState.operationError,
         onConfirm = { values ->
@@ -242,6 +245,8 @@ fun SiteScreen(
         visible = editingSite != null,
         title = stringResource(R.string.site_edit_title),
         initialSite = editingSite,
+        proxyConfigurations = uiState.proxyConfigurations,
+        proxyConfigurationError = uiState.proxyConfigurationError,
         submitting = uiState.submitting,
         operationError = uiState.operationError,
         onConfirm = { values ->
@@ -286,6 +291,8 @@ fun SiteScreen(
         },
         site = accountDialogSite,
         initialAccount = editingAccount,
+        proxyConfigurations = uiState.proxyConfigurations,
+        proxyConfigurationError = uiState.proxyConfigurationError,
         submitting = uiState.submitting,
         operationError = uiState.operationError,
         onConfirm = { values ->
@@ -577,6 +584,8 @@ private fun SiteEditorDialog(
     visible: Boolean,
     title: String,
     initialSite: Site?,
+    proxyConfigurations: List<ProxyConfiguration>,
+    proxyConfigurationError: String?,
     submitting: Boolean,
     operationError: String?,
     onConfirm: (SiteEditorValues) -> Unit,
@@ -625,14 +634,29 @@ private fun SiteEditorDialog(
                 }
                 DialogLabel(text = stringResource(R.string.site_proxy_mode_label))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(ProxyMode.Direct, ProxyMode.System).forEach { mode ->
+                    listOf(ProxyMode.Direct, ProxyMode.System, ProxyMode.Pool).forEach { mode ->
                         ToolbarChip(
                             text = proxyModeLabel(mode),
                             selected = values.proxyMode == mode,
-                            onClick = { if (!submitting) values = values.copy(proxyMode = mode) },
+                            onClick = {
+                                if (!submitting) {
+                                    values = values.copy(
+                                        proxyMode = mode,
+                                        proxyConfigId = values.proxyConfigId.takeIf { mode == ProxyMode.Pool },
+                                    )
+                                }
+                            },
                         )
                     }
                 }
+                ProxyConfigurationPicker(
+                    visible = values.proxyMode == ProxyMode.Pool,
+                    selectedProxyConfigId = values.proxyConfigId,
+                    proxyConfigurations = proxyConfigurations,
+                    proxyConfigurationError = proxyConfigurationError,
+                    submitting = submitting,
+                    onSelect = { values = values.copy(proxyConfigId = it) },
+                )
                 SiteSwitchRow(
                     label = stringResource(R.string.site_enabled_label),
                     checked = values.enabled,
@@ -698,6 +722,8 @@ private fun SiteAccountEditorDialog(
     title: String,
     site: Site?,
     initialAccount: SiteAccount?,
+    proxyConfigurations: List<ProxyConfiguration>,
+    proxyConfigurationError: String?,
     submitting: Boolean,
     operationError: String?,
     onConfirm: (SiteAccountEditorValues) -> Unit,
@@ -799,14 +825,29 @@ private fun SiteAccountEditorDialog(
                 }
                 DialogLabel(text = stringResource(R.string.site_proxy_mode_label))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(ProxyMode.Inherit, ProxyMode.Direct, ProxyMode.System).forEach { mode ->
+                    listOf(ProxyMode.Inherit, ProxyMode.Direct, ProxyMode.System, ProxyMode.Pool).forEach { mode ->
                         ToolbarChip(
                             text = proxyModeLabel(mode),
                             selected = values.proxyMode == mode,
-                            onClick = { if (!submitting) values = values.copy(proxyMode = mode) },
+                            onClick = {
+                                if (!submitting) {
+                                    values = values.copy(
+                                        proxyMode = mode,
+                                        proxyConfigId = values.proxyConfigId.takeIf { mode == ProxyMode.Pool },
+                                    )
+                                }
+                            },
                         )
                     }
                 }
+                ProxyConfigurationPicker(
+                    visible = values.proxyMode == ProxyMode.Pool,
+                    selectedProxyConfigId = values.proxyConfigId,
+                    proxyConfigurations = proxyConfigurations,
+                    proxyConfigurationError = proxyConfigurationError,
+                    submitting = submitting,
+                    onSelect = { values = values.copy(proxyConfigId = it) },
+                )
                 SiteSwitchRow(stringResource(R.string.site_enabled_label), values.enabled, !submitting) { values = values.copy(enabled = it) }
                 SiteSwitchRow(stringResource(R.string.site_auto_sync_label), values.autoSync, !submitting) { values = values.copy(autoSync = it) }
                 SiteSwitchRow(stringResource(R.string.site_auto_checkin_label), values.autoCheckin, !submitting) { values = values.copy(autoCheckin = it) }
@@ -996,6 +1037,46 @@ private fun SiteSwitchRow(
 }
 
 @Composable
+private fun ProxyConfigurationPicker(
+    visible: Boolean,
+    selectedProxyConfigId: Int?,
+    proxyConfigurations: List<ProxyConfiguration>,
+    proxyConfigurationError: String?,
+    submitting: Boolean,
+    onSelect: (Int) -> Unit,
+) {
+    if (!visible) return
+
+    val options = proxyConfigurations.filter { it.enabled || it.id == selectedProxyConfigId }
+    DialogLabel(text = stringResource(R.string.site_proxy_pool_config_label))
+    proxyConfigurationError?.takeIf { it.isNotBlank() }?.let { OperationErrorCard(message = it) }
+    if (options.isEmpty()) {
+        Text(
+            text = stringResource(R.string.site_proxy_pool_empty),
+            style = MiuixTheme.textStyles.body2,
+            color = OctopusTokens.TextSecondary,
+        )
+        return
+    }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        options.forEach { proxy ->
+            ToolbarChip(
+                text = proxyConfigurationLabel(proxy),
+                selected = selectedProxyConfigId == proxy.id,
+                onClick = { if (!submitting && proxy.enabled) onSelect(proxy.id) },
+            )
+        }
+    }
+    options.firstOrNull { it.id == selectedProxyConfigId && !it.enabled }?.let { proxy ->
+        Text(
+            text = stringResource(R.string.site_proxy_pool_disabled_selected, proxyConfigurationLabel(proxy)),
+            style = MiuixTheme.textStyles.body2,
+            color = MiuixTheme.colorScheme.error,
+        )
+    }
+}
+
+@Composable
 private fun DialogLabel(text: String) {
     Text(
         text = text,
@@ -1004,6 +1085,10 @@ private fun DialogLabel(text: String) {
         color = OctopusTokens.TextPrimary,
     )
 }
+
+@Composable
+private fun proxyConfigurationLabel(proxy: ProxyConfiguration): String =
+    proxy.name.ifBlank { "#${proxy.id}" } + if (proxy.enabled) "" else " ${stringResource(R.string.common_disabled)}"
 
 @Composable
 private fun importSourceLabel(source: SiteImportSource): String = when (source) {

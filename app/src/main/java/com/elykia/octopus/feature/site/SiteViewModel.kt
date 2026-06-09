@@ -6,8 +6,10 @@ import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.common.map
 import com.elykia.octopus.core.data.model.AllApiHubImportResult
 import com.elykia.octopus.core.data.model.MetApiImportResult
+import com.elykia.octopus.core.data.model.ProxyConfiguration
 import com.elykia.octopus.core.data.model.Site
 import com.elykia.octopus.core.data.model.SiteAccount
+import com.elykia.octopus.core.data.repository.ProxyPoolRepository
 import com.elykia.octopus.core.data.repository.SiteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,9 +23,11 @@ data class SiteUiState(
     val archivedLoading: Boolean = false,
     val sites: List<Site> = emptyList(),
     val archivedSites: List<Site> = emptyList(),
+    val proxyConfigurations: List<ProxyConfiguration> = emptyList(),
     val error: String? = null,
     val operationError: String? = null,
     val operationMessage: String? = null,
+    val proxyConfigurationError: String? = null,
 )
 
 internal fun SiteUiState.shouldShowPageError(): Boolean =
@@ -32,12 +36,14 @@ internal fun SiteUiState.shouldShowPageError(): Boolean =
 @HiltViewModel
 class SiteViewModel @Inject constructor(
     private val repository: SiteRepository,
+    private val proxyPoolRepository: ProxyPoolRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SiteUiState())
     val uiState: StateFlow<SiteUiState> = _uiState
 
     init {
         refresh()
+        refreshProxyConfigurations()
     }
 
     fun refresh() {
@@ -67,6 +73,26 @@ class SiteViewModel @Inject constructor(
                 }
                 is AppResult.Error -> {
                     _uiState.value = _uiState.value.copy(archivedLoading = false, operationError = result.message)
+                }
+            }
+        }
+    }
+
+    fun refreshProxyConfigurations() {
+        viewModelScope.launch {
+            when (val result = proxyPoolRepository.proxyConfigurations()) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        proxyConfigurations = result.data.sortedWith(
+                            compareByDescending<ProxyConfiguration> { it.enabled }
+                                .thenBy { it.name.lowercase() }
+                                .thenBy { it.id },
+                        ),
+                        proxyConfigurationError = null,
+                    )
+                }
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(proxyConfigurationError = result.message)
                 }
             }
         }

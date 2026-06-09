@@ -10,6 +10,9 @@ import com.elykia.octopus.core.data.model.SiteCreateRequest
 import com.elykia.octopus.core.data.model.SiteCredentialType
 import com.elykia.octopus.core.data.model.SitePlatform
 import com.elykia.octopus.core.data.model.SiteUpdateRequest
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 data class SiteEditorValues(
@@ -18,6 +21,7 @@ data class SiteEditorValues(
     val baseUrl: String = "",
     val enabled: Boolean = true,
     val proxyMode: String = ProxyMode.Direct,
+    val proxyConfigId: Int? = null,
     val externalCheckinUrl: String = "",
     val isPinned: Boolean = false,
     val sortOrder: String = "0",
@@ -36,6 +40,7 @@ data class SiteAccountEditorValues(
     val tokenExpiresAt: String = "",
     val platformUserId: String = "",
     val proxyMode: String = ProxyMode.Inherit,
+    val proxyConfigId: Int? = null,
     val enabled: Boolean = true,
     val autoSync: Boolean = true,
     val autoCheckin: Boolean = true,
@@ -57,6 +62,7 @@ fun Site?.toSiteEditorValues(): SiteEditorValues {
         baseUrl = site.baseUrl,
         enabled = site.enabled,
         proxyMode = site.proxyMode,
+        proxyConfigId = site.proxyConfigId,
         externalCheckinUrl = site.externalCheckinUrl.orEmpty(),
         isPinned = site.isPinned,
         sortOrder = site.sortOrder.toString(),
@@ -78,6 +84,7 @@ fun SiteAccount?.toSiteAccountEditorValues(): SiteAccountEditorValues {
         tokenExpiresAt = account.tokenExpiresAt.takeIf { it > 0L }?.toString().orEmpty(),
         platformUserId = account.platformUserId?.toString().orEmpty(),
         proxyMode = account.proxyMode,
+        proxyConfigId = account.proxyConfigId,
         enabled = account.enabled,
         autoSync = account.autoSync,
         autoCheckin = account.autoCheckin,
@@ -91,6 +98,7 @@ fun canSubmitSite(values: SiteEditorValues, submitting: Boolean): Boolean =
     !submitting &&
         values.name.isNotBlank() &&
         hasValidSiteUrl(values.baseUrl) &&
+        hasValidProxySelection(values.proxyMode, values.proxyConfigId) &&
         parseSiteSortOrder(values.sortOrder) != null &&
         parseSiteGlobalWeight(values.globalWeight) != null &&
         values.customHeader.all { header ->
@@ -106,6 +114,7 @@ fun canSubmitSiteAccount(
     sitePlatform: String? = null,
 ): Boolean {
     if (submitting || values.name.isBlank()) return false
+    if (!hasValidProxySelection(values.proxyMode, values.proxyConfigId)) return false
     val sameCredentialType = original?.credentialType == values.credentialType
     val requiresNewSecret = original == null || !sameCredentialType
     val interval = parsePositiveInt(values.checkinIntervalHours)
@@ -136,6 +145,7 @@ fun SiteEditorValues.toCreateRequest(): SiteCreateRequest = SiteCreateRequest(
     baseUrl = baseUrl.trim(),
     enabled = enabled,
     proxyMode = proxyMode,
+    proxyConfigId = proxyConfigId.takeIf { proxyMode == ProxyMode.Pool },
     externalCheckinUrl = externalCheckinUrl.trim().takeIf { it.isNotBlank() },
     isPinned = isPinned,
     sortOrder = parseSiteSortOrder(sortOrder) ?: 0,
@@ -150,6 +160,12 @@ fun SiteEditorValues.toUpdateRequest(site: Site): SiteUpdateRequest = SiteUpdate
     baseUrl = baseUrl.trim().takeIf { it != site.baseUrl },
     enabled = enabled.takeIf { it != site.enabled },
     proxyMode = proxyMode.takeIf { it != site.proxyMode },
+    proxyConfigId = buildProxyConfigIdPatch(
+        proxyMode = proxyMode,
+        proxyConfigId = proxyConfigId,
+        originalProxyMode = site.proxyMode,
+        originalProxyConfigId = site.proxyConfigId,
+    ),
     externalCheckinUrl = externalCheckinUrl.trim().takeIf { it != site.externalCheckinUrl.orEmpty() },
     isPinned = isPinned.takeIf { it != site.isPinned },
     sortOrder = (parseSiteSortOrder(sortOrder) ?: 0).takeIf { it != site.sortOrder },
@@ -169,6 +185,7 @@ fun SiteAccountEditorValues.toCreateRequest(siteId: Int): SiteAccountCreateReque
     tokenExpiresAt = if (credentialType == SiteCredentialType.AccessToken) parseNonNegativeLong(tokenExpiresAt) ?: 0L else 0L,
     platformUserId = if (credentialType == SiteCredentialType.AccessToken) parsePositiveInt(platformUserId) else null,
     proxyMode = proxyMode,
+    proxyConfigId = proxyConfigId.takeIf { proxyMode == ProxyMode.Pool },
     enabled = enabled,
     autoSync = autoSync,
     autoCheckin = autoCheckin,
@@ -227,6 +244,12 @@ fun SiteAccountEditorValues.toUpdateRequest(account: SiteAccount): SiteAccountUp
             else -> null
         },
         proxyMode = proxyMode.takeIf { it != account.proxyMode },
+        proxyConfigId = buildProxyConfigIdPatch(
+            proxyMode = proxyMode,
+            proxyConfigId = proxyConfigId,
+            originalProxyMode = account.proxyMode,
+            originalProxyConfigId = account.proxyConfigId,
+        ),
         enabled = enabled.takeIf { it != account.enabled },
         autoSync = autoSync.takeIf { it != account.autoSync },
         autoCheckin = autoCheckin.takeIf { it != account.autoCheckin },
@@ -243,6 +266,22 @@ fun hasValidSiteUrl(value: String): Boolean {
         parsed.encodedPassword.isBlank() &&
         parsed.encodedQuery == null &&
         parsed.encodedFragment == null
+}
+
+fun hasValidProxySelection(proxyMode: String, proxyConfigId: Int?): Boolean =
+    proxyMode != ProxyMode.Pool || proxyConfigId != null
+
+private fun buildProxyConfigIdPatch(
+    proxyMode: String,
+    proxyConfigId: Int?,
+    originalProxyMode: String,
+    originalProxyConfigId: Int?,
+): JsonElement? = when {
+    proxyMode == ProxyMode.Pool && (proxyConfigId != originalProxyConfigId || proxyMode != originalProxyMode) ->
+        JsonPrimitive(proxyConfigId ?: return null)
+    proxyMode != ProxyMode.Pool && (originalProxyMode == ProxyMode.Pool || originalProxyConfigId != null) ->
+        JsonNull
+    else -> null
 }
 
 fun SiteEditorValues.normalizedSiteHeaders(): List<CustomHeader> =
