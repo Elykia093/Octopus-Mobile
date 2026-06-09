@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
+import com.elykia.octopus.core.data.model.Group
 import com.elykia.octopus.core.data.model.GroupHealthGroupView
 import com.elykia.octopus.core.data.model.GroupHealthProbeMode
 import com.elykia.octopus.core.designsystem.AppInfoChip
@@ -56,7 +57,9 @@ fun GroupScreen(
     var deletingId by remember { mutableStateOf<Int?>(null) }
     var showBatchDeleteConfirm by remember { mutableStateOf(false) }
     var editingGroupId by remember { mutableStateOf<Int?>(null) }
+    var presetGroupId by remember { mutableStateOf<Int?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
+    var showAutoGroupDialog by remember { mutableStateOf(false) }
 
     var searchTerm by remember { mutableStateOf("") }
     var searchVisible by remember { mutableStateOf(false) }
@@ -72,13 +75,20 @@ fun GroupScreen(
                         item.channelId.toString().contains(searchTerm)
                 }
         }
-        .sortedByDescending { it.items.size }
+        .sortedWith(
+            compareByDescending<Group> { it.pinned }
+                .thenByDescending { it.items.size }
+                .thenBy { it.name.lowercase() }
+        )
 
     val modelCandidates = remember(uiState.channels, uiState.modelChannels) {
         buildGroupModelCandidates(uiState.channels, uiState.modelChannels)
     }
 
     val editingGroup = editingGroupId?.let { id ->
+        uiState.groups.firstOrNull { it.id == id }
+    }
+    val presetGroup = presetGroupId?.let { id ->
         uiState.groups.firstOrNull { it.id == id }
     }
 
@@ -104,6 +114,15 @@ fun GroupScreen(
                         onClick = { viewModel.selectAll() },
                     )
                 } else {
+                    PageActionButton(
+                        icon = AppMiuixIcons.Sync,
+                        contentDescription = stringResource(R.string.group_auto_group_title),
+                        enabled = !uiState.loading && !uiState.shouldShowPageError() && !uiState.submitting,
+                        onClick = {
+                            viewModel.clearOperationError()
+                            showAutoGroupDialog = true
+                        },
+                    )
                     PageActionButton(
                         icon = AppMiuixIcons.More,
                         contentDescription = stringResource(R.string.batch_operations),
@@ -171,6 +190,15 @@ fun GroupScreen(
                         uiState.groupHealthMessage?.takeIf { it.isNotBlank() }?.let { message ->
                             item { AppInfoChip(text = message, icon = AppMiuixIcons.Success, tint = OctopusTokens.Accent) }
                         }
+                        uiState.autoGroupMessage?.takeIf { it.isNotBlank() }?.let { message ->
+                            item { AppInfoChip(text = message, icon = AppMiuixIcons.Sync, tint = OctopusTokens.Accent) }
+                        }
+                        uiState.presetError?.takeIf { it.isNotBlank() }?.let { error ->
+                            item { OperationErrorCard(message = error, onDismiss = viewModel::clearOperationError) }
+                        }
+                        uiState.autoGroupError?.takeIf { it.isNotBlank() }?.let { error ->
+                            item { OperationErrorCard(message = error, onDismiss = viewModel::clearOperationError) }
+                        }
                     }
                     when {
                         uiState.groups.isEmpty() -> item {
@@ -206,6 +234,11 @@ fun GroupScreen(
                                     selectionMode = uiState.selectionMode,
                                     isSelected = group.id in uiState.selectedIds,
                                     onToggleExpanded = { expanded[group.id] = !(expanded[group.id] == true) },
+                                    onTogglePin = { viewModel.togglePin(group) },
+                                    onOpenPresets = {
+                                        viewModel.clearOperationError()
+                                        presetGroupId = group.id
+                                    },
                                     onEdit = {
                                         viewModel.clearOperationError()
                                         editingGroupId = group.id
@@ -277,6 +310,49 @@ fun GroupScreen(
                 viewModel.clearOperationError()
             }
         },
+    )
+
+    GroupPresetDialog(
+        visible = presetGroup != null,
+        group = presetGroup,
+        presets = presetGroup?.let { uiState.presetsByGroupId[it.id] }.orEmpty(),
+        loading = (presetGroup?.id ?: -1) in uiState.presetLoadingIds,
+        submitting = uiState.submitting,
+        error = uiState.presetError,
+        channels = uiState.channels,
+        modelCandidates = modelCandidates,
+        onLoad = { groupId -> viewModel.loadGroupPresets(groupId, force = true) },
+        onCreateCurrent = viewModel::createCurrentPreset,
+        onCreateBlank = viewModel::createBlankPreset,
+        onClone = viewModel::clonePreset,
+        onActivate = viewModel::activatePreset,
+        onDelete = viewModel::deletePreset,
+        onUpdate = viewModel::updatePreset,
+        onDismiss = {
+            if (!uiState.submitting) {
+                presetGroupId = null
+                viewModel.clearOperationError()
+            }
+        },
+        onClearError = viewModel::clearOperationError,
+    )
+
+    GroupAutoGroupDialog(
+        visible = showAutoGroupDialog,
+        config = uiState.autoGroupConfig,
+        loading = uiState.autoGroupLoading,
+        submitting = uiState.autoGroupSubmitting,
+        error = uiState.autoGroupError,
+        onLoad = { viewModel.loadAutoGroupConfig(force = true) },
+        onSave = viewModel::saveAutoGroupConfig,
+        onRun = viewModel::runAutoGroup,
+        onDismiss = {
+            if (!uiState.autoGroupSubmitting) {
+                showAutoGroupDialog = false
+                viewModel.clearOperationError()
+            }
+        },
+        onClearError = viewModel::clearOperationError,
     )
 
     if (uiState.selectionMode && uiState.selectedIds.isNotEmpty()) {

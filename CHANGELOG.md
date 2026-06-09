@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.3.0] - 2026-06-09
+
+### Added
+
+- Added group pinning on mobile, including pinned group metadata parsing, pin and unpin actions, and pinned-first ordering.
+- Added group preset management, including listing, saving the current group as a preset, creating blank presets, cloning, activating, editing, and deleting presets.
+- Added group auto-group configuration, including global projected mode, per-channel auto-group overrides, channel search, save, run, and save-and-run flows.
+- Added repository contract coverage for group pinning, group presets, and auto-group request and response contracts.
+
+### Changed
+
+- Extended the mobile group screen to expose the remaining Web group management flows from the group list.
+- Improved group cards with pinned and active-preset badges so server-side group state is visible on mobile.
+
+### Verification
+
+- `.\gradlew.bat testReleaseUnitTest`
+- `git diff --check`
+- `.\gradlew.bat assembleRelease`
+
 ## [0.2.0] - 2026-06-09
 
 ### Added

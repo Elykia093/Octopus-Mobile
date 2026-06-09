@@ -58,6 +58,8 @@ fun GroupRow(
     selectionMode: Boolean,
     isSelected: Boolean,
     onToggleExpanded: () -> Unit,
+    onTogglePin: () -> Unit,
+    onOpenPresets: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onSelect: () -> Unit,
@@ -96,6 +98,24 @@ fun GroupRow(
                 )
                 if (!selectionMode) {
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        IconButton(onClick = onTogglePin, enabled = !submitting) {
+                            Icon(
+                                imageVector = AppMiuixIcons.Sort,
+                                contentDescription = stringResource(
+                                    if (group.pinned) R.string.group_unpin else R.string.group_pin,
+                                ),
+                                tint = if (group.pinned) OctopusTokens.Accent else OctopusTokens.TextSecondary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        IconButton(onClick = onOpenPresets, enabled = !submitting) {
+                            Icon(
+                                imageVector = AppMiuixIcons.Model,
+                                contentDescription = stringResource(R.string.group_presets),
+                                tint = OctopusTokens.TextSecondary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
                         IconButton(onClick = onEdit, enabled = !submitting) {
                             Icon(
                                 imageVector = AppMiuixIcons.Create,
@@ -112,6 +132,17 @@ fun GroupRow(
                                 modifier = Modifier.size(18.dp),
                             )
                         }
+                    }
+                }
+            }
+
+            if (group.pinned || group.activePresetId != null) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (group.pinned) {
+                        ToolbarChip(text = stringResource(R.string.group_pinned_badge), selected = true)
+                    }
+                    group.activePresetId?.let { presetId ->
+                        ToolbarChip(text = stringResource(R.string.group_active_preset_badge, presetId), selected = true)
                     }
                 }
             }

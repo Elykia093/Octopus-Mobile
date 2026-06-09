@@ -5,9 +5,15 @@ import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.Group
+import com.elykia.octopus.core.data.model.GroupAutoGroupConfig
+import com.elykia.octopus.core.data.model.GroupAutoGroupConfigUpdateRequest
+import com.elykia.octopus.core.data.model.GroupAutoGroupSourceUpdateRequest
 import com.elykia.octopus.core.data.model.GroupHealthGroupView
 import com.elykia.octopus.core.data.model.GroupHealthProbeMode
 import com.elykia.octopus.core.data.model.GroupItem
+import com.elykia.octopus.core.data.model.GroupPreset
+import com.elykia.octopus.core.data.model.GroupPresetItem
+import com.elykia.octopus.core.data.model.GroupPresetUpdateRequest
 import com.elykia.octopus.core.data.model.LlmChannel
 import com.elykia.octopus.core.data.model.SettingItem
 import com.elykia.octopus.core.data.repository.AppRepository
@@ -35,6 +41,14 @@ data class GroupUiState(
     val groupHealthError: String? = null,
     val groupHealthSubmitting: Boolean = false,
     val groupHealthMessage: String? = null,
+    val presetsByGroupId: Map<Int, List<GroupPreset>> = emptyMap(),
+    val presetLoadingIds: Set<Int> = emptySet(),
+    val presetError: String? = null,
+    val autoGroupConfig: GroupAutoGroupConfig? = null,
+    val autoGroupLoading: Boolean = false,
+    val autoGroupError: String? = null,
+    val autoGroupSubmitting: Boolean = false,
+    val autoGroupMessage: String? = null,
     val submitting: Boolean = false,
     val operationError: String? = null,
     val selectionMode: Boolean = false,
@@ -87,7 +101,14 @@ class GroupViewModel @Inject constructor(
     }
 
     fun clearOperationError() {
-        _uiState.value = _uiState.value.copy(operationError = null, groupHealthError = null, groupHealthMessage = null)
+        _uiState.value = _uiState.value.copy(
+            operationError = null,
+            groupHealthError = null,
+            groupHealthMessage = null,
+            presetError = null,
+            autoGroupError = null,
+            autoGroupMessage = null,
+        )
     }
 
     fun runGroupHealth(groupId: Int, probeMode: String? = null) {
@@ -209,6 +230,300 @@ class GroupViewModel @Inject constructor(
                 is AppResult.Error -> _uiState.value = _uiState.value.copy(
                     submitting = false,
                     operationError = result.message,
+                )
+            }
+        }
+    }
+
+    fun togglePin(group: Group) {
+        viewModelScope.launch {
+            if (_uiState.value.submitting || group.id <= 0) return@launch
+            _uiState.value = _uiState.value.copy(submitting = true, operationError = null)
+            when (val result = groupRepository.pinGroup(group.id, !group.pinned)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(submitting = false)
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.copy(
+                    submitting = false,
+                    operationError = result.message,
+                )
+            }
+        }
+    }
+
+    fun loadGroupPresets(groupId: Int, force: Boolean = true) {
+        viewModelScope.launch {
+            val current = _uiState.value
+            if (groupId <= 0 || groupId in current.presetLoadingIds) return@launch
+            if (!force && current.presetsByGroupId.containsKey(groupId)) return@launch
+
+            _uiState.value = current.copy(
+                presetLoadingIds = current.presetLoadingIds + groupId,
+                presetError = null,
+            )
+            when (val result = groupRepository.groupPresets(groupId)) {
+                is AppResult.Success -> {
+                    val latest = _uiState.value
+                    _uiState.value = latest.copy(
+                        presetsByGroupId = latest.presetsByGroupId + (groupId to result.data),
+                        presetLoadingIds = latest.presetLoadingIds - groupId,
+                    )
+                }
+                is AppResult.Error -> {
+                    val latest = _uiState.value
+                    _uiState.value = latest.copy(
+                        presetLoadingIds = latest.presetLoadingIds - groupId,
+                        presetError = result.message,
+                    )
+                }
+            }
+        }
+    }
+
+    fun createCurrentPreset(
+        groupId: Int,
+        name: String,
+        onSuccess: (GroupPreset) -> Unit = {},
+    ) {
+        viewModelScope.launch {
+            val presetName = name.trim()
+            if (_uiState.value.submitting || groupId <= 0 || presetName.isBlank()) return@launch
+            _uiState.value = _uiState.value.copy(submitting = true, presetError = null, operationError = null)
+            when (val result = groupRepository.createGroupPreset(groupId, presetName)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(submitting = false)
+                    onSuccess(result.data)
+                    loadGroupPresets(groupId, force = true)
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.copy(
+                    submitting = false,
+                    presetError = result.message,
+                )
+            }
+        }
+    }
+
+    fun createBlankPreset(
+        groupId: Int,
+        name: String,
+        onSuccess: (GroupPreset) -> Unit = {},
+    ) {
+        viewModelScope.launch {
+            val presetName = name.trim()
+            if (_uiState.value.submitting || groupId <= 0 || presetName.isBlank()) return@launch
+            _uiState.value = _uiState.value.copy(submitting = true, presetError = null, operationError = null)
+            when (val result = groupRepository.createBlankGroupPreset(groupId, presetName)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(submitting = false)
+                    onSuccess(result.data)
+                    loadGroupPresets(groupId, force = true)
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.copy(
+                    submitting = false,
+                    presetError = result.message,
+                )
+            }
+        }
+    }
+
+    fun clonePreset(
+        groupId: Int,
+        presetId: Int,
+        name: String,
+        onSuccess: (GroupPreset) -> Unit = {},
+    ) {
+        viewModelScope.launch {
+            val presetName = name.trim()
+            if (_uiState.value.submitting || groupId <= 0 || presetId <= 0 || presetName.isBlank()) return@launch
+            _uiState.value = _uiState.value.copy(submitting = true, presetError = null, operationError = null)
+            when (val result = groupRepository.cloneGroupPreset(presetId, presetName)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(submitting = false)
+                    onSuccess(result.data)
+                    loadGroupPresets(groupId, force = true)
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.copy(
+                    submitting = false,
+                    presetError = result.message,
+                )
+            }
+        }
+    }
+
+    fun activatePreset(groupId: Int, presetId: Int, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            if (_uiState.value.submitting || groupId <= 0 || presetId <= 0) return@launch
+            _uiState.value = _uiState.value.copy(submitting = true, presetError = null, operationError = null)
+            when (val result = groupRepository.activateGroupPreset(presetId)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(submitting = false)
+                    onSuccess()
+                    loadGroupPresets(groupId, force = true)
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.copy(
+                    submitting = false,
+                    presetError = result.message,
+                )
+            }
+        }
+    }
+
+    fun updatePreset(
+        preset: GroupPreset,
+        name: String,
+        mode: Int,
+        matchRegex: String,
+        firstTokenTimeOut: Int,
+        sessionKeepTime: Int,
+        retryEnabled: Boolean,
+        maxRetries: Int,
+        items: List<GroupItem>,
+        onSuccess: () -> Unit = {},
+    ) {
+        viewModelScope.launch {
+            if (_uiState.value.submitting || preset.id <= 0 || preset.groupId <= 0) return@launch
+            _uiState.value = _uiState.value.copy(submitting = true, presetError = null, operationError = null)
+            val request = GroupPresetUpdateRequest(
+                name = name.trim(),
+                mode = mode,
+                matchRegex = matchRegex.trim(),
+                firstTokenTimeOut = firstTokenTimeOut,
+                sessionKeepTime = sessionKeepTime,
+                retryEnabled = retryEnabled,
+                maxRetries = maxRetries.takeIf { it > 0 } ?: 3,
+                items = items.map { item ->
+                    GroupPresetItem(
+                        channelId = item.channelId,
+                        modelName = item.modelName,
+                        priority = item.priority,
+                        weight = item.weight,
+                    )
+                },
+            )
+            when (val result = groupRepository.updateGroupPreset(preset.id, request)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(submitting = false)
+                    onSuccess()
+                    loadGroupPresets(preset.groupId, force = true)
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.copy(
+                    submitting = false,
+                    presetError = result.message,
+                )
+            }
+        }
+    }
+
+    fun deletePreset(groupId: Int, presetId: Int, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            if (_uiState.value.submitting || groupId <= 0 || presetId <= 0) return@launch
+            _uiState.value = _uiState.value.copy(submitting = true, presetError = null, operationError = null)
+            when (val result = groupRepository.deleteGroupPreset(presetId)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(submitting = false)
+                    onSuccess()
+                    loadGroupPresets(groupId, force = true)
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.copy(
+                    submitting = false,
+                    presetError = result.message,
+                )
+            }
+        }
+    }
+
+    fun loadAutoGroupConfig(force: Boolean = true) {
+        viewModelScope.launch {
+            val current = _uiState.value
+            if (current.autoGroupLoading) return@launch
+            if (!force && current.autoGroupConfig != null) return@launch
+
+            _uiState.value = current.copy(autoGroupLoading = true, autoGroupError = null)
+            when (val result = groupRepository.groupAutoGroupConfig()) {
+                is AppResult.Success -> _uiState.value = _uiState.value.copy(
+                    autoGroupLoading = false,
+                    autoGroupConfig = result.data,
+                )
+                is AppResult.Error -> _uiState.value = _uiState.value.copy(
+                    autoGroupLoading = false,
+                    autoGroupError = result.message,
+                )
+            }
+        }
+    }
+
+    fun saveAutoGroupConfig(
+        projectedGlobalAutoGroup: Int,
+        sourceModes: Map<Int, Int>,
+        runNow: Boolean,
+        onSuccess: () -> Unit = {},
+    ) {
+        viewModelScope.launch {
+            val config = _uiState.value.autoGroupConfig ?: return@launch
+            if (_uiState.value.autoGroupSubmitting) return@launch
+
+            val dirtyItems = config.sources.mapNotNull { source ->
+                val next = sourceModes[source.channelId] ?: source.autoGroup
+                if (next == source.autoGroup) {
+                    null
+                } else {
+                    GroupAutoGroupSourceUpdateRequest(
+                        channelId = source.channelId,
+                        autoGroup = next,
+                    )
+                }
+            }
+            val globalMode = projectedGlobalAutoGroup.takeIf { it != config.projectedGlobalAutoGroup }
+            if (globalMode == null && dirtyItems.isEmpty() && !runNow) {
+                onSuccess()
+                return@launch
+            }
+
+            _uiState.value = _uiState.value.copy(autoGroupSubmitting = true, autoGroupError = null, autoGroupMessage = null)
+            val request = GroupAutoGroupConfigUpdateRequest(
+                projectedGlobalAutoGroup = globalMode,
+                items = dirtyItems,
+                runNow = runNow,
+            )
+            when (val result = groupRepository.updateGroupAutoGroupConfig(request)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        autoGroupSubmitting = false,
+                        autoGroupConfig = result.data,
+                        autoGroupMessage = if (runNow) "自动分组配置已保存并开始执行。" else "自动分组配置已保存。",
+                    )
+                    onSuccess()
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.copy(
+                    autoGroupSubmitting = false,
+                    autoGroupError = result.message,
+                )
+            }
+        }
+    }
+
+    fun runAutoGroup(onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            if (_uiState.value.autoGroupSubmitting) return@launch
+            _uiState.value = _uiState.value.copy(autoGroupSubmitting = true, autoGroupError = null, autoGroupMessage = null)
+            when (val result = groupRepository.runGroupAutoGroup()) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        autoGroupSubmitting = false,
+                        autoGroupMessage = "自动分组已开始执行。",
+                    )
+                    onSuccess()
+                    loadAutoGroupConfig(force = true)
+                    refresh()
+                }
+                is AppResult.Error -> _uiState.value = _uiState.value.copy(
+                    autoGroupSubmitting = false,
+                    autoGroupError = result.message,
                 )
             }
         }
