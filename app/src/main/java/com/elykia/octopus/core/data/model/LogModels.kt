@@ -19,6 +19,31 @@ data class LogPageResponse(
     val warning: String? = null,
 )
 
+data class LogListFilter(
+    val status: String = LogStatusFilter.All,
+    val keyword: String = "",
+    val keywordScope: String = LogKeywordScope.Default,
+    val keywordMode: String = LogKeywordMode.Default,
+)
+
+object LogStatusFilter {
+    const val All = "all"
+    const val Success = "success"
+    const val Error = "error"
+}
+
+object LogKeywordScope {
+    const val Default = "default"
+    const val Content = "content"
+}
+
+object LogKeywordMode {
+    const val Default = "default"
+    const val Prefix = "prefix"
+    const val Exact = "exact"
+    const val Contains = "contains"
+}
+
 @Serializable
 data class LogStreamToken(
     val token: String = "",

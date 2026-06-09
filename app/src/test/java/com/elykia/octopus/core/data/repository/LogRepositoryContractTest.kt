@@ -2,6 +2,10 @@ package com.elykia.octopus.core.data.repository
 
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.common.DispatchersProvider
+import com.elykia.octopus.core.data.model.LogKeywordMode
+import com.elykia.octopus.core.data.model.LogKeywordScope
+import com.elykia.octopus.core.data.model.LogListFilter
+import com.elykia.octopus.core.data.model.LogStatusFilter
 import com.elykia.octopus.core.data.remote.LogApiService
 import com.elykia.octopus.core.data.remote.NetworkExecutor
 import com.google.common.truth.Truth.assertThat
@@ -109,6 +113,39 @@ class LogRepositoryContractTest {
             assertThat(page.logs.single().requestContent).isEmpty()
             assertThat(page.logs.single().responseContent).isEmpty()
             assertThat(page.logs.single().error).doesNotContain("sk-secret-value")
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun logsSendsServerSideFilterParams() = runBlocking {
+        val server = MockWebServer().apply {
+            enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody("""{"code":200,"message":"success","data":{"logs":[],"total":0,"has_more":false}}"""),
+            )
+            start()
+        }
+
+        try {
+            val repository = repositoryFor(server)
+
+            val result = repository.logs(
+                page = 3,
+                pageSize = 10,
+                filter = LogListFilter(
+                    status = LogStatusFilter.Error,
+                    keyword = "gpt 4",
+                    keywordScope = LogKeywordScope.Content,
+                    keywordMode = LogKeywordMode.Exact,
+                ),
+            )
+
+            assertThat(result).isInstanceOf(AppResult.Success::class.java)
+            assertThat(server.takeRequest().path)
+                .isEqualTo("/api/v1/log/list?page=3&page_size=10&include_content=false&with_total=false&pagination=page&status=error&keyword=gpt%204&keyword_scope=content&keyword_mode=exact")
         } finally {
             server.shutdown()
         }

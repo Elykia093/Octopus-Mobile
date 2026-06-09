@@ -3,7 +3,11 @@ package com.elykia.octopus.feature.log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.common.AppResult
+import com.elykia.octopus.core.data.model.LogKeywordMode
+import com.elykia.octopus.core.data.model.LogKeywordScope
+import com.elykia.octopus.core.data.model.LogListFilter
 import com.elykia.octopus.core.data.model.RelayLog
+import com.elykia.octopus.core.data.model.LogStatusFilter
 import com.elykia.octopus.core.data.repository.LogStreamEvent
 import com.elykia.octopus.core.data.repository.LogRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,6 +34,7 @@ data class LogUiState(
     val detailError: String? = null,
     val streamConnected: Boolean = false,
     val streamError: String? = null,
+    val filter: LogListFilter = LogListFilter(),
 )
 
 internal fun LogUiState.shouldShowPageError(): Boolean =
@@ -74,25 +79,31 @@ class LogViewModel @Inject constructor(
         load(refresh = true)
     }
 
+    fun updateFilter(filter: LogListFilter) {
+        if (_uiState.value.filter == filter) return
+        _uiState.value = _uiState.value.copy(filter = filter)
+        refresh()
+    }
+
     fun loadMore() {
         if (_uiState.value.loading || _uiState.value.loadingMore || !_uiState.value.hasMore) return
         load(refresh = false)
     }
 
     private fun load(refresh: Boolean) {
+        val requestGeneration = if (refresh) {
+            ++loadGeneration
+        } else {
+            loadGeneration
+        }
         viewModelScope.launch {
-            val requestGeneration = if (refresh) {
-                ++loadGeneration
-            } else {
-                loadGeneration
-            }
             val nextPage = if (refresh) 1 else _uiState.value.page
             _uiState.value = if (refresh) {
                 _uiState.value.copy(loading = true, loadingMore = false, error = null, pagingError = null, clearError = null)
             } else {
                 _uiState.value.copy(loadingMore = true, pagingError = null)
             }
-            when (val result = repository.logs(page = nextPage, pageSize = 20)) {
+            when (val result = repository.logs(page = nextPage, pageSize = 20, filter = _uiState.value.filter)) {
                 is AppResult.Success -> {
                     if (requestGeneration != loadGeneration) return@launch
                     val pageData = result.data
@@ -178,7 +189,7 @@ class LogViewModel @Inject constructor(
                             _uiState.value = _uiState.value.copy(streamConnected = true, streamError = null)
                         }
                         is LogStreamEvent.Item -> {
-                            _uiState.value = _uiState.value.withStreamLog(event.log)
+                            _uiState.value = _uiState.value.withStreamLog(event.log, _uiState.value.filter)
                         }
                         is LogStreamEvent.Error -> {
                             hadError = true
@@ -193,7 +204,8 @@ class LogViewModel @Inject constructor(
     }
 }
 
-internal fun LogUiState.withStreamLog(log: RelayLog): LogUiState {
+internal fun LogUiState.withStreamLog(log: RelayLog, filter: LogListFilter = LogListFilter()): LogUiState {
+    if (!log.matchesFilter(filter)) return this
     val merged = buildList {
         add(log)
         logs.forEach { existing ->
@@ -205,4 +217,35 @@ internal fun LogUiState.withStreamLog(log: RelayLog): LogUiState {
         streamConnected = true,
         streamError = null,
     )
+}
+
+internal fun LogListFilter.hasActiveFilters(): Boolean =
+    status != LogStatusFilter.All ||
+        keyword.isNotBlank() ||
+        keywordScope != LogKeywordScope.Default ||
+        keywordMode != LogKeywordMode.Default
+
+private fun RelayLog.matchesFilter(filter: LogListFilter): Boolean {
+    val hasError = error.isNotBlank()
+    when (filter.status) {
+        LogStatusFilter.Success -> if (hasError) return false
+        LogStatusFilter.Error -> if (!hasError) return false
+    }
+
+    val keyword = filter.keyword.trim()
+    if (keyword.isBlank()) return true
+
+    val values = if (filter.keywordScope == LogKeywordScope.Content) {
+        listOf(requestContent, responseContent)
+    } else {
+        listOf(requestModelName, channelName, actualModelName, requestApiKeyName.orEmpty(), error)
+    }
+    return values
+        .any { value -> value.matchesKeyword(keyword, filter.keywordMode) }
+}
+
+private fun String.matchesKeyword(keyword: String, mode: String): Boolean = when (mode) {
+    LogKeywordMode.Prefix -> startsWith(keyword, ignoreCase = true)
+    LogKeywordMode.Exact -> equals(keyword, ignoreCase = true)
+    else -> contains(keyword, ignoreCase = true)
 }

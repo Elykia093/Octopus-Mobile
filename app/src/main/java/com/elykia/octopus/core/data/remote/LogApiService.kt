@@ -19,6 +19,10 @@ interface LogApiService {
         @Query("include_content") includeContent: Boolean = false,
         @Query("with_total") withTotal: Boolean = false,
         @Query("pagination") pagination: String = "page",
+        @Query("status") status: String? = null,
+        @Query("keyword") keyword: String? = null,
+        @Query("keyword_scope") keywordScope: String? = null,
+        @Query("keyword_mode") keywordMode: String? = null,
     ): ApiEnvelope<LogPageResponse?>
 
     @DELETE("/api/v1/log/clear")

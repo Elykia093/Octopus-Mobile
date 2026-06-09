@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,6 +33,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
+import com.elykia.octopus.core.data.model.LogKeywordMode
+import com.elykia.octopus.core.data.model.LogKeywordScope
+import com.elykia.octopus.core.data.model.LogListFilter
+import com.elykia.octopus.core.data.model.LogStatusFilter
 import com.elykia.octopus.core.data.model.RelayLog
 import com.elykia.octopus.core.designsystem.AppInfoChip
 import com.elykia.octopus.core.designsystem.AppLazyPageScaffold
@@ -68,26 +73,33 @@ fun LogScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmClear by remember { mutableStateOf(false) }
-    var searchTerm by remember { mutableStateOf("") }
     var searchVisible by remember { mutableStateOf(false) }
+    var showFilterDialog by remember { mutableStateOf(false) }
 
-    val logs = uiState.logs.filter { log ->
-        searchTerm.isBlank() ||
-            log.requestModelName.contains(searchTerm, ignoreCase = true) ||
-            log.channelName.contains(searchTerm, ignoreCase = true) ||
-            log.actualModelName.contains(searchTerm, ignoreCase = true)
-    }
+    val logs = uiState.logs
+    val activeFilter = uiState.filter.hasActiveFilters()
+    val searchActive = searchVisible || uiState.filter.keyword.isNotBlank()
 
     AppLazyPageScaffold(
         title = stringResource(R.string.log_title),
         actions = {
             PageActionButton(
-                icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
+                icon = AppMiuixIcons.Filter,
+                contentDescription = stringResource(R.string.action_open_filter),
+                enabled = !uiState.loading && !uiState.shouldShowPageError(),
+                onClick = { showFilterDialog = true },
+            )
+            PageActionButton(
+                icon = if (searchActive) AppMiuixIcons.Close else AppMiuixIcons.Search,
                 contentDescription = stringResource(R.string.action_open_search),
                 enabled = !uiState.loading && !uiState.shouldShowPageError(),
                 onClick = {
-                    searchVisible = !searchVisible
-                    if (!searchVisible) searchTerm = ""
+                    if (searchActive) {
+                        searchVisible = false
+                        viewModel.updateFilter(uiState.filter.copy(keyword = ""))
+                    } else {
+                        searchVisible = true
+                    }
                 },
             )
             PageActionButton(
@@ -110,13 +122,20 @@ fun LogScreen(
                 )
             }
             else -> {
-                if (uiState.logs.isNotEmpty() && searchVisible) {
+                if (searchActive) {
                     item {
                         SearchField(
-                            value = searchTerm,
-                            onValueChange = { searchTerm = it },
+                            value = uiState.filter.keyword,
+                            onValueChange = {
+                                viewModel.updateFilter(uiState.filter.copy(keyword = it))
+                            },
                             hint = stringResource(R.string.log_search_hint),
                         )
+                    }
+                }
+                if (activeFilter) {
+                    item {
+                        AppInfoChip(text = logFilterSummary(uiState.filter), icon = AppMiuixIcons.Filter, tint = OctopusTokens.Accent)
                     }
                 }
                 uiState.error?.takeIf { it.isNotBlank() }?.let { refreshError ->
@@ -145,7 +164,7 @@ fun LogScreen(
                     uiState.logs.isEmpty() -> item {
                         InlineEmptyCard(
                             title = stringResource(R.string.log_title),
-                            summary = stringResource(R.string.log_empty),
+                            summary = stringResource(if (activeFilter) R.string.log_search_empty else R.string.log_empty),
                         )
                     }
                     logs.isEmpty() -> item {
@@ -206,6 +225,84 @@ fun LogScreen(
         error = uiState.detailError,
         onDismiss = viewModel::closeDetail,
     )
+
+    LogFilterDialog(
+        visible = showFilterDialog,
+        filter = uiState.filter,
+        onApply = {
+            showFilterDialog = false
+            viewModel.updateFilter(it)
+        },
+        onDismiss = { showFilterDialog = false },
+    )
+}
+
+@Composable
+private fun LogFilterDialog(
+    visible: Boolean,
+    filter: LogListFilter,
+    onApply: (LogListFilter) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    if (!visible) return
+    var status by remember(visible, filter) { mutableStateOf(filter.status) }
+    var keywordScope by remember(visible, filter) { mutableStateOf(filter.keywordScope) }
+    var keywordMode by remember(visible, filter) { mutableStateOf(filter.keywordMode) }
+
+    OverlayDialog(
+        show = visible,
+        title = stringResource(R.string.log_filter_title),
+        summary = stringResource(R.string.log_filter_summary),
+        onDismissRequest = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            LogFilterLabel(text = stringResource(R.string.log_filter_status_label))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(LogStatusFilter.All, LogStatusFilter.Success, LogStatusFilter.Error).forEach { option ->
+                    ToolbarChip(
+                        text = logStatusFilterLabel(option),
+                        selected = status == option,
+                        onClick = { status = option },
+                    )
+                }
+            }
+            LogFilterLabel(text = stringResource(R.string.log_filter_scope_label))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(LogKeywordScope.Default, LogKeywordScope.Content).forEach { option ->
+                    ToolbarChip(
+                        text = logKeywordScopeLabel(option),
+                        selected = keywordScope == option,
+                        onClick = { keywordScope = option },
+                    )
+                }
+            }
+            LogFilterLabel(text = stringResource(R.string.log_filter_mode_label))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(LogKeywordMode.Default, LogKeywordMode.Prefix, LogKeywordMode.Exact, LogKeywordMode.Contains).forEach { option ->
+                    ToolbarChip(
+                        text = logKeywordModeLabel(option),
+                        selected = keywordMode == option,
+                        onClick = { keywordMode = option },
+                    )
+                }
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(text = stringResource(R.string.common_cancel), onClick = onDismiss)
+                TextButton(
+                    text = stringResource(R.string.common_confirm),
+                    onClick = {
+                        onApply(
+                            filter.copy(
+                                status = status,
+                                keywordScope = keywordScope,
+                                keywordMode = keywordMode,
+                            )
+                        )
+                    },
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -500,6 +597,48 @@ private fun LogMetricLine(
             modifier = Modifier.weight(1f),
         )
     }
+}
+
+@Composable
+private fun LogFilterLabel(text: String) {
+    Text(
+        text = text,
+        style = MiuixTheme.textStyles.main,
+        fontWeight = FontWeight.SemiBold,
+        color = OctopusTokens.TextPrimary,
+    )
+}
+
+@Composable
+private fun logStatusFilterLabel(status: String): String = when (status) {
+    LogStatusFilter.Success -> stringResource(R.string.log_filter_status_success)
+    LogStatusFilter.Error -> stringResource(R.string.log_filter_status_error)
+    else -> stringResource(R.string.log_filter_status_all)
+}
+
+@Composable
+private fun logKeywordScopeLabel(scope: String): String = when (scope) {
+    LogKeywordScope.Content -> stringResource(R.string.log_filter_scope_content)
+    else -> stringResource(R.string.log_filter_scope_default)
+}
+
+@Composable
+private fun logKeywordModeLabel(mode: String): String = when (mode) {
+    LogKeywordMode.Prefix -> stringResource(R.string.log_filter_mode_prefix)
+    LogKeywordMode.Exact -> stringResource(R.string.log_filter_mode_exact)
+    LogKeywordMode.Contains -> stringResource(R.string.log_filter_mode_contains)
+    else -> stringResource(R.string.log_filter_mode_default)
+}
+
+@Composable
+private fun logFilterSummary(filter: LogListFilter): String {
+    val parts = buildList {
+        if (filter.status != LogStatusFilter.All) add(logStatusFilterLabel(filter.status))
+        if (filter.keyword.isNotBlank()) add(stringResource(R.string.log_filter_keyword_summary, filter.keyword.trim()))
+        if (filter.keywordScope != LogKeywordScope.Default) add(logKeywordScopeLabel(filter.keywordScope))
+        if (filter.keywordMode != LogKeywordMode.Default) add(logKeywordModeLabel(filter.keywordMode))
+    }
+    return parts.joinToString(" · ").ifBlank { stringResource(R.string.log_filter_active) }
 }
 
 private fun formatLogTime(timestampSeconds: Long): String {

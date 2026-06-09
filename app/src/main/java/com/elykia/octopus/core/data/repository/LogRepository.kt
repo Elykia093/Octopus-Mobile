@@ -2,7 +2,11 @@ package com.elykia.octopus.core.data.repository
 
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.common.DispatchersProvider
+import com.elykia.octopus.core.data.model.LogKeywordMode
+import com.elykia.octopus.core.data.model.LogKeywordScope
+import com.elykia.octopus.core.data.model.LogListFilter
 import com.elykia.octopus.core.data.model.RelayLog
+import com.elykia.octopus.core.data.model.LogStatusFilter
 import com.elykia.octopus.core.data.remote.LogApiService
 import com.elykia.octopus.core.data.remote.NetworkExecutor
 import com.elykia.octopus.core.data.remote.sanitizeErrorMessage
@@ -27,6 +31,7 @@ data class LogPage(
     val hasMore: Boolean = false,
     val total: Int = 0,
     val warning: String? = null,
+    val searchMode: String? = null,
 )
 
 sealed interface LogStreamEvent {
@@ -42,8 +47,19 @@ class LogRepository @Inject constructor(
     private val dispatchers: DispatchersProvider,
     private val json: Json,
 ) {
-    suspend fun logs(page: Int = 1, pageSize: Int = 20): AppResult<LogPage> = withContext(dispatchers.io) {
-        when (val result = executor.executeNullable { apiService.logs(page, pageSize) }) {
+    suspend fun logs(
+        page: Int = 1,
+        pageSize: Int = 20,
+        filter: LogListFilter = LogListFilter(),
+    ): AppResult<LogPage> = withContext(dispatchers.io) {
+        when (val result = executor.executeNullable { apiService.logs(
+            page = page,
+            pageSize = pageSize,
+            status = filter.status.toStatusQuery(),
+            keyword = filter.keyword.toKeywordQuery(),
+            keywordScope = filter.keywordScope.toKeywordScopeQuery(),
+            keywordMode = filter.keywordMode.toKeywordModeQuery(),
+        ) }) {
             is AppResult.Success -> {
                 val pageData = result.data
                 AppResult.Success(
@@ -52,6 +68,7 @@ class LogRepository @Inject constructor(
                         hasMore = pageData?.hasMore ?: false,
                         total = pageData?.total ?: 0,
                         warning = pageData?.warning?.sanitizeErrorMessage(),
+                        searchMode = pageData?.searchMode,
                     )
                 )
             }
@@ -113,6 +130,18 @@ class LogRepository @Inject constructor(
         emit(LogStreamEvent.Item(log))
     }
 }
+
+private fun String.toStatusQuery(): String? =
+    takeIf { it.isNotBlank() && it != LogStatusFilter.All }
+
+private fun String.toKeywordQuery(): String? =
+    trim().takeIf { it.isNotBlank() }
+
+private fun String.toKeywordScopeQuery(): String? =
+    takeIf { it.isNotBlank() && it != LogKeywordScope.Default }
+
+private fun String.toKeywordModeQuery(): String? =
+    takeIf { it.isNotBlank() && it != LogKeywordMode.Default }
 
 internal fun RelayLog.withHiddenContent(): RelayLog = copy(
     requestContent = "",
