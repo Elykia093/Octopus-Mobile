@@ -10,6 +10,8 @@ import com.elykia.octopus.core.data.model.ProxyConfiguration
 import com.elykia.octopus.core.data.model.Site
 import com.elykia.octopus.core.data.model.SiteAccount
 import com.elykia.octopus.core.data.model.SiteAvailableModels
+import com.elykia.octopus.core.data.model.SiteBatchAction
+import com.elykia.octopus.core.data.model.SiteBatchActionResult
 import com.elykia.octopus.core.data.repository.ProxyPoolRepository
 import com.elykia.octopus.core.data.repository.SiteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -206,6 +208,20 @@ class SiteViewModel @Inject constructor(
         )
     }
 
+    fun batchSites(sites: List<Site>, action: String, onSuccess: () -> Unit = {}) {
+        val ids = sites.map { it.id }.filter { it > 0 }.distinct()
+        val actionLabel = siteBatchActionLabel(action)
+        launchMutation(
+            invalidMessage = "请选择要批量操作的站点。",
+            isValid = { ids.isNotEmpty() && action in SiteBatchAction.entries },
+            block = { repository.batchAction(ids, action).map { it.toOperationMessage(actionLabel) } },
+            onSuccess = { message ->
+                _uiState.value = _uiState.value.copy(operationMessage = message)
+                onSuccess()
+            },
+        )
+    }
+
     fun createAccount(site: Site, values: SiteAccountEditorValues, onSuccess: () -> Unit = {}) {
         launchMutation(
             invalidMessage = "请输入有效的账号名称和凭据。",
@@ -322,3 +338,22 @@ private fun AllApiHubImportResult.toOperationMessage(): String =
 
 private fun MetApiImportResult.toOperationMessage(): String =
     "MetAPI 导入完成：创建站点 $createdSites，复用站点 $reusedSites，创建账号 $createdAccounts，更新账号 $updatedAccounts，跳过 $skippedAccounts，导入 token $importedTokens，分组 $importedGroups，模型 $importedModels。"
+
+private fun siteBatchActionLabel(action: String): String = when (action) {
+    SiteBatchAction.Enable -> "启用"
+    SiteBatchAction.Disable -> "禁用"
+    SiteBatchAction.Delete -> "删除"
+    else -> "操作"
+}
+
+private fun SiteBatchActionResult.toOperationMessage(actionLabel: String): String {
+    val failedCount = failedItems.size
+    if (failedCount == 0) {
+        return "批量${actionLabel}完成：成功 ${successIds.size} 个。"
+    }
+    val failedSummary = failedItems.take(3).joinToString("；") { item ->
+        "#${item.id} ${item.message.ifBlank { "未知错误" }}"
+    }
+    val suffix = if (failedCount > 3) "；另有 ${failedCount - 3} 个失败" else ""
+    return "批量${actionLabel}完成：成功 ${successIds.size} 个，失败 $failedCount 个：$failedSummary$suffix。"
+}

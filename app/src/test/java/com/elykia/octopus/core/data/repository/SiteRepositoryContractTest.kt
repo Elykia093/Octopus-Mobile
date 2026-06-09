@@ -3,6 +3,7 @@ package com.elykia.octopus.core.data.repository
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.common.DispatchersProvider
 import com.elykia.octopus.core.data.model.SiteAccount
+import com.elykia.octopus.core.data.model.SiteBatchAction
 import com.elykia.octopus.core.data.model.SiteCredentialType
 import com.elykia.octopus.core.data.remote.NetworkExecutor
 import com.elykia.octopus.core.data.remote.SiteApiService
@@ -359,6 +360,52 @@ class SiteRepositoryContractTest {
             val request = server.takeRequest()
             assertThat(request.method).isEqualTo("GET")
             assertThat(request.path).isEqualTo("/api/v1/site/7/available-models")
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun batchActionPostsIdsAndActionAndReadsFailures() = runBlocking {
+        val server = MockWebServer().apply {
+            enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody(
+                        """
+                        {
+                          "code": 200,
+                          "message": "success",
+                          "data": {
+                            "success_ids": [1, 3],
+                            "failed_items": [
+                              {"id": 2, "message": "locked"}
+                            ]
+                          }
+                        }
+                        """.trimIndent(),
+                    ),
+            )
+            start()
+        }
+
+        try {
+            val repository = repositoryFor(server)
+
+            val result = repository.batchAction(listOf(1, 2, 2, 0, 3), SiteBatchAction.Disable)
+
+            assertThat(result).isInstanceOf(AppResult.Success::class.java)
+            val data = (result as AppResult.Success).data
+            assertThat(data.successIds).containsExactly(1, 3).inOrder()
+            assertThat(data.failedItems).hasSize(1)
+            assertThat(data.failedItems.single().id).isEqualTo(2)
+            assertThat(data.failedItems.single().message).isEqualTo("locked")
+            val request = server.takeRequest()
+            assertThat(request.method).isEqualTo("POST")
+            assertThat(request.path).isEqualTo("/api/v1/site/batch")
+            val body = request.body.readUtf8()
+            assertThat(body).contains(""""ids":[1,2,3]""")
+            assertThat(body).contains(""""action":"disable"""")
         } finally {
             server.shutdown()
         }

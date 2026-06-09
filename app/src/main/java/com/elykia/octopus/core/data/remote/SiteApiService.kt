@@ -9,6 +9,8 @@ import com.elykia.octopus.core.data.model.SiteAccount
 import com.elykia.octopus.core.data.model.SiteAccountCreateRequest
 import com.elykia.octopus.core.data.model.SiteAccountUpdateRequest
 import com.elykia.octopus.core.data.model.SiteAvailableModels
+import com.elykia.octopus.core.data.model.SiteBatchActionRequest
+import com.elykia.octopus.core.data.model.SiteBatchActionResult
 import com.elykia.octopus.core.data.model.SiteCheckinResult
 import com.elykia.octopus.core.data.model.SiteCreateRequest
 import com.elykia.octopus.core.data.model.SiteDetectRequest
@@ -46,6 +48,9 @@ interface SiteApiService {
 
     @GET("/api/v1/site/{id}/available-models")
     suspend fun availableModels(@Path("id") id: Int): ApiEnvelope<SiteAvailableModels>
+
+    @POST("/api/v1/site/batch")
+    suspend fun batchAction(@Body request: SiteBatchActionRequest): ApiEnvelope<SiteBatchActionResult>
 
     @POST("/api/v1/site/enable")
     suspend fun enableSite(@Body request: EntityEnableRequest): ApiEnvelope<String?>

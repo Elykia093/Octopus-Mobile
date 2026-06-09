@@ -146,6 +146,16 @@
     <string name="site_import_source_all_api_hub">All API Hub</string>
     <string name="site_import_source_metapi">MetAPI</string>
     <string name="site_import_payload_hint">粘贴 JSON 导出内容</string>
+    <string name="site_batch_title">批量操作站点</string>
+    <string name="site_batch_summary">当前筛选结果包含 %1$d 个站点。</string>
+    <string name="site_batch_target_count">将操作 %1$d 个站点</string>
+    <string name="site_batch_enable">批量启用</string>
+    <string name="site_batch_disable">批量禁用</string>
+    <string name="site_batch_delete">批量删除</string>
+    <string name="site_batch_enable_title">启用站点</string>
+    <string name="site_batch_disable_title">禁用站点</string>
+    <string name="site_batch_delete_title">删除站点</string>
+    <string name="site_batch_confirm_summary">%1$s当前筛选中的 %2$d 个站点？</string>
     <string name="site_name_hint">站点名称</string>
     <string name="site_base_url_hint">https://example.com</string>
     <string name="site_platform_label">平台</string>

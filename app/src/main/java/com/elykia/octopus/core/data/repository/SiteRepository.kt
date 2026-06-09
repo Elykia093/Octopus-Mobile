@@ -10,6 +10,8 @@ import com.elykia.octopus.core.data.model.SiteAccount
 import com.elykia.octopus.core.data.model.SiteAccountCreateRequest
 import com.elykia.octopus.core.data.model.SiteAccountUpdateRequest
 import com.elykia.octopus.core.data.model.SiteAvailableModels
+import com.elykia.octopus.core.data.model.SiteBatchActionRequest
+import com.elykia.octopus.core.data.model.SiteBatchActionResult
 import com.elykia.octopus.core.data.model.SiteCheckinResult
 import com.elykia.octopus.core.data.model.SiteCreateRequest
 import com.elykia.octopus.core.data.model.SiteDetectRequest
@@ -76,6 +78,17 @@ class SiteRepository @Inject constructor(
         when (val result = executor.execute { apiService.availableModels(siteId) }) {
             is AppResult.Success -> AppResult.Success(result.data.copy(models = result.data.models.sorted()))
             is AppResult.Error -> result
+        }
+    }
+
+    suspend fun batchAction(ids: List<Int>, action: String): AppResult<SiteBatchActionResult> = withContext(dispatchers.io) {
+        executor.execute {
+            apiService.batchAction(
+                SiteBatchActionRequest(
+                    ids = ids.filter { it > 0 }.distinct(),
+                    action = action,
+                ),
+            )
         }
     }
 

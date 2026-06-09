@@ -179,6 +179,32 @@ data class SiteAvailableModels(
     val models: List<String> = emptyList(),
 )
 
+object SiteBatchAction {
+    const val Enable = "enable"
+    const val Disable = "disable"
+    const val Delete = "delete"
+
+    val entries: List<String> = listOf(Enable, Disable, Delete)
+}
+
+@Serializable
+data class SiteBatchActionRequest(
+    val ids: List<Int>,
+    val action: String,
+)
+
+@Serializable
+data class SiteBatchActionResult(
+    @SerialName("success_ids") val successIds: List<Int> = emptyList(),
+    @SerialName("failed_items") val failedItems: List<SiteBatchFailedItem> = emptyList(),
+)
+
+@Serializable
+data class SiteBatchFailedItem(
+    val id: Int = 0,
+    val message: String = "",
+)
+
 @Serializable
 data class SiteAccountCreateRequest(
     @SerialName("site_id") val siteId: Int,

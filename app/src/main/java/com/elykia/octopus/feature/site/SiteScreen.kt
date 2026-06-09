@@ -31,6 +31,7 @@ import com.elykia.octopus.core.data.model.ProxyConfiguration
 import com.elykia.octopus.core.data.model.ProxyMode
 import com.elykia.octopus.core.data.model.Site
 import com.elykia.octopus.core.data.model.SiteAccount
+import com.elykia.octopus.core.data.model.SiteBatchAction
 import com.elykia.octopus.core.data.model.SiteCredentialType
 import com.elykia.octopus.core.data.model.SitePlatform
 import com.elykia.octopus.core.designsystem.AppInfoChip
@@ -78,6 +79,8 @@ fun SiteScreen(
     var accountToDelete by remember { mutableStateOf<SiteAccount?>(null) }
     var showArchived by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
+    var showBatchDialog by remember { mutableStateOf(false) }
+    var batchActionToConfirm by remember { mutableStateOf<String?>(null) }
     var availableModelsSite by remember { mutableStateOf<Site?>(null) }
 
     val editingSite = editingSiteId?.let { id -> uiState.sites.firstOrNull { it.id == id } }
@@ -108,6 +111,15 @@ fun SiteScreen(
                 contentDescription = stringResource(R.string.site_action_checkin_all),
                 enabled = !uiState.loading && !uiState.shouldShowPageError() && uiState.sites.isNotEmpty() && !uiState.submitting,
                 onClick = viewModel::checkinAll,
+            )
+            PageActionButton(
+                icon = AppMiuixIcons.Toggle,
+                contentDescription = stringResource(R.string.site_batch_title),
+                enabled = !uiState.loading && !uiState.shouldShowPageError() && sites.isNotEmpty() && !uiState.submitting,
+                onClick = {
+                    viewModel.clearOperationFeedback()
+                    showBatchDialog = true
+                },
             )
             PageActionButton(
                 icon = if (searchVisible) AppMiuixIcons.Close else AppMiuixIcons.Search,
@@ -224,6 +236,20 @@ fun SiteScreen(
         }
     }
 
+    val batchConfirmAction = batchActionToConfirm
+    val batchConfirmActionLabel = when (batchConfirmAction) {
+        SiteBatchAction.Enable -> stringResource(R.string.site_batch_enable)
+        SiteBatchAction.Disable -> stringResource(R.string.site_batch_disable)
+        SiteBatchAction.Delete -> stringResource(R.string.site_batch_delete)
+        else -> ""
+    }
+    val batchConfirmTitle = when (batchConfirmAction) {
+        SiteBatchAction.Enable -> stringResource(R.string.site_batch_enable_title)
+        SiteBatchAction.Disable -> stringResource(R.string.site_batch_disable_title)
+        SiteBatchAction.Delete -> stringResource(R.string.site_batch_delete_title)
+        else -> stringResource(R.string.site_batch_title)
+    }
+
     SiteEditorDialog(
         visible = showCreateSite,
         title = stringResource(R.string.site_create_title),
@@ -289,6 +315,21 @@ fun SiteScreen(
         },
     )
 
+    SiteBatchDialog(
+        visible = showBatchDialog,
+        sites = sites,
+        submitting = uiState.submitting,
+        operationError = uiState.operationError,
+        onAction = { action -> batchActionToConfirm = action },
+        onDismiss = {
+            if (!uiState.submitting) {
+                showBatchDialog = false
+                batchActionToConfirm = null
+                viewModel.clearOperationFeedback()
+            }
+        },
+    )
+
     SiteAccountEditorDialog(
         visible = accountDialogSite != null,
         title = if (editingAccount == null) {
@@ -348,6 +389,21 @@ fun SiteScreen(
         },
     )
 
+    DangerConfirmDialog(
+        visible = batchConfirmAction != null,
+        title = batchConfirmTitle,
+        summary = stringResource(R.string.site_batch_confirm_summary, batchConfirmActionLabel, sites.size),
+        onConfirm = {
+            val action = batchConfirmAction
+            if (action != null) {
+                viewModel.batchSites(sites, action) {
+                    showBatchDialog = false
+                }
+            }
+            batchActionToConfirm = null
+        },
+        onDismiss = { batchActionToConfirm = null },
+    )
     DangerConfirmDialog(
         visible = siteToArchive != null,
         title = stringResource(R.string.site_archive_title),
@@ -427,6 +483,54 @@ private fun SiteImportDialog(
                 onDismiss = onDismiss,
                 onConfirm = { onConfirm(source, payload) },
             )
+        }
+    }
+}
+
+@Composable
+private fun SiteBatchDialog(
+    visible: Boolean,
+    sites: List<Site>,
+    submitting: Boolean,
+    operationError: String?,
+    onAction: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    if (!visible) return
+
+    OverlayDialog(
+        show = visible,
+        title = stringResource(R.string.site_batch_title),
+        summary = stringResource(R.string.site_batch_summary, sites.size),
+        onDismissRequest = { if (!submitting) onDismiss() },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            operationError?.takeIf { it.isNotBlank() }?.let { OperationErrorCard(message = it) }
+            AppInfoChip(
+                text = stringResource(R.string.site_batch_target_count, sites.size),
+                icon = AppMiuixIcons.Site,
+                tint = OctopusTokens.Accent,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ToolbarChip(
+                    text = stringResource(R.string.site_batch_enable),
+                    selected = false,
+                    onClick = { if (!submitting) onAction(SiteBatchAction.Enable) },
+                )
+                ToolbarChip(
+                    text = stringResource(R.string.site_batch_disable),
+                    selected = false,
+                    onClick = { if (!submitting) onAction(SiteBatchAction.Disable) },
+                )
+                ToolbarChip(
+                    text = stringResource(R.string.site_batch_delete),
+                    selected = false,
+                    onClick = { if (!submitting) onAction(SiteBatchAction.Delete) },
+                )
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(text = stringResource(R.string.action_close), enabled = !submitting, onClick = onDismiss)
+            }
         }
     }
 }

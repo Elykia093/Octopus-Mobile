@@ -146,6 +146,16 @@
     <string name="site_import_source_all_api_hub">All API Hub</string>
     <string name="site_import_source_metapi">MetAPI</string>
     <string name="site_import_payload_hint">Paste JSON export</string>
+    <string name="site_batch_title">Batch sites</string>
+    <string name="site_batch_summary">Current filter includes %1$d sites.</string>
+    <string name="site_batch_target_count">%1$d sites in scope</string>
+    <string name="site_batch_enable">Batch enable</string>
+    <string name="site_batch_disable">Batch disable</string>
+    <string name="site_batch_delete">Batch delete</string>
+    <string name="site_batch_enable_title">Enable sites</string>
+    <string name="site_batch_disable_title">Disable sites</string>
+    <string name="site_batch_delete_title">Delete sites</string>
+    <string name="site_batch_confirm_summary">%1$s %2$d sites in the current filter?</string>
     <string name="site_name_hint">Site name</string>
     <string name="site_base_url_hint">https://example.com</string>
     <string name="site_platform_label">Platform</string>
