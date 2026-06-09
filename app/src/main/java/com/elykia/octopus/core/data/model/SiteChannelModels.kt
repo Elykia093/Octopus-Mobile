@@ -50,6 +50,21 @@ data class SiteChannelModel(
 )
 
 @Serializable
+data class SiteModelRouteUpdateRequest(
+    @SerialName("group_key") val groupKey: String,
+    @SerialName("model_name") val modelName: String,
+    @SerialName("route_type") val routeType: String,
+    @SerialName("route_raw_payload") val routeRawPayload: String? = null,
+)
+
+@Serializable
+data class SiteModelDisableUpdateRequest(
+    @SerialName("group_key") val groupKey: String,
+    @SerialName("model_name") val modelName: String,
+    val disabled: Boolean,
+)
+
+@Serializable
 data class SiteProjectedChannelSettings(
     @SerialName("channel_id") val channelId: Int = 0,
     @SerialName("channel_name") val channelName: String = "",
@@ -58,6 +73,13 @@ data class SiteProjectedChannelSettings(
     @SerialName("effective_auto_group") val effectiveAutoGroup: Int = 0,
     @SerialName("param_override") val paramOverride: String = "",
     @SerialName("global_override") val globalOverride: Boolean = false,
+)
+
+@Serializable
+data class SiteProjectedChannelSettingsUpdateRequest(
+    @SerialName("channel_id") val channelId: Int,
+    @SerialName("auto_group") val autoGroup: Int,
+    @SerialName("param_override") val paramOverride: String,
 )
 
 @Serializable
@@ -71,6 +93,35 @@ data class SiteSourceKey(
     @SerialName("group_name") val groupName: String = "",
     @SerialName("value_status") val valueStatus: String = "ready",
     @SerialName("last_sync_at") val lastSyncAt: Long? = null,
+)
+
+@Serializable
+data class SiteChannelKeyCreateRequest(
+    @SerialName("group_key") val groupKey: String,
+    val name: String? = null,
+)
+
+@Serializable
+data class SiteSourceKeyAddRequest(
+    val enabled: Boolean,
+    val token: String,
+    val name: String? = null,
+)
+
+@Serializable
+data class SiteSourceKeyUpdateItem(
+    val id: Int,
+    val enabled: Boolean? = null,
+    val token: String? = null,
+    val name: String? = null,
+)
+
+@Serializable
+data class SiteSourceKeyUpdateRequest(
+    @SerialName("group_key") val groupKey: String,
+    @SerialName("keys_to_add") val keysToAdd: List<SiteSourceKeyAddRequest>? = null,
+    @SerialName("keys_to_update") val keysToUpdate: List<SiteSourceKeyUpdateItem>? = null,
+    @SerialName("keys_to_delete") val keysToDelete: List<Int>? = null,
 )
 
 @Serializable
@@ -112,6 +163,30 @@ data class SiteChannelGroup(
     @SerialName("source_keys") val sourceKeys: List<SiteSourceKey> = emptyList(),
     @SerialName("projected_keys") val projectedKeys: List<SiteProjectedKey> = emptyList(),
     val models: List<SiteChannelModel> = emptyList(),
+)
+
+@Serializable
+data class SiteManualModelAddEntry(
+    @SerialName("model_name") val modelName: String,
+    @SerialName("route_type") val routeType: String,
+)
+
+@Serializable
+data class SiteManualModelAddRequest(
+    @SerialName("group_key") val groupKey: String,
+    val models: List<SiteManualModelAddEntry>,
+)
+
+@Serializable
+data class SiteManualModelDeleteRequest(
+    @SerialName("group_key") val groupKey: String,
+    @SerialName("model_name") val modelName: String,
+)
+
+@Serializable
+data class SiteGroupProjectionUpdateRequest(
+    @SerialName("group_key") val groupKey: String,
+    @SerialName("projection_disabled") val projectionDisabled: Boolean,
 )
 
 @Serializable
