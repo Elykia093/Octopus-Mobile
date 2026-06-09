@@ -595,9 +595,9 @@ private fun SettingItemRow(
     onEdit: () -> Unit,
     onToggle: (Boolean) -> Unit,
 ) {
-    if (item.key == "relay_log_keep_enabled") {
+    if (item.key in BOOLEAN_SETTING_KEYS) {
         SwitchRow(
-            icon = AppMiuixIcons.Log,
+            icon = settingItemIcon(item.key),
             title = settingItemTitle(item.key),
             checked = item.value == "true",
             enabled = enabled,
@@ -658,6 +658,7 @@ private fun SwitchRow(
 
 private fun settingItemIcon(key: String): ImageVector = when (key) {
     "proxy_url" -> AppMiuixIcons.Channel
+    "group_health_enabled" -> AppMiuixIcons.Success
     "stats_save_interval" -> AppMiuixIcons.Time
     "cors_allow_origins" -> AppMiuixIcons.ApiKey
     "relay_log_keep_period" -> AppMiuixIcons.Log
@@ -672,6 +673,7 @@ private fun settingItemIcon(key: String): ImageVector = when (key) {
 @Composable
 private fun settingItemTitle(key: String): String = when (key) {
     "proxy_url" -> stringResource(R.string.setting_proxy_url_label)
+    "group_health_enabled" -> stringResource(R.string.setting_group_health_enabled_label)
     "stats_save_interval" -> stringResource(R.string.setting_stats_save_interval_label)
     "cors_allow_origins" -> stringResource(R.string.setting_cors_allow_origins_label)
     "relay_log_keep_period" -> stringResource(R.string.setting_log_keep_period_label)
@@ -692,6 +694,11 @@ private val NUMERIC_KEYS = setOf(
     "circuit_breaker_threshold",
     "circuit_breaker_cooldown",
     "circuit_breaker_max_cooldown",
+)
+
+private val BOOLEAN_SETTING_KEYS = setOf(
+    "relay_log_keep_enabled",
+    "group_health_enabled",
 )
 
 internal enum class SettingValidationIssue {

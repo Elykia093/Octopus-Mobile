@@ -55,3 +55,63 @@ data class GroupUpdateRequest(
     @SerialName("items_to_update") val itemsToUpdate: List<GroupItemUpdateRequest> = emptyList(),
     @SerialName("items_to_delete") val itemsToDelete: List<Int> = emptyList(),
 )
+
+object GroupHealthProbeMode {
+    const val Standard = "standard"
+    const val Full = "full"
+}
+
+@Serializable
+data class GroupHealthAttempt(
+    val id: Int = 0,
+    @SerialName("snapshot_id") val snapshotId: Int = 0,
+    @SerialName("group_item_id") val groupItemId: Int = 0,
+    @SerialName("channel_id") val channelId: Int = 0,
+    @SerialName("channel_name") val channelName: String = "",
+    @SerialName("channel_key_id") val channelKeyId: Int = 0,
+    @SerialName("key_remark") val keyRemark: String = "",
+    @SerialName("model_name") val modelName: String = "",
+    val priority: Int = 0,
+    val weight: Int = 0,
+    val status: String = "failed",
+    @SerialName("http_status") val httpStatus: Int = 0,
+    @SerialName("duration_ms") val durationMs: Int = 0,
+    @SerialName("error_message") val errorMessage: String = "",
+)
+
+@Serializable
+data class GroupHealthSnapshot(
+    val id: Int = 0,
+    @SerialName("group_id") val groupId: Int = 0,
+    @SerialName("group_name") val groupName: String = "",
+    @SerialName("group_mode") val groupMode: Int = 1,
+    @SerialName("probe_mode") val probeMode: String = GroupHealthProbeMode.Standard,
+    @SerialName("request_model") val requestModel: String = "",
+    val status: String = "failed",
+    @SerialName("started_at") val startedAt: String = "",
+    @SerialName("finished_at") val finishedAt: String? = null,
+    @SerialName("duration_ms") val durationMs: Int = 0,
+    @SerialName("successful_channel_id") val successfulChannelId: Int? = null,
+    val message: String = "",
+    val attempts: List<GroupHealthAttempt> = emptyList(),
+)
+
+@Serializable
+data class GroupHealthGroupView(
+    @SerialName("group_id") val groupId: Int = 0,
+    @SerialName("group_name") val groupName: String = "",
+    @SerialName("group_mode") val groupMode: Int = 1,
+    val latest: GroupHealthSnapshot? = null,
+)
+
+@Serializable
+data class RunGroupHealthRequest(
+    @SerialName("probe_mode") val probeMode: String? = null,
+)
+
+@Serializable
+data class RunGroupHealthAccepted(
+    @SerialName("group_id") val groupId: Int? = null,
+    @SerialName("all_groups") val allGroups: Boolean = false,
+    @SerialName("probe_mode") val probeMode: String? = null,
+)

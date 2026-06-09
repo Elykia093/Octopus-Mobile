@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,12 +25,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.Group
+import com.elykia.octopus.core.data.model.GroupHealthGroupView
+import com.elykia.octopus.core.data.model.GroupHealthProbeMode
 import com.elykia.octopus.core.data.model.GroupItem
 import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.OctopusTones
 import com.elykia.octopus.core.designsystem.OctopusTones.groupMode
 import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.SoftIconTile
+import com.elykia.octopus.core.designsystem.ToolbarChip
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.Icon
@@ -47,6 +51,8 @@ private val GroupBadgeRadius = 9.dp
 @Composable
 fun GroupRow(
     group: Group,
+    showHealth: Boolean,
+    health: GroupHealthGroupView?,
     expanded: Boolean,
     submitting: Boolean,
     selectionMode: Boolean,
@@ -55,6 +61,7 @@ fun GroupRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onSelect: () -> Unit,
+    onRunHealth: (String?) -> Unit,
 ) {
     val sortedItems = group.items.sortedBy { it.priority }
     val visibleItems = if (expanded) sortedItems else sortedItems.take(4)
@@ -129,6 +136,15 @@ fun GroupRow(
                 }
             }
 
+            if (showHealth) {
+                GroupHealthPanel(
+                    health = health,
+                    submitting = submitting,
+                    onRunStandard = { onRunHealth(null) },
+                    onRunFull = { onRunHealth(GroupHealthProbeMode.Full) },
+                )
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -162,6 +178,96 @@ fun GroupRow(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun GroupHealthPanel(
+    health: GroupHealthGroupView?,
+    submitting: Boolean,
+    onRunStandard: () -> Unit,
+    onRunFull: () -> Unit,
+) {
+    val latest = health?.latest
+    val status = latest?.status
+    val statusText = when (status) {
+        "running" -> stringResource(R.string.group_health_status_running)
+        "success" -> stringResource(R.string.group_health_status_success)
+        "partial" -> stringResource(R.string.group_health_status_partial)
+        "failed" -> stringResource(R.string.group_health_status_failed)
+        else -> stringResource(R.string.group_health_status_unknown)
+    }
+    val statusColor = when (status) {
+        "success" -> OctopusTokens.Accent
+        "running", "partial" -> OctopusTones.Orange
+        "failed" -> MiuixTheme.colorScheme.error
+        else -> OctopusTokens.TextSecondary
+    }
+    val attempts = latest?.attempts.orEmpty()
+    val successCount = attempts.count { it.status == "success" }
+    val summary = latest?.message?.takeIf { it.isNotBlank() }
+        ?: if (attempts.isEmpty()) {
+            stringResource(R.string.group_health_empty)
+        } else {
+            stringResource(R.string.group_health_attempt_summary, successCount, attempts.size)
+        }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(GroupInnerRadius))
+            .background(OctopusTokens.Muted.copy(alpha = 0.44f))
+            .border(1.dp, OctopusTokens.Border.copy(alpha = 0.56f), RoundedCornerShape(GroupInnerRadius))
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(statusColor),
+            )
+            Text(
+                text = stringResource(R.string.group_health_title),
+                style = MiuixTheme.textStyles.body1,
+                fontWeight = FontWeight.SemiBold,
+                color = OctopusTokens.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = statusText,
+                style = MiuixTheme.textStyles.body2,
+                color = statusColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Text(
+            text = summary,
+            style = MiuixTheme.textStyles.body2,
+            color = OctopusTokens.TextSecondary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ToolbarChip(
+                text = stringResource(R.string.group_health_run),
+                selected = false,
+                onClick = if (submitting) null else onRunStandard,
+            )
+            ToolbarChip(
+                text = stringResource(R.string.group_health_run_full),
+                selected = false,
+                onClick = if (submitting) null else onRunFull,
+            )
         }
     }
 }

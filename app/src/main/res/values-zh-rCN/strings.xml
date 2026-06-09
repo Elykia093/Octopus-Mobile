@@ -445,6 +445,19 @@
     <string name="group_item_channel_summary">ID %1$d · %2$s</string>
     <string name="group_item_model_display">模型 %1$s</string>
     <string name="group_item_channel_fallback">渠道 %1$d</string>
+    <string name="group_health_title">健康检查</string>
+    <string name="group_health_empty">暂无健康快照。</string>
+    <string name="group_health_summary">正常 %1$d · 异常 %2$d · 运行中 %3$d</string>
+    <string name="group_health_attempt_summary">%1$d/%2$d 次探测成功</string>
+    <string name="group_health_run">运行</string>
+    <string name="group_health_run_full">完整</string>
+    <string name="group_health_run_all">全部运行</string>
+    <string name="group_health_run_all_full">全部完整探测</string>
+    <string name="group_health_status_running">运行中</string>
+    <string name="group_health_status_success">正常</string>
+    <string name="group_health_status_partial">部分异常</string>
+    <string name="group_health_status_failed">失败</string>
+    <string name="group_health_status_unknown">未检查</string>
     <string name="group_invalid_timeout">请输入有效的非负超时时间。</string>
     <string name="group_invalid_keep_time">请输入有效的非负会话保持时间。</string>
     <string name="group_invalid_max_retries">请输入有效的正整数最大重试次数。</string>
@@ -594,6 +607,7 @@
     <string name="setting_language_zh_cn">简体中文</string>
     <string name="setting_language_en">英文</string>
     <string name="setting_proxy_url_label">代理地址</string>
+    <string name="setting_group_health_enabled_label">分组健康检查</string>
     <string name="setting_stats_save_interval_label">统计保存周期</string>
     <string name="setting_stats_save_interval_value">%1$s 分钟</string>
     <string name="setting_cors_allow_origins_label">CORS 跨域白名单</string>

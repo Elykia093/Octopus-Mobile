@@ -372,7 +372,7 @@ private fun List<SettingItem>.toSections(): List<SettingSection> {
             key = "system",
             title = "系统设置",
             summary = "服务端基础配置项。",
-            items = filter { it.key in setOf("proxy_url", "stats_save_interval", "cors_allow_origins") },
+            items = filter { it.key in setOf("proxy_url", "stats_save_interval", "cors_allow_origins", "group_health_enabled") },
         ),
         "log" to SettingSection(
             key = "log",

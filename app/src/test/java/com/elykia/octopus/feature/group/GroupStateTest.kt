@@ -3,6 +3,7 @@ package com.elykia.octopus.feature.group
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.Group
+import com.elykia.octopus.core.data.model.GroupHealthGroupView
 import com.elykia.octopus.core.data.model.LlmChannel
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
@@ -30,6 +31,7 @@ class GroupStateTest {
             groups = listOf(Group(id = 1, name = "old", mode = 1)),
             channels = previousChannels,
             modelChannels = previousModelChannels,
+            groupHealth = listOf(GroupHealthGroupView(groupId = 1, groupName = "old")),
         )
 
         val state = buildGroupRefreshState(
@@ -37,12 +39,17 @@ class GroupStateTest {
             groupsResult = AppResult.Success(listOf(Group(id = 2, name = "new", mode = 1))),
             channelsResult = AppResult.Error("channels failed"),
             modelChannelsResult = AppResult.Error("models failed"),
+            groupHealthEnabled = true,
+            groupHealthSettingError = null,
+            groupHealthResult = AppResult.Error("health failed"),
         )
 
         assertThat(state.loading).isFalse()
         assertThat(state.groups).containsExactly(Group(id = 2, name = "new", mode = 1))
         assertThat(state.channels).isEqualTo(previousChannels)
         assertThat(state.modelChannels).isEqualTo(previousModelChannels)
+        assertThat(state.groupHealth).isEqualTo(previous.groupHealth)
+        assertThat(state.groupHealthError).isEqualTo("health failed")
         assertThat(state.channelListError).isEqualTo("channels failed")
         assertThat(state.modelChannelError).isEqualTo("models failed")
     }
@@ -54,6 +61,9 @@ class GroupStateTest {
             groupsResult = AppResult.Error("groups failed"),
             channelsResult = AppResult.Success(emptyList()),
             modelChannelsResult = AppResult.Success(emptyList()),
+            groupHealthEnabled = false,
+            groupHealthSettingError = null,
+            groupHealthResult = AppResult.Success(emptyList()),
         )
 
         assertThat(state.loading).isFalse()
@@ -82,6 +92,9 @@ class GroupStateTest {
             groupsResult = AppResult.Error("groups failed"),
             channelsResult = AppResult.Success(recoveredChannels),
             modelChannelsResult = AppResult.Success(recoveredModelChannels),
+            groupHealthEnabled = false,
+            groupHealthSettingError = null,
+            groupHealthResult = AppResult.Success(emptyList()),
         )
 
         assertThat(state.loading).isFalse()

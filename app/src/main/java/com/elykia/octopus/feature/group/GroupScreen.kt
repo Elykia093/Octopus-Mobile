@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,11 +22,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
+import com.elykia.octopus.core.data.model.GroupHealthGroupView
+import com.elykia.octopus.core.data.model.GroupHealthProbeMode
+import com.elykia.octopus.core.designsystem.AppInfoChip
 import com.elykia.octopus.core.designsystem.AppLazyPageScaffold
+import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
 import com.elykia.octopus.core.designsystem.ErrorStateCard
 import com.elykia.octopus.core.designsystem.InlineEmptyCard
@@ -34,7 +41,9 @@ import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.OperationErrorCard
 import com.elykia.octopus.core.designsystem.PageActionButton
 import com.elykia.octopus.core.designsystem.SearchField
+import com.elykia.octopus.core.designsystem.ToolbarChip
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 
 @Composable
@@ -156,6 +165,12 @@ fun GroupScreen(
                         uiState.operationError?.takeIf { it.isNotBlank() }?.let { error ->
                             item { OperationErrorCard(message = error) }
                         }
+                        uiState.groupHealthError?.takeIf { it.isNotBlank() }?.let { error ->
+                            item { OperationErrorCard(message = error, onDismiss = viewModel::clearOperationError) }
+                        }
+                        uiState.groupHealthMessage?.takeIf { it.isNotBlank() }?.let { message ->
+                            item { AppInfoChip(text = message, icon = AppMiuixIcons.Success, tint = OctopusTokens.Accent) }
+                        }
                     }
                     when {
                         uiState.groups.isEmpty() -> item {
@@ -170,21 +185,36 @@ fun GroupScreen(
                                 summary = stringResource(R.string.group_search_empty),
                             )
                         }
-                        else -> items(groups, key = { it.id }) { group ->
-                            GroupRow(
-                                group = group,
-                                expanded = expanded[group.id] == true,
-                                submitting = uiState.submitting,
-                                selectionMode = uiState.selectionMode,
-                                isSelected = group.id in uiState.selectedIds,
-                                onToggleExpanded = { expanded[group.id] = !(expanded[group.id] == true) },
-                                onEdit = {
-                                    viewModel.clearOperationError()
-                                    editingGroupId = group.id
-                                },
-                                onDelete = { deletingId = group.id },
-                                onSelect = { viewModel.toggleSelection(group.id) },
-                            )
+                        else -> {
+                            if (uiState.groupHealthEnabled) {
+                                item {
+                                    GroupHealthSummaryCard(
+                                        views = uiState.groupHealth,
+                                        submitting = uiState.groupHealthSubmitting,
+                                        onRunStandard = { viewModel.runAllGroupHealth() },
+                                        onRunFull = { viewModel.runAllGroupHealth(GroupHealthProbeMode.Full) },
+                                    )
+                                }
+                            }
+                            items(groups, key = { it.id }) { group ->
+                                GroupRow(
+                                    group = group,
+                                    showHealth = uiState.groupHealthEnabled,
+                                    health = uiState.groupHealth.firstOrNull { it.groupId == group.id },
+                                    expanded = expanded[group.id] == true,
+                                    submitting = uiState.submitting || uiState.groupHealthSubmitting,
+                                    selectionMode = uiState.selectionMode,
+                                    isSelected = group.id in uiState.selectedIds,
+                                    onToggleExpanded = { expanded[group.id] = !(expanded[group.id] == true) },
+                                    onEdit = {
+                                        viewModel.clearOperationError()
+                                        editingGroupId = group.id
+                                    },
+                                    onDelete = { deletingId = group.id },
+                                    onSelect = { viewModel.toggleSelection(group.id) },
+                                    onRunHealth = { mode -> viewModel.runGroupHealth(group.id, mode) },
+                                )
+                            }
                         }
                     }
                 }
@@ -285,4 +315,55 @@ fun GroupScreen(
         },
         onDismiss = { showBatchDeleteConfirm = false },
     )
+}
+
+@Composable
+private fun GroupHealthSummaryCard(
+    views: List<GroupHealthGroupView>,
+    submitting: Boolean,
+    onRunStandard: () -> Unit,
+    onRunFull: () -> Unit,
+) {
+    val snapshots = views.mapNotNull { it.latest }
+    val runningCount = snapshots.count { it.status == "running" }
+    val successCount = snapshots.count { it.status == "success" }
+    val failedCount = snapshots.count { it.status == "failed" || it.status == "partial" }
+    val summary = if (snapshots.isEmpty()) {
+        stringResource(R.string.group_health_empty)
+    } else {
+        stringResource(R.string.group_health_summary, successCount, failedCount, runningCount)
+    }
+
+    AppListCard(padding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.group_health_title),
+                    style = top.yukonga.miuix.kmp.theme.MiuixTheme.textStyles.main,
+                    fontWeight = FontWeight.SemiBold,
+                    color = OctopusTokens.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = androidx.compose.ui.Modifier.weight(1f),
+                )
+                AppInfoChip(text = summary, icon = AppMiuixIcons.Success, tint = OctopusTokens.Accent)
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ToolbarChip(
+                    text = stringResource(if (submitting) R.string.common_loading else R.string.group_health_run_all),
+                    selected = false,
+                    onClick = if (submitting) null else onRunStandard,
+                )
+                ToolbarChip(
+                    text = stringResource(R.string.group_health_run_all_full),
+                    selected = false,
+                    onClick = if (submitting) null else onRunFull,
+                )
+            }
+        }
+    }
 }

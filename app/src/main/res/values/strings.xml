@@ -445,6 +445,19 @@
     <string name="group_item_channel_summary">ID %1$d · %2$s</string>
     <string name="group_item_model_display">Model %1$s</string>
     <string name="group_item_channel_fallback">Channel %1$d</string>
+    <string name="group_health_title">Health check</string>
+    <string name="group_health_empty">No health snapshot.</string>
+    <string name="group_health_summary">Healthy %1$d · Issues %2$d · Running %3$d</string>
+    <string name="group_health_attempt_summary">%1$d/%2$d attempts succeeded</string>
+    <string name="group_health_run">Run</string>
+    <string name="group_health_run_full">Full</string>
+    <string name="group_health_run_all">Run all</string>
+    <string name="group_health_run_all_full">Full probe all</string>
+    <string name="group_health_status_running">Running</string>
+    <string name="group_health_status_success">Healthy</string>
+    <string name="group_health_status_partial">Partial</string>
+    <string name="group_health_status_failed">Failed</string>
+    <string name="group_health_status_unknown">Not checked</string>
     <string name="group_invalid_timeout">Enter a valid non-negative timeout.</string>
     <string name="group_invalid_keep_time">Enter a valid non-negative session keep time.</string>
     <string name="group_invalid_max_retries">Enter a valid positive max retry count.</string>
@@ -645,6 +658,7 @@
     <string name="apikey_invalid_expire_at">Enter a valid non-negative expiration time.</string>
     <string name="apikey_invalid_max_cost">Enter a valid non-negative max cost.</string>
     <string name="setting_proxy_url_label">Proxy URL</string>
+    <string name="setting_group_health_enabled_label">Group health check</string>
     <string name="setting_stats_save_interval_label">Stats save interval</string>
     <string name="setting_stats_save_interval_value">%1$s min</string>
     <string name="setting_cors_allow_origins_label">CORS allow origins</string>
