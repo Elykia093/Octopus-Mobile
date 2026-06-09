@@ -20,6 +20,7 @@ enum class MainTab(
     Home("home", R.string.nav_home, AppMiuixIcons.Home),
     Site("site", R.string.nav_site, AppMiuixIcons.Site),
     Channel("channel", R.string.nav_channel, AppMiuixIcons.Channel),
+    ProxyPool("proxy-pool", R.string.nav_proxy_pool, AppMiuixIcons.Proxy),
     Group("group", R.string.nav_group, AppMiuixIcons.Group),
     Model("model", R.string.nav_model, AppMiuixIcons.Model),
     ApiKey("apikey", R.string.nav_apikey, AppMiuixIcons.ApiKey),

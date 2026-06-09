@@ -46,6 +46,7 @@ object AppMiuixIcons {
     val Check = MiuixIcons.Ok
     val Time = MiuixIcons.Timer
     val Channel = MiuixIcons.Carrier
+    val Proxy = MiuixIcons.HorizontalSplit
     val Site = MiuixIcons.Store
     val Group = MiuixIcons.Folder
     val Model = MiuixIcons.Layers

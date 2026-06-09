@@ -21,6 +21,7 @@ import com.elykia.octopus.feature.group.GroupScreen
 import com.elykia.octopus.feature.home.HomeScreen
 import com.elykia.octopus.feature.log.LogScreen
 import com.elykia.octopus.feature.model.ModelScreen
+import com.elykia.octopus.feature.proxypool.ProxyPoolScreen
 import com.elykia.octopus.feature.setting.SettingScreen
 import com.elykia.octopus.feature.site.SiteScreen
 import com.elykia.octopus.navigation.MainTab
@@ -65,6 +66,7 @@ fun MainShell(
                 )
                 MainTab.Site -> SiteScreen(contentPadding = contentPadding)
                 MainTab.Channel -> ChannelScreen(contentPadding = contentPadding)
+                MainTab.ProxyPool -> ProxyPoolScreen(contentPadding = contentPadding)
                 MainTab.Group -> GroupScreen(contentPadding = contentPadding)
                 MainTab.Model -> ModelScreen(contentPadding = contentPadding)
                 MainTab.ApiKey -> ApiKeyScreen(contentPadding = contentPadding)
