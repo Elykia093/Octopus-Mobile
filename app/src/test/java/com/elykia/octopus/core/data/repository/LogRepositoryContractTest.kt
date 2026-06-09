@@ -218,6 +218,66 @@ class LogRepositoryContractTest {
     }
 
     @Test
+    fun siteActionTargetsSendsIdsAndReadsTargets() = runBlocking {
+        val server = MockWebServer().apply {
+            enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody(
+                        """
+                        {
+                          "code": 200,
+                          "message": "success",
+                          "data": {
+                            "9": {
+                              "attempt_targets": [
+                                {
+                                  "site_id": 1,
+                                  "site_name": "Main",
+                                  "account_id": 2,
+                                  "account_name": "Primary",
+                                  "group_key": "default",
+                                  "group_name": "Default",
+                                  "model_name": "gpt-4o",
+                                  "model_disabled": false,
+                                  "can_disable_model": true,
+                                  "channel_id": 3,
+                                  "channel_name": "Projected"
+                                }
+                              ],
+                              "legacy_error_target": null
+                            }
+                          }
+                        }
+                        """.trimIndent(),
+                    ),
+            )
+            start()
+        }
+
+        try {
+            val repository = repositoryFor(server)
+
+            val result = repository.siteActionTargets(listOf(10, 9, 9, 0))
+
+            assertThat(result).isInstanceOf(AppResult.Success::class.java)
+            val targets = (result as AppResult.Success).data
+            assertThat(targets.keys).containsExactly(9L)
+            val target = targets.getValue(9L).attemptTargets.single()
+            assertThat(target?.siteId).isEqualTo(1)
+            assertThat(target?.accountId).isEqualTo(2)
+            assertThat(target?.groupKey).isEqualTo("default")
+            assertThat(target?.modelName).isEqualTo("gpt-4o")
+            assertThat(target?.canDisableModel).isTrue()
+            val request = server.takeRequest()
+            assertThat(request.method).isEqualTo("GET")
+            assertThat(request.path).isEqualTo("/api/v1/log/site-action-targets?ids=9%2C10")
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
     fun streamLogsReadsTokenAndParsesServerSentEvents() = runBlocking {
         val server = MockWebServer().apply {
             enqueue(

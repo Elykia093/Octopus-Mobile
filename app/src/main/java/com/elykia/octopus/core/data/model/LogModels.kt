@@ -53,6 +53,27 @@ data class LogStreamToken(
 )
 
 @Serializable
+data class LogSiteActionTarget(
+    @SerialName("site_id") val siteId: Int = 0,
+    @SerialName("site_name") val siteName: String = "",
+    @SerialName("account_id") val accountId: Int = 0,
+    @SerialName("account_name") val accountName: String = "",
+    @SerialName("group_key") val groupKey: String = "",
+    @SerialName("group_name") val groupName: String = "",
+    @SerialName("model_name") val modelName: String = "",
+    @SerialName("model_disabled") val modelDisabled: Boolean = false,
+    @SerialName("can_disable_model") val canDisableModel: Boolean = false,
+    @SerialName("channel_id") val channelId: Int = 0,
+    @SerialName("channel_name") val channelName: String = "",
+)
+
+@Serializable
+data class LogSiteActionTargets(
+    @SerialName("attempt_targets") val attemptTargets: List<LogSiteActionTarget?> = emptyList(),
+    @SerialName("legacy_error_target") val legacyErrorTarget: LogSiteActionTarget? = null,
+)
+
+@Serializable
 data class ChannelAttempt(
     @SerialName("channel_id") val channelId: Int,
     @SerialName("channel_key_id") val channelKeyId: Int? = null,

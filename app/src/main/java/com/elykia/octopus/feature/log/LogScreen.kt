@@ -39,6 +39,8 @@ import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.LogKeywordMode
 import com.elykia.octopus.core.data.model.LogKeywordScope
 import com.elykia.octopus.core.data.model.LogListFilter
+import com.elykia.octopus.core.data.model.LogSiteActionTarget
+import com.elykia.octopus.core.data.model.LogSiteActionTargets
 import com.elykia.octopus.core.data.model.LogStatusFilter
 import com.elykia.octopus.core.data.model.RelayLog
 import com.elykia.octopus.core.designsystem.AppInfoChip
@@ -77,6 +79,7 @@ fun LogScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmClear by remember { mutableStateOf(false) }
+    var disableTargetToConfirm by remember { mutableStateOf<LogSiteActionTarget?>(null) }
     var searchVisible by remember { mutableStateOf(false) }
     var showFilterDialog by remember { mutableStateOf(false) }
 
@@ -152,6 +155,21 @@ fun LogScreen(
                         OperationErrorCard(message = clearError)
                     }
                 }
+                uiState.siteActionTargetsError?.takeIf { it.isNotBlank() }?.let { targetError ->
+                    item {
+                        OperationErrorCard(message = targetError)
+                    }
+                }
+                uiState.modelDisableError?.takeIf { it.isNotBlank() }?.let { disableError ->
+                    item {
+                        OperationErrorCard(message = disableError, onDismiss = viewModel::clearModelDisableFeedback)
+                    }
+                }
+                uiState.modelDisableMessage?.takeIf { it.isNotBlank() }?.let { disableMessage ->
+                    item {
+                        AppInfoChip(text = disableMessage, icon = AppMiuixIcons.Check, tint = OctopusTokens.Accent)
+                    }
+                }
                 item {
                     AppInfoChip(
                         text = stringResource(if (uiState.streamConnected) R.string.log_stream_connected else R.string.log_stream_connecting),
@@ -181,7 +199,10 @@ fun LogScreen(
                         items(logs, key = { it.id }) { log ->
                             LogRow(
                                 log = log,
+                                siteTargets = uiState.siteActionTargets[log.id],
+                                modelDisableSubmitting = uiState.modelDisableSubmitting,
                                 onClick = { viewModel.openDetail(log) },
+                                onDisableModel = { target -> disableTargetToConfirm = target },
                             )
                         }
                         uiState.pagingError?.let { pagingError ->
@@ -221,6 +242,28 @@ fun LogScreen(
             viewModel.clear()
         },
         onDismiss = { confirmClear = false },
+    )
+
+    DangerConfirmDialog(
+        visible = disableTargetToConfirm != null,
+        title = stringResource(R.string.log_disable_model_title),
+        summary = stringResource(
+            R.string.log_disable_model_summary,
+            disableTargetToConfirm?.siteName.orEmpty(),
+            disableTargetToConfirm?.accountName.orEmpty(),
+            disableTargetToConfirm?.groupName.orEmpty(),
+            disableTargetToConfirm?.modelName.orEmpty(),
+        ),
+        onConfirm = {
+            val target = disableTargetToConfirm
+            if (target != null) {
+                viewModel.disableSiteModel(target) {
+                    disableTargetToConfirm = null
+                }
+            }
+            disableTargetToConfirm = null
+        },
+        onDismiss = { disableTargetToConfirm = null },
     )
 
     LogDetailDialog(
@@ -516,10 +559,14 @@ private fun LogDetailBlock(
 @Composable
 private fun LogRow(
     log: RelayLog,
+    siteTargets: LogSiteActionTargets?,
+    modelDisableSubmitting: Boolean,
     onClick: () -> Unit,
+    onDisableModel: (LogSiteActionTarget) -> Unit,
 ) {
     val hasError = log.error.isNotBlank()
     val statusColor = if (hasError) MiuixTheme.colorScheme.error else OctopusTokens.Accent
+    val disableTargets = log.disableTargets(siteTargets)
 
     AppListCard(
         onClick = onClick,
@@ -590,6 +637,17 @@ private fun LogRow(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
+                }
+                if (disableTargets.isNotEmpty()) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        disableTargets.take(3).forEach { target ->
+                            ToolbarChip(
+                                text = stringResource(R.string.log_action_disable_model, target.modelName),
+                                selected = false,
+                                onClick = if (modelDisableSubmitting) null else ({ onDisableModel(target) }),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -769,6 +827,24 @@ private fun logFilterSummary(filter: LogListFilter): String {
     }
     return parts.joinToString(" · ").ifBlank { stringResource(R.string.log_filter_active) }
 }
+
+private fun RelayLog.disableTargets(siteTargets: LogSiteActionTargets?): List<LogSiteActionTarget> {
+    if (siteTargets == null) return emptyList()
+    val attemptTargets = attempts.mapIndexedNotNull { index, attempt ->
+        val target = siteTargets.attemptTargets.getOrNull(index)
+        target?.takeIf {
+            attempt.status == "failed" && it.canDisableModel && !it.modelDisabled
+        }
+    }
+    val legacyTarget = siteTargets.legacyErrorTarget?.takeIf {
+        attempts.isEmpty() && error.isNotBlank() && it.canDisableModel && !it.modelDisabled
+    }
+    return (attemptTargets + listOfNotNull(legacyTarget))
+        .distinctBy { it.disableTargetKey() }
+}
+
+private fun LogSiteActionTarget.disableTargetKey(): String =
+    "$siteId\u0000$accountId\u0000$groupKey\u0000$modelName"
 
 private fun String.toPositiveLongOrNull(): Long? =
     toLongOrNull()?.takeIf { it > 0L }

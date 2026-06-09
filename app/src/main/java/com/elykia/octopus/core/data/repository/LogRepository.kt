@@ -5,6 +5,7 @@ import com.elykia.octopus.core.common.DispatchersProvider
 import com.elykia.octopus.core.data.model.LogKeywordMode
 import com.elykia.octopus.core.data.model.LogKeywordScope
 import com.elykia.octopus.core.data.model.LogListFilter
+import com.elykia.octopus.core.data.model.LogSiteActionTargets
 import com.elykia.octopus.core.data.model.RelayLog
 import com.elykia.octopus.core.data.model.LogStatusFilter
 import com.elykia.octopus.core.data.remote.LogApiService
@@ -88,6 +89,24 @@ class LogRepository @Inject constructor(
             is AppResult.Success -> AppResult.Success(result.data.withVisibleContent())
             is AppResult.Error -> result
         }
+    }
+
+    suspend fun siteActionTargets(logIds: List<Long>): AppResult<Map<Long, LogSiteActionTargets>> = withContext(dispatchers.io) {
+        val ids = logIds.filter { it > 0 }.distinct().sorted()
+        if (ids.isEmpty()) return@withContext AppResult.Success(emptyMap())
+
+        val merged = mutableMapOf<Long, LogSiteActionTargets>()
+        for (chunk in ids.chunked(LOG_SITE_ACTION_TARGET_CHUNK_SIZE)) {
+            when (val result = executor.executeNullable { apiService.siteActionTargets(chunk.joinToString(",")) }) {
+                is AppResult.Success -> {
+                    result.data.orEmpty().forEach { (key, value) ->
+                        key.toLongOrNull()?.let { id -> merged[id] = value }
+                    }
+                }
+                is AppResult.Error -> return@withContext result
+            }
+        }
+        AppResult.Success(merged)
     }
 
     fun streamLogs(): Flow<LogStreamEvent> = flow {
@@ -181,3 +200,5 @@ private fun Throwable.toStreamMessage(): String = when (this) {
     is SerializationException -> message ?: "实时日志解析失败。"
     else -> message ?: "实时日志连接失败。"
 }.sanitizeErrorMessage()
+
+private const val LOG_SITE_ACTION_TARGET_CHUNK_SIZE = 100

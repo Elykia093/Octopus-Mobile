@@ -520,6 +520,9 @@
     <string name="log_filter_keyword_summary">Keyword %1$s</string>
     <string name="log_stream_connected">Live stream connected</string>
     <string name="log_stream_connecting">Connecting live stream</string>
+    <string name="log_action_disable_model">Disable %1$s</string>
+    <string name="log_disable_model_title">Disable site model</string>
+    <string name="log_disable_model_summary">Disable %4$s in %1$s / %2$s / %3$s?</string>
     <string name="log_empty">No logs.</string>
     <string name="log_search_empty">No matching logs.</string>
     <string name="log_row_actual_model">Actual model %1$s</string>

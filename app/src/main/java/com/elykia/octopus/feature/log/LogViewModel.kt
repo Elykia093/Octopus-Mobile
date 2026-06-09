@@ -8,10 +8,14 @@ import com.elykia.octopus.core.data.model.LogKeywordMode
 import com.elykia.octopus.core.data.model.LogKeywordScope
 import com.elykia.octopus.core.data.model.LogListFilter
 import com.elykia.octopus.core.data.model.RelayLog
+import com.elykia.octopus.core.data.model.LogSiteActionTarget
+import com.elykia.octopus.core.data.model.LogSiteActionTargets
 import com.elykia.octopus.core.data.model.LogStatusFilter
+import com.elykia.octopus.core.data.model.SiteModelDisableUpdateRequest
 import com.elykia.octopus.core.data.repository.ChannelRepository
 import com.elykia.octopus.core.data.repository.LogStreamEvent
 import com.elykia.octopus.core.data.repository.LogRepository
+import com.elykia.octopus.core.data.repository.SiteChannelRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -39,6 +43,12 @@ data class LogUiState(
     val channels: List<Channel> = emptyList(),
     val channelsLoading: Boolean = false,
     val channelsError: String? = null,
+    val siteActionTargets: Map<Long, LogSiteActionTargets> = emptyMap(),
+    val siteActionTargetsLoading: Boolean = false,
+    val siteActionTargetsError: String? = null,
+    val modelDisableSubmitting: Boolean = false,
+    val modelDisableError: String? = null,
+    val modelDisableMessage: String? = null,
     val filter: LogListFilter = LogListFilter(),
 )
 
@@ -57,6 +67,9 @@ internal fun LogUiState.clearLogsSucceeded(): LogUiState = copy(
     logs = emptyList(),
     page = 1,
     hasMore = true,
+    siteActionTargets = emptyMap(),
+    siteActionTargetsLoading = false,
+    siteActionTargetsError = null,
     clearError = null,
     pagingError = null,
 )
@@ -70,10 +83,13 @@ internal fun LogUiState.clearLogsFailed(message: String): LogUiState = copy(
 class LogViewModel @Inject constructor(
     private val repository: LogRepository,
     private val channelRepository: ChannelRepository,
+    private val siteChannelRepository: SiteChannelRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LogUiState())
     val uiState: StateFlow<LogUiState> = _uiState
     private var loadGeneration = 0
+    private var siteActionTargetGeneration = 0
+    private var siteActionTargetIds: List<Long> = emptyList()
     private var streamJob: Job? = null
 
     init {
@@ -114,6 +130,45 @@ class LogViewModel @Inject constructor(
         load(refresh = false)
     }
 
+    fun clearModelDisableFeedback() {
+        _uiState.value = _uiState.value.copy(modelDisableError = null, modelDisableMessage = null)
+    }
+
+    fun disableSiteModel(target: LogSiteActionTarget, onSuccess: () -> Unit = {}) {
+        if (_uiState.value.modelDisableSubmitting || !target.canDisableModel || target.modelDisabled) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                modelDisableSubmitting = true,
+                modelDisableError = null,
+                modelDisableMessage = null,
+            )
+            val request = listOf(
+                SiteModelDisableUpdateRequest(
+                    groupKey = target.groupKey,
+                    modelName = target.modelName,
+                    disabled = true,
+                ),
+            )
+            when (val result = siteChannelRepository.updateModelDisabled(target.siteId, target.accountId, request)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        modelDisableSubmitting = false,
+                        modelDisableError = null,
+                        modelDisableMessage = "已禁用 ${target.groupName.ifBlank { target.groupKey }} / ${target.modelName}。",
+                    )
+                    loadSiteActionTargets(_uiState.value.logs, force = true)
+                    onSuccess()
+                }
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        modelDisableSubmitting = false,
+                        modelDisableError = result.message,
+                    )
+                }
+            }
+        }
+    }
+
     private fun load(refresh: Boolean) {
         val requestGeneration = if (refresh) {
             ++loadGeneration
@@ -141,6 +196,7 @@ class LogViewModel @Inject constructor(
                         error = null,
                         pagingError = null,
                     )
+                    loadSiteActionTargets(mergedLogs)
                 }
                 is AppResult.Error -> {
                     if (requestGeneration != loadGeneration) return@launch
@@ -154,6 +210,42 @@ class LogViewModel @Inject constructor(
         }
     }
 
+    private fun loadSiteActionTargets(logs: List<RelayLog>, force: Boolean = false) {
+        val ids = logs.map { it.id }.filter { it > 0 }.distinct().sorted()
+        if (ids.isEmpty()) {
+            siteActionTargetIds = emptyList()
+            _uiState.value = _uiState.value.copy(
+                siteActionTargets = emptyMap(),
+                siteActionTargetsLoading = false,
+                siteActionTargetsError = null,
+            )
+            return
+        }
+        if (!force && ids == siteActionTargetIds && _uiState.value.siteActionTargetsError == null) return
+        siteActionTargetIds = ids
+        val requestGeneration = ++siteActionTargetGeneration
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(siteActionTargetsLoading = true, siteActionTargetsError = null)
+            when (val result = repository.siteActionTargets(ids)) {
+                is AppResult.Success -> {
+                    if (requestGeneration != siteActionTargetGeneration) return@launch
+                    _uiState.value = _uiState.value.copy(
+                        siteActionTargets = result.data,
+                        siteActionTargetsLoading = false,
+                        siteActionTargetsError = null,
+                    )
+                }
+                is AppResult.Error -> {
+                    if (requestGeneration != siteActionTargetGeneration) return@launch
+                    _uiState.value = _uiState.value.copy(
+                        siteActionTargetsLoading = false,
+                        siteActionTargetsError = result.message,
+                    )
+                }
+            }
+        }
+    }
+
     fun clear() {
         viewModelScope.launch {
             if (_uiState.value.clearing) return@launch
@@ -161,6 +253,7 @@ class LogViewModel @Inject constructor(
             _uiState.value = _uiState.value.clearLogsStarted()
             when (val result = repository.clearLogs()) {
                 is AppResult.Success -> {
+                    siteActionTargetIds = emptyList()
                     _uiState.value = _uiState.value.clearLogsSucceeded()
                     refresh()
                 }
@@ -214,6 +307,7 @@ class LogViewModel @Inject constructor(
                         }
                         is LogStreamEvent.Item -> {
                             _uiState.value = _uiState.value.withStreamLog(event.log, _uiState.value.filter)
+                            loadSiteActionTargets(_uiState.value.logs)
                         }
                         is LogStreamEvent.Error -> {
                             hadError = true

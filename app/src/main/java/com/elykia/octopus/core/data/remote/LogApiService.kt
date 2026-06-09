@@ -2,6 +2,7 @@ package com.elykia.octopus.core.data.remote
 
 import com.elykia.octopus.core.data.model.ApiEnvelope
 import com.elykia.octopus.core.data.model.LogPageResponse
+import com.elykia.octopus.core.data.model.LogSiteActionTargets
 import com.elykia.octopus.core.data.model.LogStreamToken
 import com.elykia.octopus.core.data.model.RelayLog
 import okhttp3.ResponseBody
@@ -33,6 +34,9 @@ interface LogApiService {
 
     @GET("/api/v1/log/{id}")
     suspend fun logDetail(@Path("id") id: Long): ApiEnvelope<RelayLog>
+
+    @GET("/api/v1/log/site-action-targets")
+    suspend fun siteActionTargets(@Query("ids") ids: String): ApiEnvelope<Map<String, LogSiteActionTargets>?>
 
     @GET("/api/v1/log/stream-token")
     suspend fun streamToken(): ApiEnvelope<LogStreamToken>
