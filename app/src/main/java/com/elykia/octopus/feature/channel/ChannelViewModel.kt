@@ -7,7 +7,10 @@ import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.ChannelKey
 import com.elykia.octopus.core.data.model.ChannelKeyAddRequest
 import com.elykia.octopus.core.data.model.ChannelFetchModelRequest
+import com.elykia.octopus.core.data.model.ProxyConfiguration
+import com.elykia.octopus.core.data.model.ProxyMode
 import com.elykia.octopus.core.data.repository.ChannelRepository
+import com.elykia.octopus.core.data.repository.ProxyPoolRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +27,8 @@ data class ChannelUiState(
     val selectionMode: Boolean = false,
     val selectedIds: Set<Int> = emptySet(),
     val batchOperationProgress: String? = null,
+    val proxyConfigurations: List<ProxyConfiguration> = emptyList(),
+    val proxyConfigurationError: String? = null,
 )
 
 internal fun ChannelUiState.shouldShowPageError(): Boolean =
@@ -47,12 +52,14 @@ internal fun ChannelUiState.channelOperationFailed(message: String): ChannelUiSt
 @HiltViewModel
 class ChannelViewModel @Inject constructor(
     private val repository: ChannelRepository,
+    private val proxyPoolRepository: ProxyPoolRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ChannelUiState())
     val uiState: StateFlow<ChannelUiState> = _uiState
 
     init {
         refresh()
+        refreshProxyConfigurations()
     }
 
     fun refresh() {
@@ -75,6 +82,26 @@ class ChannelViewModel @Inject constructor(
                     refresh()
                 }
                 is AppResult.Error -> _uiState.value = _uiState.value.channelOperationFailed(result.message)
+            }
+        }
+    }
+
+    fun refreshProxyConfigurations() {
+        viewModelScope.launch {
+            when (val result = proxyPoolRepository.proxyConfigurations()) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        proxyConfigurations = result.data.sortedWith(
+                            compareByDescending<ProxyConfiguration> { it.enabled }
+                                .thenBy { it.name.lowercase() }
+                                .thenBy { it.id },
+                        ),
+                        proxyConfigurationError = null,
+                    )
+                }
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(proxyConfigurationError = result.message)
+                }
             }
         }
     }
@@ -320,7 +347,9 @@ private fun ChannelEditorValues.toCreateChannel(): Channel = Channel(
         },
     model = model.trim(),
     customModel = customModel.trim(),
-    proxy = proxy,
+    proxy = proxyMode != ProxyMode.Direct,
+    proxyMode = proxyMode,
+    proxyConfigId = proxyConfigId.takeIf { proxyMode == ProxyMode.Pool },
     autoSync = autoSync,
     autoGroup = autoGroup,
     customHeader = normalizedHeaders(),
@@ -341,7 +370,9 @@ private fun ChannelEditorValues.toFetchRequest(): ChannelFetchModelRequest = Cha
                 remark = it.remark.trim(),
             )
         },
-    proxy = proxy,
+    proxy = proxyMode != ProxyMode.Direct,
+    proxyMode = proxyMode,
+    proxyConfigId = proxyConfigId.takeIf { proxyMode == ProxyMode.Pool },
     channelProxy = trimmedChannelProxy().takeIf { it.isNotBlank() },
     matchRegex = trimmedMatchRegex().takeIf { it.isNotBlank() },
     customHeader = normalizedHeaders(),
@@ -357,7 +388,9 @@ private fun Channel.toFetchRequest(): ChannelFetchModelRequest = ChannelFetchMod
             remark = it.remark,
         )
     },
-    proxy = proxy,
+    proxy = proxyMode != ProxyMode.Direct,
+    proxyMode = proxyMode,
+    proxyConfigId = proxyConfigId.takeIf { proxyMode == ProxyMode.Pool },
     channelProxy = channelProxy,
     matchRegex = matchRegex,
     customHeader = customHeader,

@@ -2,6 +2,7 @@ package com.elykia.octopus.core.data.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class BaseUrl(
@@ -38,6 +39,8 @@ data class Channel(
     val model: String = "",
     @SerialName("custom_model") val customModel: String = "",
     val proxy: Boolean = false,
+    @SerialName("proxy_mode") val proxyMode: String = ProxyMode.Direct,
+    @SerialName("proxy_config_id") val proxyConfigId: Int? = null,
     @SerialName("auto_sync") val autoSync: Boolean = false,
     @SerialName("auto_group") val autoGroup: Int = 0,
     @SerialName("custom_header") val customHeader: List<CustomHeader> = emptyList(),
@@ -72,6 +75,8 @@ data class ChannelUpdateRequest(
     val model: String? = null,
     @SerialName("custom_model") val customModel: String? = null,
     val proxy: Boolean? = null,
+    @SerialName("proxy_mode") val proxyMode: String? = null,
+    @SerialName("proxy_config_id") val proxyConfigId: JsonElement? = null,
     @SerialName("auto_sync") val autoSync: Boolean? = null,
     @SerialName("auto_group") val autoGroup: Int? = null,
     @SerialName("custom_header") val customHeader: List<CustomHeader>? = null,
@@ -89,6 +94,8 @@ data class ChannelFetchModelRequest(
     @SerialName("base_urls") val baseUrls: List<BaseUrl> = emptyList(),
     val keys: List<ChannelKeyAddRequest> = emptyList(),
     val proxy: Boolean = false,
+    @SerialName("proxy_mode") val proxyMode: String? = null,
+    @SerialName("proxy_config_id") val proxyConfigId: Int? = null,
     @SerialName("channel_proxy") val channelProxy: String? = null,
     @SerialName("match_regex") val matchRegex: String? = null,
     @SerialName("custom_header") val customHeader: List<CustomHeader> = emptyList(),

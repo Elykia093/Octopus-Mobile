@@ -200,6 +200,8 @@ fun ChannelScreen(
         visible = showCreateDialog,
         title = stringResource(R.string.channel_create_title),
         initialChannel = null,
+        proxyConfigurations = uiState.proxyConfigurations,
+        proxyConfigurationError = uiState.proxyConfigurationError,
         submitting = uiState.submitting,
         operationError = uiState.operationError,
         onFetchModels = { values ->
@@ -225,6 +227,8 @@ fun ChannelScreen(
         visible = editingChannel != null,
         title = stringResource(R.string.channel_edit_title),
         initialChannel = editingChannel,
+        proxyConfigurations = uiState.proxyConfigurations,
+        proxyConfigurationError = uiState.proxyConfigurationError,
         submitting = uiState.submitting,
         operationError = uiState.operationError,
         onFetchModels = { values ->

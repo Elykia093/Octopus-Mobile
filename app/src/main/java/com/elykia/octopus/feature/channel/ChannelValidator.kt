@@ -5,6 +5,10 @@ import com.elykia.octopus.core.data.model.ChannelKeyAddRequest
 import com.elykia.octopus.core.data.model.ChannelKeyUpdateRequest
 import com.elykia.octopus.core.data.model.ChannelUpdateRequest
 import com.elykia.octopus.core.data.model.CustomHeader
+import com.elykia.octopus.core.data.model.ProxyMode
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 /**
@@ -45,7 +49,11 @@ fun canSubmitChannelEditor(
     !submitting &&
         values.name.isNotBlank() &&
         hasValidChannelBaseUrls(values.baseUrls) &&
-        hasValidChannelKeys(values.keys)
+        hasValidChannelKeys(values.keys) &&
+        hasValidChannelProxySelection(values.proxyMode, values.proxyConfigId)
+
+fun hasValidChannelProxySelection(proxyMode: String, proxyConfigId: Int?): Boolean =
+    proxyMode != ProxyMode.Pool || proxyConfigId != null
 
 internal fun ChannelEditorValues.normalizedBaseUrls(): List<com.elykia.octopus.core.data.model.BaseUrl> =
     baseUrls
@@ -121,7 +129,14 @@ internal fun buildChannelUpdateRequest(
         baseUrls = baseUrls.takeIf { it != channel.baseUrls },
         model = values.model.trim().takeIf { it != channel.model },
         customModel = values.customModel.trim().takeIf { it != channel.customModel },
-        proxy = values.proxy.takeIf { it != channel.proxy },
+        proxy = (values.proxyMode != ProxyMode.Direct).takeIf { it != channel.proxy },
+        proxyMode = values.proxyMode.takeIf { it != channel.proxyMode },
+        proxyConfigId = buildProxyConfigIdPatch(
+            proxyMode = values.proxyMode,
+            proxyConfigId = values.proxyConfigId,
+            originalProxyMode = channel.proxyMode,
+            originalProxyConfigId = channel.proxyConfigId,
+        ),
         autoSync = values.autoSync.takeIf { it != channel.autoSync },
         autoGroup = values.autoGroup.takeIf { it != channel.autoGroup },
         customHeader = headers.takeIf { it != channel.customHeader },
@@ -132,4 +147,17 @@ internal fun buildChannelUpdateRequest(
         keysToUpdate = keysToUpdate,
         keysToDelete = keysToDelete,
     )
+}
+
+private fun buildProxyConfigIdPatch(
+    proxyMode: String,
+    proxyConfigId: Int?,
+    originalProxyMode: String,
+    originalProxyConfigId: Int?,
+): JsonElement? = when {
+    proxyMode == ProxyMode.Pool && (proxyConfigId != originalProxyConfigId || proxyMode != originalProxyMode) ->
+        JsonPrimitive(proxyConfigId ?: return null)
+    proxyMode != ProxyMode.Pool && (originalProxyMode == ProxyMode.Pool || originalProxyConfigId != null) ->
+        JsonNull
+    else -> null
 }

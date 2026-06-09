@@ -4,10 +4,17 @@ import com.elykia.octopus.core.data.model.BaseUrl
 import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.ChannelKey
 import com.elykia.octopus.core.data.model.CustomHeader
+import com.elykia.octopus.core.data.model.ProxyMode
 import com.google.common.truth.Truth.assertThat
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Test
 
 class ChannelOperationStateTest {
+    private val json = Json { explicitNulls = false }
+
     @Test
     fun pageErrorOnlyShowsWhenRefreshFailsWithoutCachedChannels() {
         assertThat(
@@ -56,6 +63,8 @@ class ChannelOperationStateTest {
             baseUrls = listOf(BaseUrl("https://a.example.com"), BaseUrl("https://b.example.com")),
             keys = listOf(ChannelKey(id = 9, channelKey = "", enabled = false, remark = "primary")),
             customHeader = listOf(CustomHeader(headerKey = "X-Test", headerValue = "1")),
+            proxyMode = ProxyMode.Pool,
+            proxyConfigId = 12,
             channelProxy = "https://proxy.example.com",
             matchRegex = "gpt.*",
             paramOverride = """{"temperature":0.2}""",
@@ -67,6 +76,8 @@ class ChannelOperationStateTest {
         assertThat(values.keys.single().channelKey).isEmpty()
         assertThat(values.keys.single().remark).isEqualTo("primary")
         assertThat(values.customHeader).containsExactly(CustomHeader(headerKey = "X-Test", headerValue = "1"))
+        assertThat(values.proxyMode).isEqualTo(ProxyMode.Pool)
+        assertThat(values.proxyConfigId).isEqualTo(12)
         assertThat(values.channelProxy).isEqualTo("https://proxy.example.com")
         assertThat(values.matchRegex).isEqualTo("gpt.*")
         assertThat(values.paramOverride).isEqualTo("""{"temperature":0.2}""")
@@ -96,6 +107,8 @@ class ChannelOperationStateTest {
                     ChannelKeyEditorItem(enabled = true, channelKey = "sk-new", remark = "added"),
                 ),
                 customHeader = listOf(CustomHeader(headerKey = "X-Test", headerValue = "1")),
+                proxyMode = ProxyMode.Pool,
+                proxyConfigId = 5,
                 channelProxy = "https://proxy.example.com",
                 matchRegex = "claude.*",
                 paramOverride = """{"max_tokens":1024}""",
@@ -114,8 +127,48 @@ class ChannelOperationStateTest {
         assertThat(request.keysToUpdate.single().channelKey).isNull()
         assertThat(request.keysToUpdate.single().remark).isEqualTo("changed")
         assertThat(request.customHeader).containsExactly(CustomHeader(headerKey = "X-Test", headerValue = "1"))
+        assertThat(request.proxy).isTrue()
+        assertThat(request.proxyMode).isEqualTo(ProxyMode.Pool)
+        assertThat(request.proxyConfigId).isEqualTo(JsonPrimitive(5))
         assertThat(request.channelProxy).isEqualTo("https://proxy.example.com")
         assertThat(request.matchRegex).isEqualTo("claude.*")
         assertThat(request.paramOverride).isEqualTo("""{"max_tokens":1024}""")
+    }
+
+    @Test
+    fun channelPoolProxyRequiresConfig() {
+        val values = ChannelEditorValues(
+            name = "new",
+            baseUrls = listOf(BaseUrl("https://api.example.com")),
+            keys = listOf(ChannelKeyEditorItem(channelKey = "sk-new")),
+            proxyMode = ProxyMode.Pool,
+        )
+
+        assertThat(canSubmitChannelEditor(values, submitting = false)).isFalse()
+        assertThat(canSubmitChannelEditor(values.copy(proxyConfigId = 5), submitting = false)).isTrue()
+    }
+
+    @Test
+    fun channelUpdateClearsProxyConfigIdWhenLeavingPoolMode() {
+        val channel = Channel(
+            id = 1,
+            name = "old",
+            type = 0,
+            baseUrls = listOf(BaseUrl("https://old.example.com")),
+            keys = listOf(ChannelKey(id = 10, channelKey = "", enabled = true, remark = "old")),
+            proxy = true,
+            proxyMode = ProxyMode.Pool,
+            proxyConfigId = 5,
+        )
+
+        val request = buildChannelUpdateRequest(
+            channel = channel,
+            values = channel.toEditorValues().copy(proxyMode = ProxyMode.Direct, proxyConfigId = null),
+        )
+
+        assertThat(request.proxy).isFalse()
+        assertThat(request.proxyMode).isEqualTo(ProxyMode.Direct)
+        assertThat(request.proxyConfigId).isEqualTo(JsonNull)
+        assertThat(json.encodeToString(request)).contains(""""proxy_config_id":null""")
     }
 }

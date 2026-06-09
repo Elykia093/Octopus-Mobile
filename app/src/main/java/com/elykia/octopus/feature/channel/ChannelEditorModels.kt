@@ -3,6 +3,7 @@ package com.elykia.octopus.feature.channel
 import com.elykia.octopus.core.data.model.BaseUrl
 import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.CustomHeader
+import com.elykia.octopus.core.data.model.ProxyMode
 
 data class ChannelKeyEditorItem(
     val id: Int? = null,
@@ -19,7 +20,8 @@ data class ChannelEditorValues(
     val keys: List<ChannelKeyEditorItem> = listOf(ChannelKeyEditorItem()),
     val model: String = "",
     val customModel: String = "",
-    val proxy: Boolean = false,
+    val proxyMode: String = ProxyMode.Direct,
+    val proxyConfigId: Int? = null,
     val autoSync: Boolean = false,
     val autoGroup: Int = 0,
     val customHeader: List<CustomHeader> = listOf(CustomHeader(headerKey = "", headerValue = "")),
@@ -48,7 +50,8 @@ fun Channel?.toEditorValues(): ChannelEditorValues {
             ?: listOf(ChannelKeyEditorItem()),
         model = channel.model,
         customModel = channel.customModel,
-        proxy = channel.proxy,
+        proxyMode = channel.proxyMode,
+        proxyConfigId = channel.proxyConfigId,
         autoSync = channel.autoSync,
         autoGroup = channel.autoGroup,
         customHeader = channel.customHeader.takeIf { it.isNotEmpty() } ?: listOf(CustomHeader(headerKey = "", headerValue = "")),

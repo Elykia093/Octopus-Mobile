@@ -23,7 +23,10 @@ import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.BaseUrl
 import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.CustomHeader
+import com.elykia.octopus.core.data.model.ProxyConfiguration
+import com.elykia.octopus.core.data.model.ProxyMode
 import com.elykia.octopus.core.designsystem.DialogScrollableColumn
+import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.OperationErrorCard
 import com.elykia.octopus.core.designsystem.SecureVisibleWindow
 import com.elykia.octopus.core.designsystem.ToolbarChip
@@ -39,6 +42,8 @@ fun ChannelEditorDialog(
     visible: Boolean,
     title: String,
     initialChannel: Channel?,
+    proxyConfigurations: List<ProxyConfiguration>,
+    proxyConfigurationError: String?,
     submitting: Boolean,
     operationError: String?,
     onFetchModels: (ChannelEditorValues) -> Unit,
@@ -104,11 +109,19 @@ fun ChannelEditorDialog(
                     enabled = !submitting,
                     onCheckedChange = { values = values.copy(enabled = it) },
                 )
-                ChannelSwitchRow(
-                    label = stringResource(R.string.channel_proxy_label),
-                    checked = values.proxy,
-                    enabled = !submitting,
-                    onCheckedChange = { values = values.copy(proxy = it) },
+                ChannelProxySelector(
+                    proxyMode = values.proxyMode,
+                    selectedProxyConfigId = values.proxyConfigId,
+                    proxyConfigurations = proxyConfigurations,
+                    proxyConfigurationError = proxyConfigurationError,
+                    submitting = submitting,
+                    onModeChange = { mode ->
+                        values = values.copy(
+                            proxyMode = mode,
+                            proxyConfigId = values.proxyConfigId.takeIf { mode == ProxyMode.Pool },
+                        )
+                    },
+                    onProxySelect = { values = values.copy(proxyConfigId = it) },
                 )
                 ChannelSwitchRow(
                     label = stringResource(R.string.channel_auto_sync_label),
@@ -437,6 +450,76 @@ private fun ChannelSwitchRow(
         Switch(checked = checked, onCheckedChange = { if (enabled) onCheckedChange(it) })
     }
 }
+
+@Composable
+private fun ChannelProxySelector(
+    proxyMode: String,
+    selectedProxyConfigId: Int?,
+    proxyConfigurations: List<ProxyConfiguration>,
+    proxyConfigurationError: String?,
+    submitting: Boolean,
+    onModeChange: (String) -> Unit,
+    onProxySelect: (Int) -> Unit,
+) {
+    Text(
+        text = stringResource(R.string.site_proxy_mode_label),
+        style = MiuixTheme.textStyles.main,
+        fontWeight = FontWeight.SemiBold,
+    )
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(ProxyMode.Direct, ProxyMode.System, ProxyMode.Pool).forEach { mode ->
+            ToolbarChip(
+                text = channelProxyModeLabel(mode),
+                selected = proxyMode == mode,
+                onClick = { if (!submitting) onModeChange(mode) },
+            )
+        }
+    }
+    if (proxyMode != ProxyMode.Pool) return
+
+    val options = proxyConfigurations.filter { it.enabled || it.id == selectedProxyConfigId }
+    Text(
+        text = stringResource(R.string.site_proxy_pool_config_label),
+        style = MiuixTheme.textStyles.main,
+        fontWeight = FontWeight.SemiBold,
+    )
+    proxyConfigurationError?.takeIf { it.isNotBlank() }?.let { OperationErrorCard(message = it) }
+    if (options.isEmpty()) {
+        Text(
+            text = stringResource(R.string.site_proxy_pool_empty),
+            style = MiuixTheme.textStyles.body2,
+            color = OctopusTokens.TextSecondary,
+        )
+        return
+    }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        options.forEach { proxy ->
+            ToolbarChip(
+                text = proxyConfigurationLabel(proxy),
+                selected = selectedProxyConfigId == proxy.id,
+                onClick = { if (!submitting && proxy.enabled) onProxySelect(proxy.id) },
+            )
+        }
+    }
+    options.firstOrNull { it.id == selectedProxyConfigId && !it.enabled }?.let { proxy ->
+        Text(
+            text = stringResource(R.string.site_proxy_pool_disabled_selected, proxyConfigurationLabel(proxy)),
+            style = MiuixTheme.textStyles.body2,
+            color = MiuixTheme.colorScheme.error,
+        )
+    }
+}
+
+@Composable
+private fun channelProxyModeLabel(mode: String): String = when (mode) {
+    ProxyMode.System -> stringResource(R.string.site_proxy_system)
+    ProxyMode.Pool -> stringResource(R.string.site_proxy_pool)
+    else -> stringResource(R.string.site_proxy_direct)
+}
+
+@Composable
+private fun proxyConfigurationLabel(proxy: ProxyConfiguration): String =
+    proxy.name.ifBlank { "#${proxy.id}" } + if (proxy.enabled) "" else " ${stringResource(R.string.common_disabled)}"
 
 @Composable
 private fun ChannelTypeOption(
