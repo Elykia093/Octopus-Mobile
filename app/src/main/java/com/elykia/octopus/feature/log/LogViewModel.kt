@@ -3,11 +3,13 @@ package com.elykia.octopus.feature.log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.common.AppResult
+import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.LogKeywordMode
 import com.elykia.octopus.core.data.model.LogKeywordScope
 import com.elykia.octopus.core.data.model.LogListFilter
 import com.elykia.octopus.core.data.model.RelayLog
 import com.elykia.octopus.core.data.model.LogStatusFilter
+import com.elykia.octopus.core.data.repository.ChannelRepository
 import com.elykia.octopus.core.data.repository.LogStreamEvent
 import com.elykia.octopus.core.data.repository.LogRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,6 +36,9 @@ data class LogUiState(
     val detailError: String? = null,
     val streamConnected: Boolean = false,
     val streamError: String? = null,
+    val channels: List<Channel> = emptyList(),
+    val channelsLoading: Boolean = false,
+    val channelsError: String? = null,
     val filter: LogListFilter = LogListFilter(),
 )
 
@@ -64,6 +69,7 @@ internal fun LogUiState.clearLogsFailed(message: String): LogUiState = copy(
 @HiltViewModel
 class LogViewModel @Inject constructor(
     private val repository: LogRepository,
+    private val channelRepository: ChannelRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LogUiState())
     val uiState: StateFlow<LogUiState> = _uiState
@@ -72,6 +78,7 @@ class LogViewModel @Inject constructor(
 
     init {
         refresh()
+        loadChannels()
         startStream()
     }
 
@@ -83,6 +90,23 @@ class LogViewModel @Inject constructor(
         if (_uiState.value.filter == filter) return
         _uiState.value = _uiState.value.copy(filter = filter)
         refresh()
+    }
+
+    fun loadChannels() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(channelsLoading = true, channelsError = null)
+            when (val result = channelRepository.channels()) {
+                is AppResult.Success -> _uiState.value = _uiState.value.copy(
+                    channels = result.data.sortedBy { it.name.lowercase() },
+                    channelsLoading = false,
+                    channelsError = null,
+                )
+                is AppResult.Error -> _uiState.value = _uiState.value.copy(
+                    channelsLoading = false,
+                    channelsError = result.message,
+                )
+            }
+        }
     }
 
     fun loadMore() {
@@ -220,12 +244,24 @@ internal fun LogUiState.withStreamLog(log: RelayLog, filter: LogListFilter = Log
 }
 
 internal fun LogListFilter.hasActiveFilters(): Boolean =
-    status != LogStatusFilter.All ||
+    startTime != null ||
+        endTime != null ||
+        channelIds.any { it > 0 } ||
+        status != LogStatusFilter.All ||
         keyword.isNotBlank() ||
         keywordScope != LogKeywordScope.Default ||
         keywordMode != LogKeywordMode.Default
 
 private fun RelayLog.matchesFilter(filter: LogListFilter): Boolean {
+    filter.startTime?.takeIf { it > 0 }?.let { startTime ->
+        if (time < startTime) return false
+    }
+    filter.endTime?.takeIf { it > 0 }?.let { endTime ->
+        if (time > endTime) return false
+    }
+    val channelIds = filter.channelIds.filter { it > 0 }.toSet()
+    if (channelIds.isNotEmpty() && channelId !in channelIds) return false
+
     val hasError = error.isNotBlank()
     when (filter.status) {
         LogStatusFilter.Success -> if (hasError) return false

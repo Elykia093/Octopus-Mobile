@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,11 +29,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
+import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.LogKeywordMode
 import com.elykia.octopus.core.data.model.LogKeywordScope
 import com.elykia.octopus.core.data.model.LogListFilter
@@ -60,6 +63,7 @@ import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.text.SimpleDateFormat
@@ -229,10 +233,14 @@ fun LogScreen(
     LogFilterDialog(
         visible = showFilterDialog,
         filter = uiState.filter,
+        channels = uiState.channels,
+        channelsLoading = uiState.channelsLoading,
+        channelsError = uiState.channelsError,
         onApply = {
             showFilterDialog = false
             viewModel.updateFilter(it)
         },
+        onRetryChannels = viewModel::loadChannels,
         onDismiss = { showFilterDialog = false },
     )
 }
@@ -241,10 +249,17 @@ fun LogScreen(
 private fun LogFilterDialog(
     visible: Boolean,
     filter: LogListFilter,
+    channels: List<Channel>,
+    channelsLoading: Boolean,
+    channelsError: String?,
     onApply: (LogListFilter) -> Unit,
+    onRetryChannels: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     if (!visible) return
+    var startTime by remember(visible, filter) { mutableStateOf(filter.startTime?.toString().orEmpty()) }
+    var endTime by remember(visible, filter) { mutableStateOf(filter.endTime?.toString().orEmpty()) }
+    var channelIds by remember(visible, filter) { mutableStateOf(filter.channelIds.filter { it > 0 }.toSet()) }
     var status by remember(visible, filter) { mutableStateOf(filter.status) }
     var keywordScope by remember(visible, filter) { mutableStateOf(filter.keywordScope) }
     var keywordMode by remember(visible, filter) { mutableStateOf(filter.keywordMode) }
@@ -256,6 +271,93 @@ private fun LogFilterDialog(
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            LogFilterLabel(text = stringResource(R.string.log_filter_time_label))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LogTimestampField(
+                    value = startTime,
+                    onValueChange = { startTime = it },
+                    label = stringResource(R.string.log_filter_start_time),
+                    modifier = Modifier.weight(1f),
+                )
+                LogTimestampField(
+                    value = endTime,
+                    onValueChange = { endTime = it },
+                    label = stringResource(R.string.log_filter_end_time),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ToolbarChip(
+                    text = stringResource(R.string.log_filter_time_all),
+                    selected = startTime.isBlank() && endTime.isBlank(),
+                    onClick = {
+                        startTime = ""
+                        endTime = ""
+                    },
+                )
+                listOf(
+                    R.string.log_filter_time_1h to 3_600L,
+                    R.string.log_filter_time_24h to 86_400L,
+                    R.string.log_filter_time_7d to 604_800L,
+                ).forEach { (labelRes, seconds) ->
+                    ToolbarChip(
+                        text = stringResource(labelRes),
+                        selected = false,
+                        onClick = {
+                            startTime = ((System.currentTimeMillis() / 1000L) - seconds).coerceAtLeast(1L).toString()
+                            endTime = ""
+                        },
+                    )
+                }
+            }
+            LogFilterLabel(text = stringResource(R.string.log_filter_channel_label))
+            when {
+                channelsLoading -> Text(
+                    text = stringResource(R.string.log_filter_channel_loading),
+                    style = MiuixTheme.textStyles.body2,
+                    color = OctopusTokens.TextSecondary,
+                )
+                channelsError != null -> Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = channelsError,
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.error,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(text = stringResource(R.string.common_retry), onClick = onRetryChannels)
+                }
+                channels.isEmpty() -> Text(
+                    text = stringResource(R.string.log_filter_channel_empty),
+                    style = MiuixTheme.textStyles.body2,
+                    color = OctopusTokens.TextSecondary,
+                )
+                else -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ToolbarChip(
+                        text = stringResource(R.string.log_filter_channel_all),
+                        selected = channelIds.isEmpty(),
+                        onClick = { channelIds = emptySet() },
+                    )
+                    channels.forEach { channel ->
+                        ToolbarChip(
+                            text = channel.name.ifBlank { "#${channel.id}" },
+                            selected = channel.id in channelIds,
+                            onClick = {
+                                channelIds = if (channel.id in channelIds) {
+                                    channelIds - channel.id
+                                } else {
+                                    channelIds + channel.id
+                                }
+                            },
+                        )
+                    }
+                }
+            }
             LogFilterLabel(text = stringResource(R.string.log_filter_status_label))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(LogStatusFilter.All, LogStatusFilter.Success, LogStatusFilter.Error).forEach { option ->
@@ -293,6 +395,9 @@ private fun LogFilterDialog(
                     onClick = {
                         onApply(
                             filter.copy(
+                                startTime = startTime.toPositiveLongOrNull(),
+                                endTime = endTime.toPositiveLongOrNull(),
+                                channelIds = channelIds.toList().sorted(),
                                 status = status,
                                 keywordScope = keywordScope,
                                 keywordMode = keywordMode,
@@ -303,6 +408,24 @@ private fun LogFilterDialog(
             }
         }
     }
+}
+
+@Composable
+private fun LogTimestampField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    TextField(
+        value = value,
+        onValueChange = { next -> onValueChange(next.filter { it.isDigit() }) },
+        label = label,
+        modifier = modifier,
+        useLabelAsPlaceholder = true,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+    )
 }
 
 @Composable
@@ -633,6 +756,12 @@ private fun logKeywordModeLabel(mode: String): String = when (mode) {
 @Composable
 private fun logFilterSummary(filter: LogListFilter): String {
     val parts = buildList {
+        if (filter.startTime != null || filter.endTime != null) {
+            add(stringResource(R.string.log_filter_time_summary, filter.startTime?.toString() ?: "-", filter.endTime?.toString() ?: "-"))
+        }
+        if (filter.channelIds.any { it > 0 }) {
+            add(stringResource(R.string.log_filter_channel_summary, filter.channelIds.count { it > 0 }))
+        }
         if (filter.status != LogStatusFilter.All) add(logStatusFilterLabel(filter.status))
         if (filter.keyword.isNotBlank()) add(stringResource(R.string.log_filter_keyword_summary, filter.keyword.trim()))
         if (filter.keywordScope != LogKeywordScope.Default) add(logKeywordScopeLabel(filter.keywordScope))
@@ -640,6 +769,9 @@ private fun logFilterSummary(filter: LogListFilter): String {
     }
     return parts.joinToString(" · ").ifBlank { stringResource(R.string.log_filter_active) }
 }
+
+private fun String.toPositiveLongOrNull(): Long? =
+    toLongOrNull()?.takeIf { it > 0L }
 
 private fun formatLogTime(timestampSeconds: Long): String {
     if (timestampSeconds <= 0L) return "-"

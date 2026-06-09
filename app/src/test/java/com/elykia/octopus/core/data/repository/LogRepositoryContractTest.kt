@@ -136,6 +136,9 @@ class LogRepositoryContractTest {
                 page = 3,
                 pageSize = 10,
                 filter = LogListFilter(
+                    startTime = 1_700_000_000L,
+                    endTime = 1_700_086_400L,
+                    channelIds = listOf(3, 1, 3),
                     status = LogStatusFilter.Error,
                     keyword = "gpt 4",
                     keywordScope = LogKeywordScope.Content,
@@ -145,7 +148,7 @@ class LogRepositoryContractTest {
 
             assertThat(result).isInstanceOf(AppResult.Success::class.java)
             assertThat(server.takeRequest().path)
-                .isEqualTo("/api/v1/log/list?page=3&page_size=10&include_content=false&with_total=false&pagination=page&status=error&keyword=gpt%204&keyword_scope=content&keyword_mode=exact")
+                .isEqualTo("/api/v1/log/list?page=3&page_size=10&include_content=false&with_total=false&pagination=page&start_time=1700000000&end_time=1700086400&channel_ids=1%2C3&status=error&keyword=gpt%204&keyword_scope=content&keyword_mode=exact")
         } finally {
             server.shutdown()
         }

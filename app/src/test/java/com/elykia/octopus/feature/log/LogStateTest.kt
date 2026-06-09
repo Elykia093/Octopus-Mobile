@@ -64,18 +64,25 @@ class LogStateTest {
 
     @Test
     fun streamLogRespectsActiveStatusAndKeywordFilter() {
-        val state = LogUiState(logs = listOf(sampleLog(id = 1, requestModelName = "gpt-4")))
+        val state = LogUiState(logs = listOf(sampleLog(id = 1, time = 100, channelId = 1, requestModelName = "gpt-4")))
         val filter = LogListFilter(
+            startTime = 90,
+            endTime = 110,
+            channelIds = listOf(2),
             status = LogStatusFilter.Error,
             keyword = "claude",
             keywordMode = LogKeywordMode.Contains,
         )
 
-        val ignoredSuccess = state.withStreamLog(sampleLog(id = 2, requestModelName = "claude"), filter)
-        val acceptedError = state.withStreamLog(sampleLog(id = 3, requestModelName = "claude", error = "failed"), filter)
+        val ignoredSuccess = state.withStreamLog(sampleLog(id = 2, time = 100, channelId = 2, requestModelName = "claude"), filter)
+        val ignoredChannel = state.withStreamLog(sampleLog(id = 3, time = 100, channelId = 1, requestModelName = "claude", error = "failed"), filter)
+        val ignoredTime = state.withStreamLog(sampleLog(id = 4, time = 120, channelId = 2, requestModelName = "claude", error = "failed"), filter)
+        val acceptedError = state.withStreamLog(sampleLog(id = 5, time = 100, channelId = 2, requestModelName = "claude", error = "failed"), filter)
 
         assertThat(ignoredSuccess.logs.map { it.id }).containsExactly(1L)
-        assertThat(acceptedError.logs.map { it.id }).containsExactly(3L, 1L).inOrder()
+        assertThat(ignoredChannel.logs.map { it.id }).containsExactly(1L)
+        assertThat(ignoredTime.logs.map { it.id }).containsExactly(1L)
+        assertThat(acceptedError.logs.map { it.id }).containsExactly(5L, 1L).inOrder()
     }
 
     @Test
@@ -97,6 +104,8 @@ class LogStateTest {
     @Test
     fun logFilterActiveStateTracksServerFilterFields() {
         assertThat(LogListFilter().hasActiveFilters()).isFalse()
+        assertThat(LogListFilter(startTime = 1L).hasActiveFilters()).isTrue()
+        assertThat(LogListFilter(channelIds = listOf(2)).hasActiveFilters()).isTrue()
         assertThat(LogListFilter(status = LogStatusFilter.Success).hasActiveFilters()).isTrue()
         assertThat(LogListFilter(keyword = "gpt").hasActiveFilters()).isTrue()
         assertThat(LogListFilter(keywordMode = LogKeywordMode.Exact).hasActiveFilters()).isTrue()
@@ -105,15 +114,17 @@ class LogStateTest {
 
 private fun sampleLog(
     id: Long,
+    time: Long = 0L,
+    channelId: Int = 1,
     requestModelName: String = "gpt-test",
     requestContent: String = "",
     error: String = "",
 ) = com.elykia.octopus.core.data.model.RelayLog(
     id = id,
-    time = 0L,
+    time = time,
     requestModelName = requestModelName,
     requestApiKeyName = "main",
-    channelId = 1,
+    channelId = channelId,
     channelName = "OpenAI",
     actualModelName = "gpt-test",
     inputTokens = 1,

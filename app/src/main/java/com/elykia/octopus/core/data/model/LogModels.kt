@@ -20,6 +20,9 @@ data class LogPageResponse(
 )
 
 data class LogListFilter(
+    val startTime: Long? = null,
+    val endTime: Long? = null,
+    val channelIds: List<Int> = emptyList(),
     val status: String = LogStatusFilter.All,
     val keyword: String = "",
     val keywordScope: String = LogKeywordScope.Default,

@@ -55,6 +55,9 @@ class LogRepository @Inject constructor(
         when (val result = executor.executeNullable { apiService.logs(
             page = page,
             pageSize = pageSize,
+            startTime = filter.startTime.toTimeQuery(),
+            endTime = filter.endTime.toTimeQuery(),
+            channelIds = filter.channelIds.toChannelIdsQuery(),
             status = filter.status.toStatusQuery(),
             keyword = filter.keyword.toKeywordQuery(),
             keywordScope = filter.keywordScope.toKeywordScopeQuery(),
@@ -133,6 +136,17 @@ class LogRepository @Inject constructor(
 
 private fun String.toStatusQuery(): String? =
     takeIf { it.isNotBlank() && it != LogStatusFilter.All }
+
+private fun Long?.toTimeQuery(): Long? =
+    this?.takeIf { it > 0 }
+
+private fun List<Int>.toChannelIdsQuery(): String? =
+    asSequence()
+        .filter { it > 0 }
+        .distinct()
+        .sorted()
+        .joinToString(",")
+        .takeIf { it.isNotBlank() }
 
 private fun String.toKeywordQuery(): String? =
     trim().takeIf { it.isNotBlank() }
