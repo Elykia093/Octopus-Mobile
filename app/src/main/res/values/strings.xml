@@ -4,6 +4,7 @@
 
     <string name="nav_home">Home</string>
     <string name="nav_site">Site</string>
+    <string name="nav_site_channel">Projection</string>
     <string name="nav_channel">Channel</string>
     <string name="nav_proxy_pool">Proxy</string>
     <string name="nav_group">Group</string>
@@ -203,6 +204,44 @@
     <string name="site_proxy_pool_config_label">Proxy configuration</string>
     <string name="site_proxy_pool_empty">No enabled proxy configurations. Create one from Proxy Pool first.</string>
     <string name="site_proxy_pool_disabled_selected">%1$s is disabled but still selected.</string>
+
+    <string name="site_channel_title">Projection</string>
+    <string name="site_channel_empty">No site-channel projection data.</string>
+    <string name="site_channel_search_hint">Search sites, accounts, groups, models or channels</string>
+    <string name="site_channel_search_empty">No matching projection data.</string>
+    <string name="site_channel_site_fallback">Site #%1$d</string>
+    <string name="site_channel_account_fallback">Account #%1$d</string>
+    <string name="site_channel_accounts_count">Accounts %1$d</string>
+    <string name="site_channel_groups_count">Groups %1$d</string>
+    <string name="site_channel_models_count">Models %1$d</string>
+    <string name="site_channel_projected_channels_count">Channels %1$d</string>
+    <string name="site_channel_source_keys_count">Source keys %1$d</string>
+    <string name="site_channel_masked_pending_count">Pending keys %1$d</string>
+    <string name="site_channel_more_accounts">+%1$d more accounts</string>
+    <string name="site_channel_account_summary">Groups %1$d · Models %2$d</string>
+    <string name="site_channel_auto_sync">Auto sync</string>
+    <string name="site_channel_more_groups">+%1$d more groups</string>
+    <string name="site_channel_group_keys_count">Keys %1$d/%2$d</string>
+    <string name="site_channel_group_models_count">Models %1$d</string>
+    <string name="site_channel_group_channels_count">Channels %1$d</string>
+    <string name="site_channel_projection_disabled">Projection disabled</string>
+    <string name="site_channel_projection_suspended">Projection suspended</string>
+    <string name="site_channel_projected_channels_line">Projected to %1$s</string>
+    <string name="site_channel_models_line">Models %1$s</string>
+    <string name="site_channel_sync_idle">Sync idle</string>
+    <string name="site_channel_sync_synced">Synced</string>
+    <string name="site_channel_sync_empty">Empty</string>
+    <string name="site_channel_sync_stale">Stale</string>
+    <string name="site_channel_sync_failed">Sync failed</string>
+    <string name="site_channel_sync_unresolved">Unresolved</string>
+    <string name="site_channel_sync_missing_key">Missing key</string>
+    <string name="site_channel_sync_removed">Removed</string>
+    <string name="site_channel_route_openai_chat">Chat</string>
+    <string name="site_channel_route_openai_response">Response</string>
+    <string name="site_channel_route_anthropic">Anthropic</string>
+    <string name="site_channel_route_gemini">Gemini</string>
+    <string name="site_channel_route_volcengine">Volcengine</string>
+    <string name="site_channel_route_embedding">Embedding</string>
 
     <string name="proxy_pool_title">Proxy Pool</string>
     <string name="proxy_pool_panel_summary">Manage reusable proxy configurations and their references.</string>

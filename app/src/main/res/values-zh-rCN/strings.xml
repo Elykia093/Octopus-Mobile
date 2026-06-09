@@ -4,6 +4,7 @@
 
     <string name="nav_home">主页</string>
     <string name="nav_site">站点</string>
+    <string name="nav_site_channel">投影</string>
     <string name="nav_channel">渠道</string>
     <string name="nav_proxy_pool">代理</string>
     <string name="nav_group">分组</string>
@@ -203,6 +204,44 @@
     <string name="site_proxy_pool_config_label">代理配置</string>
     <string name="site_proxy_pool_empty">暂无可用代理配置，请先在代理池中创建。</string>
     <string name="site_proxy_pool_disabled_selected">%1$s 已停用但仍被选中。</string>
+
+    <string name="site_channel_title">投影</string>
+    <string name="site_channel_empty">暂无站点渠道投影数据。</string>
+    <string name="site_channel_search_hint">搜索站点、账号、分组、模型或渠道</string>
+    <string name="site_channel_search_empty">没有匹配的投影数据。</string>
+    <string name="site_channel_site_fallback">站点 #%1$d</string>
+    <string name="site_channel_account_fallback">账号 #%1$d</string>
+    <string name="site_channel_accounts_count">账号 %1$d</string>
+    <string name="site_channel_groups_count">分组 %1$d</string>
+    <string name="site_channel_models_count">模型 %1$d</string>
+    <string name="site_channel_projected_channels_count">渠道 %1$d</string>
+    <string name="site_channel_source_keys_count">源 Key %1$d</string>
+    <string name="site_channel_masked_pending_count">待补全 Key %1$d</string>
+    <string name="site_channel_more_accounts">还有 %1$d 个账号</string>
+    <string name="site_channel_account_summary">分组 %1$d · 模型 %2$d</string>
+    <string name="site_channel_auto_sync">自动同步</string>
+    <string name="site_channel_more_groups">还有 %1$d 个分组</string>
+    <string name="site_channel_group_keys_count">Key %1$d/%2$d</string>
+    <string name="site_channel_group_models_count">模型 %1$d</string>
+    <string name="site_channel_group_channels_count">渠道 %1$d</string>
+    <string name="site_channel_projection_disabled">投影已停用</string>
+    <string name="site_channel_projection_suspended">投影已暂停</string>
+    <string name="site_channel_projected_channels_line">投影到 %1$s</string>
+    <string name="site_channel_models_line">模型 %1$s</string>
+    <string name="site_channel_sync_idle">同步空闲</string>
+    <string name="site_channel_sync_synced">已同步</string>
+    <string name="site_channel_sync_empty">空数据</string>
+    <string name="site_channel_sync_stale">已过期</string>
+    <string name="site_channel_sync_failed">同步失败</string>
+    <string name="site_channel_sync_unresolved">未解析</string>
+    <string name="site_channel_sync_missing_key">缺少 Key</string>
+    <string name="site_channel_sync_removed">已移除</string>
+    <string name="site_channel_route_openai_chat">Chat</string>
+    <string name="site_channel_route_openai_response">Response</string>
+    <string name="site_channel_route_anthropic">Anthropic</string>
+    <string name="site_channel_route_gemini">Gemini</string>
+    <string name="site_channel_route_volcengine">火山</string>
+    <string name="site_channel_route_embedding">Embedding</string>
 
     <string name="proxy_pool_title">代理池</string>
     <string name="proxy_pool_panel_summary">管理可复用代理配置与引用关系。</string>

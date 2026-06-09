@@ -14,6 +14,7 @@ import com.elykia.octopus.core.data.remote.ProxyPoolApiService
 import com.elykia.octopus.core.data.remote.ServerUrlResolver
 import com.elykia.octopus.core.data.remote.ServerUrlProvider
 import com.elykia.octopus.core.data.remote.SettingApiService
+import com.elykia.octopus.core.data.remote.SiteChannelApiService
 import com.elykia.octopus.core.data.remote.SiteApiService
 import com.elykia.octopus.core.data.remote.StatsApiService
 import com.elykia.octopus.core.data.remote.UpdateApiService
@@ -182,6 +183,11 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideSiteApiService(retrofit: Retrofit): SiteApiService = retrofit.create(SiteApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSiteChannelApiService(retrofit: Retrofit): SiteChannelApiService =
+        retrofit.create(SiteChannelApiService::class.java)
 
     @Provides
     @Singleton
