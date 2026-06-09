@@ -2,11 +2,14 @@ package com.elykia.octopus.core.data.remote
 
 import com.elykia.octopus.core.data.model.ApiEnvelope
 import com.elykia.octopus.core.data.model.LogPageResponse
+import com.elykia.octopus.core.data.model.LogStreamToken
 import com.elykia.octopus.core.data.model.RelayLog
+import okhttp3.ResponseBody
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Streaming
 
 interface LogApiService {
     @GET("/api/v1/log/list")
@@ -23,4 +26,11 @@ interface LogApiService {
 
     @GET("/api/v1/log/{id}")
     suspend fun logDetail(@Path("id") id: Long): ApiEnvelope<RelayLog>
+
+    @GET("/api/v1/log/stream-token")
+    suspend fun streamToken(): ApiEnvelope<LogStreamToken>
+
+    @Streaming
+    @GET("/api/v1/log/stream")
+    suspend fun streamLogs(@Query("token") token: String): ResponseBody
 }

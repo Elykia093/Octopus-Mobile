@@ -366,6 +366,8 @@
     <string name="log_toolbar_clear">Clear</string>
     <string name="log_card_title">Relay Logs</string>
     <string name="log_card_summary">Recent relay requests.</string>
+    <string name="log_stream_connected">Live stream connected</string>
+    <string name="log_stream_connecting">Connecting live stream</string>
     <string name="log_empty">No logs.</string>
     <string name="log_search_empty">No matching logs.</string>
     <string name="log_row_actual_model">Actual model %1$s</string>

@@ -6,6 +6,7 @@ import com.elykia.octopus.core.data.remote.LogApiService
 import com.elykia.octopus.core.data.remote.NetworkExecutor
 import com.google.common.truth.Truth.assertThat
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -176,6 +177,54 @@ class LogRepositoryContractTest {
         }
     }
 
+    @Test
+    fun streamLogsReadsTokenAndParsesServerSentEvents() = runBlocking {
+        val server = MockWebServer().apply {
+            enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody(
+                        """
+                        {
+                          "code": 200,
+                          "message": "success",
+                          "data": { "token": "stream-token" }
+                        }
+                        """.trimIndent(),
+                    ),
+            )
+            enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "text/event-stream")
+                    .setBody(
+                        """
+                        data: {"id":10,"time":100,"request_model_name":"gpt-test","request_api_key_name":"mobile","channel":1,"channel_name":"OpenAI","actual_model_name":"gpt-test","input_tokens":10,"output_tokens":20,"ftut":30,"use_time":40,"cost":0.5,"request_content":"secret request","response_content":"secret response","error":"Bearer sk-stream-secret"}
+
+                        """.trimIndent(),
+                    ),
+            )
+            start()
+        }
+
+        try {
+            val repository = repositoryFor(server)
+
+            val events = repository.streamLogs().toList()
+
+            assertThat(events.first()).isEqualTo(LogStreamEvent.Connected)
+            val item = events.filterIsInstance<LogStreamEvent.Item>().single().log
+            assertThat(item.id).isEqualTo(10)
+            assertThat(item.requestContent).isEmpty()
+            assertThat(item.responseContent).isEmpty()
+            assertThat(item.error).doesNotContain("sk-stream-secret")
+            assertThat(server.takeRequest().path).isEqualTo("/api/v1/log/stream-token")
+            assertThat(server.takeRequest().path).isEqualTo("/api/v1/log/stream?token=stream-token")
+        } finally {
+            server.shutdown()
+        }
+    }
+
     private fun repositoryFor(server: MockWebServer): LogRepository {
         val service = Retrofit.Builder()
             .baseUrl(server.url("/"))
@@ -187,6 +236,7 @@ class LogRepositoryContractTest {
             apiService = service,
             executor = NetworkExecutor(json),
             dispatchers = DispatchersProvider(),
+            json = json,
         )
     }
 }

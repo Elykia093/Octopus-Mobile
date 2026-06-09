@@ -33,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.RelayLog
+import com.elykia.octopus.core.designsystem.AppInfoChip
 import com.elykia.octopus.core.designsystem.AppLazyPageScaffold
 import com.elykia.octopus.core.designsystem.AppListCard
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
@@ -126,6 +127,18 @@ fun LogScreen(
                 uiState.clearError?.takeIf { it.isNotBlank() }?.let { clearError ->
                     item {
                         OperationErrorCard(message = clearError)
+                    }
+                }
+                item {
+                    AppInfoChip(
+                        text = stringResource(if (uiState.streamConnected) R.string.log_stream_connected else R.string.log_stream_connecting),
+                        icon = AppMiuixIcons.Sync,
+                        tint = if (uiState.streamConnected) OctopusTokens.Accent else OctopusTokens.TextSecondary,
+                    )
+                }
+                uiState.streamError?.takeIf { it.isNotBlank() }?.let { streamError ->
+                    item {
+                        OperationErrorCard(message = streamError)
                     }
                 }
                 when {

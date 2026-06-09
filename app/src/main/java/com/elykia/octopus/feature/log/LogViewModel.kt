@@ -4,10 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.data.model.RelayLog
+import com.elykia.octopus.core.data.repository.LogStreamEvent
 import com.elykia.octopus.core.data.repository.LogRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -24,6 +28,8 @@ data class LogUiState(
     val detailLoading: Boolean = false,
     val detailLog: RelayLog? = null,
     val detailError: String? = null,
+    val streamConnected: Boolean = false,
+    val streamError: String? = null,
 )
 
 internal fun LogUiState.shouldShowPageError(): Boolean =
@@ -57,9 +63,11 @@ class LogViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(LogUiState())
     val uiState: StateFlow<LogUiState> = _uiState
     private var loadGeneration = 0
+    private var streamJob: Job? = null
 
     init {
         refresh()
+        startStream()
     }
 
     fun refresh() {
@@ -158,4 +166,43 @@ class LogViewModel @Inject constructor(
             detailError = null,
         )
     }
+
+    private fun startStream() {
+        streamJob?.cancel()
+        streamJob = viewModelScope.launch {
+            while (isActive) {
+                var hadError = false
+                repository.streamLogs().collect { event ->
+                    when (event) {
+                        LogStreamEvent.Connected -> {
+                            _uiState.value = _uiState.value.copy(streamConnected = true, streamError = null)
+                        }
+                        is LogStreamEvent.Item -> {
+                            _uiState.value = _uiState.value.withStreamLog(event.log)
+                        }
+                        is LogStreamEvent.Error -> {
+                            hadError = true
+                            _uiState.value = _uiState.value.copy(streamConnected = false, streamError = event.message)
+                        }
+                    }
+                }
+                _uiState.value = _uiState.value.copy(streamConnected = false)
+                delay(if (hadError) 3_000L else 1_000L)
+            }
+        }
+    }
+}
+
+internal fun LogUiState.withStreamLog(log: RelayLog): LogUiState {
+    val merged = buildList {
+        add(log)
+        logs.forEach { existing ->
+            if (existing.id != log.id) add(existing)
+        }
+    }
+    return copy(
+        logs = merged,
+        streamConnected = true,
+        streamError = null,
+    )
 }

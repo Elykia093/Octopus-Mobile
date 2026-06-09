@@ -20,6 +20,11 @@ data class LogPageResponse(
 )
 
 @Serializable
+data class LogStreamToken(
+    val token: String = "",
+)
+
+@Serializable
 data class ChannelAttempt(
     @SerialName("channel_id") val channelId: Int,
     @SerialName("channel_key_id") val channelKeyId: Int? = null,
