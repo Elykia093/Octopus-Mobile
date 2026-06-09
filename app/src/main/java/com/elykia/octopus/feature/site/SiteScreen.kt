@@ -78,6 +78,7 @@ fun SiteScreen(
     var accountToDelete by remember { mutableStateOf<SiteAccount?>(null) }
     var showArchived by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
+    var availableModelsSite by remember { mutableStateOf<Site?>(null) }
 
     val editingSite = editingSiteId?.let { id -> uiState.sites.firstOrNull { it.id == id } }
     val accountDialogSite = accountDialogSiteId?.let { id -> uiState.sites.firstOrNull { it.id == id } }
@@ -210,6 +211,10 @@ fun SiteScreen(
                             onSyncAccount = viewModel::syncAccount,
                             onCheckinAccount = viewModel::checkinAccount,
                             onToggleAccount = viewModel::setAccountEnabled,
+                            onAvailableModels = {
+                                availableModelsSite = site
+                                viewModel.loadAvailableModels(site)
+                            },
                             onArchive = { siteToArchive = site },
                             onDeleteSite = { siteToDelete = site },
                         )
@@ -227,6 +232,7 @@ fun SiteScreen(
         proxyConfigurationError = uiState.proxyConfigurationError,
         submitting = uiState.submitting,
         operationError = uiState.operationError,
+        onDetectPlatform = viewModel::detectPlatform,
         onConfirm = { values ->
             viewModel.createSite(values) {
                 showCreateSite = false
@@ -249,6 +255,7 @@ fun SiteScreen(
         proxyConfigurationError = uiState.proxyConfigurationError,
         submitting = uiState.submitting,
         operationError = uiState.operationError,
+        onDetectPlatform = viewModel::detectPlatform,
         onConfirm = { values ->
             editingSite?.let { site ->
                 viewModel.updateSite(site, values) {
@@ -327,6 +334,18 @@ fun SiteScreen(
         submitting = uiState.submitting,
         onRestore = viewModel::restoreSite,
         onDismiss = { showArchived = false },
+    )
+
+    AvailableModelsDialog(
+        visible = availableModelsSite != null,
+        site = availableModelsSite,
+        loading = uiState.availableModelsLoading,
+        error = uiState.availableModelsError,
+        models = uiState.availableModels?.models.orEmpty(),
+        onDismiss = {
+            availableModelsSite = null
+            viewModel.clearAvailableModels()
+        },
     )
 
     DangerConfirmDialog(
@@ -424,6 +443,7 @@ private fun SiteCard(
     onSyncAccount: (SiteAccount) -> Unit,
     onCheckinAccount: (SiteAccount) -> Unit,
     onToggleAccount: (SiteAccount, Boolean) -> Unit,
+    onAvailableModels: () -> Unit,
     onArchive: () -> Unit,
     onDeleteSite: () -> Unit,
 ) {
@@ -486,6 +506,7 @@ private fun SiteCard(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(text = stringResource(R.string.action_edit), enabled = !submitting, onClick = onEdit)
                 TextButton(text = stringResource(R.string.site_action_account), enabled = !submitting, onClick = onAddAccount)
+                TextButton(text = stringResource(R.string.site_action_available_models), enabled = !submitting, onClick = onAvailableModels)
                 TextButton(text = stringResource(R.string.site_action_archive), enabled = !submitting, onClick = onArchive)
                 TextButton(text = stringResource(R.string.common_delete), enabled = !submitting, onClick = onDeleteSite)
             }
@@ -588,6 +609,7 @@ private fun SiteEditorDialog(
     proxyConfigurationError: String?,
     submitting: Boolean,
     operationError: String?,
+    onDetectPlatform: (String, (String) -> Unit) -> Unit,
     onConfirm: (SiteEditorValues) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -622,6 +644,17 @@ private fun SiteEditorDialog(
                     enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(
+                        text = stringResource(R.string.site_action_detect_platform),
+                        enabled = !submitting && values.baseUrl.isNotBlank(),
+                        onClick = {
+                            onDetectPlatform(values.baseUrl) { detected ->
+                                values = values.copy(platform = detected)
+                            }
+                        },
+                    )
+                }
                 DialogLabel(text = stringResource(R.string.site_platform_label))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     SitePlatform.entries.forEach { platform ->
@@ -881,6 +914,53 @@ private fun SiteAccountEditorDialog(
                 onDismiss = onDismiss,
                 onConfirm = { onConfirm(values) },
             )
+        }
+    }
+}
+
+@Composable
+private fun AvailableModelsDialog(
+    visible: Boolean,
+    site: Site?,
+    loading: Boolean,
+    error: String?,
+    models: List<String>,
+    onDismiss: () -> Unit,
+) {
+    if (!visible || site == null) return
+
+    OverlayDialog(
+        show = visible,
+        title = stringResource(R.string.site_available_models_title),
+        summary = site.name.ifBlank { site.baseUrl },
+        onDismissRequest = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            when {
+                loading -> LoadingStateCard(title = stringResource(R.string.site_available_models_title))
+                !error.isNullOrBlank() -> OperationErrorCard(message = error)
+                models.isEmpty() -> InlineEmptyCard(
+                    title = stringResource(R.string.site_available_models_title),
+                    summary = stringResource(R.string.site_available_models_empty),
+                )
+                else -> {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        models.take(48).forEach { model ->
+                            ToolbarChip(text = model)
+                        }
+                    }
+                    if (models.size > 48) {
+                        Text(
+                            text = stringResource(R.string.site_available_models_more, models.size - 48),
+                            style = MiuixTheme.textStyles.body2,
+                            color = OctopusTokens.TextSecondary,
+                        )
+                    }
+                }
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(text = stringResource(R.string.action_close), onClick = onDismiss)
+            }
         }
     }
 }

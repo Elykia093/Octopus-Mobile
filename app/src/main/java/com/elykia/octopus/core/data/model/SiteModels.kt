@@ -164,6 +164,22 @@ data class SiteUpdateRequest(
 )
 
 @Serializable
+data class SiteDetectRequest(
+    val url: String,
+)
+
+@Serializable
+data class SiteDetectResult(
+    val platform: String = SitePlatform.NewApi,
+)
+
+@Serializable
+data class SiteAvailableModels(
+    @SerialName("site_id") val siteId: Int = 0,
+    val models: List<String> = emptyList(),
+)
+
+@Serializable
 data class SiteAccountCreateRequest(
     @SerialName("site_id") val siteId: Int,
     val name: String,

@@ -9,6 +9,7 @@ import com.elykia.octopus.core.data.model.MetApiImportResult
 import com.elykia.octopus.core.data.model.ProxyConfiguration
 import com.elykia.octopus.core.data.model.Site
 import com.elykia.octopus.core.data.model.SiteAccount
+import com.elykia.octopus.core.data.model.SiteAvailableModels
 import com.elykia.octopus.core.data.repository.ProxyPoolRepository
 import com.elykia.octopus.core.data.repository.SiteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,13 +22,16 @@ data class SiteUiState(
     val loading: Boolean = true,
     val submitting: Boolean = false,
     val archivedLoading: Boolean = false,
+    val availableModelsLoading: Boolean = false,
     val sites: List<Site> = emptyList(),
     val archivedSites: List<Site> = emptyList(),
+    val availableModels: SiteAvailableModels? = null,
     val proxyConfigurations: List<ProxyConfiguration> = emptyList(),
     val error: String? = null,
     val operationError: String? = null,
     val operationMessage: String? = null,
     val proxyConfigurationError: String? = null,
+    val availableModelsError: String? = null,
 )
 
 internal fun SiteUiState.shouldShowPageError(): Boolean =
@@ -100,6 +104,63 @@ class SiteViewModel @Inject constructor(
 
     fun clearOperationFeedback() {
         _uiState.value = _uiState.value.copy(operationError = null, operationMessage = null)
+    }
+
+    fun clearAvailableModels() {
+        _uiState.value = _uiState.value.copy(
+            availableModelsLoading = false,
+            availableModels = null,
+            availableModelsError = null,
+        )
+    }
+
+    fun detectPlatform(baseUrl: String, onDetected: (String) -> Unit) {
+        viewModelScope.launch {
+            if (_uiState.value.submitting) return@launch
+            val url = baseUrl.trim()
+            if (url.isBlank()) {
+                _uiState.value = _uiState.value.copy(operationError = "请输入站点地址后再检测。")
+                return@launch
+            }
+            _uiState.value = _uiState.value.copy(submitting = true, operationError = null, operationMessage = null)
+            when (val result = repository.detectPlatform(url)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        submitting = false,
+                        operationMessage = "平台检测完成。",
+                    )
+                    onDetected(result.data.platform)
+                }
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(submitting = false, operationError = result.message)
+                }
+            }
+        }
+    }
+
+    fun loadAvailableModels(site: Site) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                availableModelsLoading = true,
+                availableModels = null,
+                availableModelsError = null,
+                operationError = null,
+            )
+            when (val result = repository.availableModels(site.id)) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        availableModelsLoading = false,
+                        availableModels = result.data,
+                    )
+                }
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        availableModelsLoading = false,
+                        availableModelsError = result.message,
+                    )
+                }
+            }
+        }
     }
 
     fun createSite(values: SiteEditorValues, onSuccess: () -> Unit = {}) {

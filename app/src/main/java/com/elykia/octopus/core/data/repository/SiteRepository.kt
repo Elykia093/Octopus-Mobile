@@ -9,8 +9,11 @@ import com.elykia.octopus.core.data.model.Site
 import com.elykia.octopus.core.data.model.SiteAccount
 import com.elykia.octopus.core.data.model.SiteAccountCreateRequest
 import com.elykia.octopus.core.data.model.SiteAccountUpdateRequest
+import com.elykia.octopus.core.data.model.SiteAvailableModels
 import com.elykia.octopus.core.data.model.SiteCheckinResult
 import com.elykia.octopus.core.data.model.SiteCreateRequest
+import com.elykia.octopus.core.data.model.SiteDetectRequest
+import com.elykia.octopus.core.data.model.SiteDetectResult
 import com.elykia.octopus.core.data.model.SiteSyncResult
 import com.elykia.octopus.core.data.model.SiteToken
 import com.elykia.octopus.core.data.model.SiteUpdateRequest
@@ -61,6 +64,17 @@ class SiteRepository @Inject constructor(
     suspend fun updateSite(request: SiteUpdateRequest): AppResult<Site> = withContext(dispatchers.io) {
         when (val result = executor.execute { apiService.updateSite(request) }) {
             is AppResult.Success -> AppResult.Success(result.data.withHiddenSecrets())
+            is AppResult.Error -> result
+        }
+    }
+
+    suspend fun detectPlatform(url: String): AppResult<SiteDetectResult> = withContext(dispatchers.io) {
+        executor.execute { apiService.detectPlatform(SiteDetectRequest(url = url.trim())) }
+    }
+
+    suspend fun availableModels(siteId: Int): AppResult<SiteAvailableModels> = withContext(dispatchers.io) {
+        when (val result = executor.execute { apiService.availableModels(siteId) }) {
+            is AppResult.Success -> AppResult.Success(result.data.copy(models = result.data.models.sorted()))
             is AppResult.Error -> result
         }
     }

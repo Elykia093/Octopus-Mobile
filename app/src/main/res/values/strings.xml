@@ -192,6 +192,11 @@
     <string name="site_action_checkin_all">Check-in all</string>
     <string name="site_action_sync">Sync</string>
     <string name="site_action_checkin">Check-in</string>
+    <string name="site_action_detect_platform">Detect platform</string>
+    <string name="site_action_available_models">Models</string>
+    <string name="site_available_models_title">Available models</string>
+    <string name="site_available_models_empty">No available models returned.</string>
+    <string name="site_available_models_more">+%1$d more models</string>
     <string name="site_invalid_site">Enter a valid site name, URL and advanced values.</string>
     <string name="site_invalid_account">Enter a valid account name and credential.</string>
     <string name="site_credential_username_password">Username / Password</string>

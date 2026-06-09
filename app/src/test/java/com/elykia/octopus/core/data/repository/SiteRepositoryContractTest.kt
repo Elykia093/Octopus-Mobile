@@ -309,6 +309,61 @@ class SiteRepositoryContractTest {
         }
     }
 
+    @Test
+    fun detectPlatformPostsUrlPayload() = runBlocking {
+        val server = MockWebServer().apply {
+            enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody("""{"code":200,"message":"success","data":{"platform":"one-api"}}"""),
+            )
+            start()
+        }
+
+        try {
+            val repository = repositoryFor(server)
+
+            val result = repository.detectPlatform(" https://site.example.com ")
+
+            assertThat(result).isInstanceOf(AppResult.Success::class.java)
+            assertThat((result as AppResult.Success).data.platform).isEqualTo("one-api")
+            val request = server.takeRequest()
+            assertThat(request.method).isEqualTo("POST")
+            assertThat(request.path).isEqualTo("/api/v1/site/detect")
+            assertThat(request.body.readUtf8()).contains(""""url":"https://site.example.com"""")
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun availableModelsReadsModelsForSite() = runBlocking {
+        val server = MockWebServer().apply {
+            enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody("""{"code":200,"message":"success","data":{"site_id":7,"models":["z-model","a-model"]}}"""),
+            )
+            start()
+        }
+
+        try {
+            val repository = repositoryFor(server)
+
+            val result = repository.availableModels(7)
+
+            assertThat(result).isInstanceOf(AppResult.Success::class.java)
+            val data = (result as AppResult.Success).data
+            assertThat(data.siteId).isEqualTo(7)
+            assertThat(data.models).containsExactly("a-model", "z-model").inOrder()
+            val request = server.takeRequest()
+            assertThat(request.method).isEqualTo("GET")
+            assertThat(request.path).isEqualTo("/api/v1/site/7/available-models")
+        } finally {
+            server.shutdown()
+        }
+    }
+
     private fun repositoryFor(server: MockWebServer): SiteRepository {
         val service = Retrofit.Builder()
             .baseUrl(server.url("/"))

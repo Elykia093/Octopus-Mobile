@@ -8,8 +8,11 @@ import com.elykia.octopus.core.data.model.Site
 import com.elykia.octopus.core.data.model.SiteAccount
 import com.elykia.octopus.core.data.model.SiteAccountCreateRequest
 import com.elykia.octopus.core.data.model.SiteAccountUpdateRequest
+import com.elykia.octopus.core.data.model.SiteAvailableModels
 import com.elykia.octopus.core.data.model.SiteCheckinResult
 import com.elykia.octopus.core.data.model.SiteCreateRequest
+import com.elykia.octopus.core.data.model.SiteDetectRequest
+import com.elykia.octopus.core.data.model.SiteDetectResult
 import com.elykia.octopus.core.data.model.SiteSyncResult
 import com.elykia.octopus.core.data.model.SiteUpdateRequest
 import okhttp3.RequestBody
@@ -37,6 +40,12 @@ interface SiteApiService {
 
     @POST("/api/v1/site/update")
     suspend fun updateSite(@Body request: SiteUpdateRequest): ApiEnvelope<Site>
+
+    @POST("/api/v1/site/detect")
+    suspend fun detectPlatform(@Body request: SiteDetectRequest): ApiEnvelope<SiteDetectResult>
+
+    @GET("/api/v1/site/{id}/available-models")
+    suspend fun availableModels(@Path("id") id: Int): ApiEnvelope<SiteAvailableModels>
 
     @POST("/api/v1/site/enable")
     suspend fun enableSite(@Body request: EntityEnableRequest): ApiEnvelope<String?>
