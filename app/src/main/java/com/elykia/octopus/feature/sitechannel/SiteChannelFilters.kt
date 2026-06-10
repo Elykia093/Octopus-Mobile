@@ -20,6 +20,13 @@ internal enum class SiteChannelSort {
     Attention,
 }
 
+internal enum class SiteChannelAccountModelSort {
+    ModelName,
+    GroupName,
+    RouteType,
+    LastRequest,
+}
+
 internal const val SITE_CHANNEL_GROUP_SCOPE_ALL = "__site_channel_group_scope_all__"
 
 internal data class SiteChannelVisibleGroup(
@@ -44,25 +51,34 @@ internal fun filterSiteChannelAccountGroups(
     account: SiteChannelAccount,
     groupScope: String,
     modelQuery: String,
+    modelSort: SiteChannelAccountModelSort = SiteChannelAccountModelSort.ModelName,
 ): List<SiteChannelVisibleGroup> {
     val normalizedGroupScope = groupScope.trim()
     val normalizedQuery = modelQuery.trim()
-    return account.groups
+    val visibleGroups = account.groups
         .asSequence()
         .filter { group -> normalizedGroupScope == SITE_CHANNEL_GROUP_SCOPE_ALL || group.groupKey == normalizedGroupScope }
         .mapNotNull { group ->
-            val models = if (normalizedQuery.isBlank()) {
+            val filteredModels = if (normalizedQuery.isBlank()) {
                 group.models
             } else {
                 group.models.filter { model -> model.matchesAccountModelQuery(group, normalizedQuery) }
             }
-            if (models.isEmpty() && normalizedQuery.isNotBlank()) {
+            if (filteredModels.isEmpty() && normalizedQuery.isNotBlank()) {
                 null
             } else {
-                SiteChannelVisibleGroup(group = group, models = models)
+                SiteChannelVisibleGroup(
+                    group = group,
+                    models = filteredModels.sortedWith(siteChannelAccountModelComparator(modelSort)),
+                )
             }
         }
         .toList()
+    return if (modelSort == SiteChannelAccountModelSort.GroupName) {
+        visibleGroups.sortedWith(compareBy<SiteChannelVisibleGroup> { it.group.groupDisplayName().lowercase() }.thenBy { it.group.groupKey })
+    } else {
+        visibleGroups
+    }
 }
 
 internal fun SiteChannelCard.matchesSiteChannelQuery(query: String): Boolean {
@@ -120,6 +136,9 @@ private fun siteChannelCardComparator(sort: SiteChannelSort): Comparator<SiteCha
 private fun SiteChannelCard.siteDisplayName(): String =
     siteName.ifBlank { baseUrl.ifBlank { "#$siteId" } }
 
+private fun SiteChannelGroup.groupDisplayName(): String =
+    groupName.ifBlank { groupKey.ifBlank { "#" } }
+
 private fun SiteChannelCard.siteChannelModelCount(): Int {
     val nestedCount = accounts.sumOf { account -> account.groups.sumOf { group -> group.models.size } }
     if (nestedCount > 0) return nestedCount
@@ -156,6 +175,14 @@ private fun SiteChannelModel.hasHistory(): Boolean {
 }
 
 private fun isSupportedSiteRouteType(routeType: String): Boolean = routeType in SUPPORTED_ROUTE_TYPES
+
+private fun siteChannelAccountModelComparator(sort: SiteChannelAccountModelSort): Comparator<SiteChannelModel> = when (sort) {
+    SiteChannelAccountModelSort.ModelName,
+    SiteChannelAccountModelSort.GroupName -> compareBy<SiteChannelModel> { it.modelName.lowercase() }.thenBy { it.routeType }
+    SiteChannelAccountModelSort.RouteType -> compareBy<SiteChannelModel> { it.routeType }.thenBy { it.modelName.lowercase() }
+    SiteChannelAccountModelSort.LastRequest -> compareByDescending<SiteChannelModel> { it.history?.lastRequestAt ?: Long.MIN_VALUE }
+        .thenBy { it.modelName.lowercase() }
+}
 
 private fun SiteChannelModel.matchesAccountModelQuery(group: SiteChannelGroup, query: String): Boolean =
     modelName.containsQuery(query) ||

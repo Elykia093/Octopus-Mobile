@@ -472,6 +472,7 @@ private fun SiteChannelAccountBlock(
 ) {
     var groupScope by remember(account.accountId) { mutableStateOf(SITE_CHANNEL_GROUP_SCOPE_ALL) }
     var modelQuery by remember(account.accountId) { mutableStateOf("") }
+    var modelSort by remember(account.accountId) { mutableStateOf(SiteChannelAccountModelSort.ModelName) }
     LaunchedEffect(account.groups, groupScope) {
         if (groupScope != SITE_CHANNEL_GROUP_SCOPE_ALL && account.groups.none { it.groupKey == groupScope }) {
             groupScope = SITE_CHANNEL_GROUP_SCOPE_ALL
@@ -479,11 +480,12 @@ private fun SiteChannelAccountBlock(
     }
     val accountModelQuery = modelQuery.trim()
     val filterActive = groupScope != SITE_CHANNEL_GROUP_SCOPE_ALL || accountModelQuery.isNotBlank()
-    val visibleGroups = remember(account.groups, groupScope, accountModelQuery) {
+    val visibleGroups = remember(account.groups, groupScope, accountModelQuery, modelSort) {
         filterSiteChannelAccountGroups(
             account = account,
             groupScope = groupScope,
             modelQuery = accountModelQuery,
+            modelSort = modelSort,
         )
     }
     val groupsToShow = if (filterActive) visibleGroups else visibleGroups.take(MAX_GROUPS_PER_ACCOUNT)
@@ -531,6 +533,17 @@ private fun SiteChannelAccountBlock(
                 value = modelQuery,
                 onValueChange = { modelQuery = it },
                 hint = stringResource(R.string.site_channel_account_model_search_hint),
+            )
+            Text(
+                text = stringResource(R.string.site_channel_account_sort_label),
+                style = MiuixTheme.textStyles.body2,
+                color = OctopusTokens.TextSecondary,
+            )
+            OptionChipGroup(
+                options = siteChannelAccountModelSortOptions(),
+                selectedValue = modelSort,
+                onSelect = { modelSort = it },
+                columns = 2,
             )
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1182,6 +1195,14 @@ private fun siteChannelGroupScopeOptions(groups: List<SiteChannelGroup>): List<O
             group.groupScopeLabel(),
         )
     }
+
+@Composable
+private fun siteChannelAccountModelSortOptions(): List<OptionChipItem<SiteChannelAccountModelSort>> = listOf(
+    OptionChipItem(SiteChannelAccountModelSort.ModelName, stringResource(R.string.site_channel_account_sort_model_name)),
+    OptionChipItem(SiteChannelAccountModelSort.GroupName, stringResource(R.string.site_channel_account_sort_group_name)),
+    OptionChipItem(SiteChannelAccountModelSort.RouteType, stringResource(R.string.site_channel_account_sort_route_type)),
+    OptionChipItem(SiteChannelAccountModelSort.LastRequest, stringResource(R.string.site_channel_account_sort_last_request)),
+)
 
 @Composable
 private fun siteChannelFilterOptions(): List<OptionChipItem<SiteChannelFilter>> = listOf(

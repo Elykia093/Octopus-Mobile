@@ -248,6 +248,11 @@
     <string name="site_channel_account_scope_all">全部分组</string>
     <string name="site_channel_account_model_search_hint">搜索账号内模型或分组</string>
     <string name="site_channel_account_model_filter_empty">当前账号没有匹配模型。</string>
+    <string name="site_channel_account_sort_label">模型排序</string>
+    <string name="site_channel_account_sort_model_name">模型名</string>
+    <string name="site_channel_account_sort_group_name">分组名</string>
+    <string name="site_channel_account_sort_route_type">端点格式</string>
+    <string name="site_channel_account_sort_last_request">最近请求</string>
     <string name="site_channel_auto_sync">自动同步</string>
     <string name="site_channel_more_groups">还有 %1$d 个分组</string>
     <string name="site_channel_group_keys_count">Key %1$d/%2$d</string>

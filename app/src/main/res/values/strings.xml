@@ -248,6 +248,11 @@
     <string name="site_channel_account_scope_all">All groups</string>
     <string name="site_channel_account_model_search_hint">Search models in this account</string>
     <string name="site_channel_account_model_filter_empty">No matching models in this account.</string>
+    <string name="site_channel_account_sort_label">Model sort</string>
+    <string name="site_channel_account_sort_model_name">Model name</string>
+    <string name="site_channel_account_sort_group_name">Group name</string>
+    <string name="site_channel_account_sort_route_type">Route type</string>
+    <string name="site_channel_account_sort_last_request">Recent request</string>
     <string name="site_channel_auto_sync">Auto sync</string>
     <string name="site_channel_more_groups">+%1$d more groups</string>
     <string name="site_channel_group_keys_count">Keys %1$d/%2$d</string>

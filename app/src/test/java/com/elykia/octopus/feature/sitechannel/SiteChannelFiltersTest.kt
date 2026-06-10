@@ -202,6 +202,56 @@ class SiteChannelFiltersTest {
         ).isEmpty()
     }
 
+    @Test
+    fun accountModelSortSupportsGroupRouteAndRecentRequest() {
+        val account = account(
+            groups = listOf(
+                group(
+                    groupName = "Zeta",
+                    models = listOf(model("z-model")),
+                ),
+                group(
+                    groupName = "Alpha",
+                    models = listOf(
+                        model("volc", routeType = SiteModelRouteType.Volcengine),
+                        model("anthropic", routeType = SiteModelRouteType.Anthropic),
+                        model(
+                            name = "recent",
+                            history = SiteModelHistorySummary(successCount = 1, lastRequestAt = 20),
+                        ),
+                        model(
+                            name = "old",
+                            history = SiteModelHistorySummary(successCount = 1, lastRequestAt = 10),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val groupSorted = filterSiteChannelAccountGroups(
+            account = account,
+            groupScope = SITE_CHANNEL_GROUP_SCOPE_ALL,
+            modelQuery = "",
+            modelSort = SiteChannelAccountModelSort.GroupName,
+        )
+        val routeSorted = filterSiteChannelAccountGroups(
+            account = account,
+            groupScope = "alpha",
+            modelQuery = "",
+            modelSort = SiteChannelAccountModelSort.RouteType,
+        ).single()
+        val recentSorted = filterSiteChannelAccountGroups(
+            account = account,
+            groupScope = "alpha",
+            modelQuery = "",
+            modelSort = SiteChannelAccountModelSort.LastRequest,
+        ).single()
+
+        assertThat(groupSorted.map { it.group.groupKey }).containsExactly("alpha", "zeta").inOrder()
+        assertThat(routeSorted.models.take(2).map { it.modelName }).containsExactly("anthropic", "old").inOrder()
+        assertThat(recentSorted.models.map { it.modelName }).containsExactly("recent", "old", "anthropic", "volc").inOrder()
+    }
+
     private fun account(
         groups: List<SiteChannelGroup>,
     ): SiteChannelAccount = SiteChannelAccount(
