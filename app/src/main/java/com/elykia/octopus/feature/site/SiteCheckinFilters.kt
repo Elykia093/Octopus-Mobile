@@ -40,7 +40,7 @@ internal fun deriveSiteCheckinStatus(
     if (!site.enabled || !account.enabled) {
         return SiteCheckinStatus.Disabled
     }
-    if (!sitePlatformSupportsCheckin(site.platform) || !account.autoCheckin) {
+    if (!accountHasSiteCheckinEnabled(site, account)) {
         return null
     }
     if (!happenedOnDate(account.lastCheckinAt, today)) {
@@ -122,7 +122,10 @@ private fun accountMatchesSiteCheckinFilter(
     }
 }
 
-private fun sitePlatformSupportsCheckin(platform: String): Boolean = platform !in NO_CHECKIN_PLATFORMS
+internal fun accountHasSiteCheckinEnabled(site: Site, account: SiteAccount): Boolean =
+    sitePlatformSupportsCheckin(site.platform) && account.autoCheckin
+
+internal fun sitePlatformSupportsCheckin(platform: String): Boolean = platform !in NO_CHECKIN_PLATFORMS
 
 private fun Site.matchesSiteQuery(query: String): Boolean =
     name.contains(query, ignoreCase = true) ||

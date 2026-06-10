@@ -697,6 +697,7 @@ private fun SiteCard(
             } else {
                 accounts.forEach { account ->
                     SiteAccountRow(
+                        site = site,
                         account = account,
                         submitting = submitting,
                         onEdit = { onEditAccount(account) },
@@ -713,6 +714,7 @@ private fun SiteCard(
 
 @Composable
 private fun SiteAccountRow(
+    site: Site,
     account: SiteAccount,
     submitting: Boolean,
     onEdit: () -> Unit,
@@ -721,6 +723,8 @@ private fun SiteAccountRow(
     onCheckin: () -> Unit,
     onToggle: (Boolean) -> Unit,
 ) {
+    val supportsCheckin = sitePlatformSupportsCheckin(site.platform)
+    val checkinEnabled = accountHasSiteCheckinEnabled(site, account)
     AppListCard(padding = PaddingValues(horizontal = 12.dp, vertical = 12.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
@@ -761,7 +765,11 @@ private fun SiteAccountRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = stringResource(R.string.site_last_checkin, formatSiteTime(account.lastCheckinAt), account.lastCheckinMessage.ifBlank { statusLabel(account.lastCheckinStatus) }),
+                text = siteAccountCheckinSummary(
+                    supportsCheckin = supportsCheckin,
+                    checkinEnabled = checkinEnabled,
+                    account = account,
+                ),
                 style = MiuixTheme.textStyles.body2,
                 color = OctopusTokens.TextSecondary,
                 maxLines = 2,
@@ -769,7 +777,9 @@ private fun SiteAccountRow(
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(text = stringResource(R.string.site_action_sync), enabled = !submitting, onClick = onSync)
-                TextButton(text = stringResource(R.string.site_action_checkin), enabled = !submitting, onClick = onCheckin)
+                if (checkinEnabled) {
+                    TextButton(text = stringResource(R.string.site_action_checkin), enabled = !submitting, onClick = onCheckin)
+                }
                 TextButton(text = stringResource(R.string.action_edit), enabled = !submitting, onClick = onEdit)
                 TextButton(text = stringResource(R.string.common_delete), enabled = !submitting, onClick = onDelete)
             }
@@ -1362,6 +1372,21 @@ private fun siteCheckinFilterLabel(filter: SiteCheckinFilter): String = when (fi
     SiteCheckinFilter.Failed -> stringResource(R.string.site_checkin_filter_failed)
     SiteCheckinFilter.Idle -> stringResource(R.string.site_checkin_filter_idle)
     SiteCheckinFilter.Disabled -> stringResource(R.string.site_checkin_filter_disabled)
+}
+
+@Composable
+private fun siteAccountCheckinSummary(
+    supportsCheckin: Boolean,
+    checkinEnabled: Boolean,
+    account: SiteAccount,
+): String = when {
+    !supportsCheckin -> stringResource(R.string.site_checkin_unsupported)
+    !checkinEnabled -> stringResource(R.string.site_checkin_disabled)
+    else -> stringResource(
+        R.string.site_last_checkin,
+        formatSiteTime(account.lastCheckinAt),
+        account.lastCheckinMessage.ifBlank { statusLabel(account.lastCheckinStatus) },
+    )
 }
 
 @Composable

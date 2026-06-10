@@ -119,6 +119,28 @@ class SiteCheckinFiltersTest {
     }
 
     @Test
+    fun accountCheckinEnabledRequiresSupportedPlatformAndAutoCheckin() {
+        assertThat(
+            accountHasSiteCheckinEnabled(
+                site(platform = SitePlatform.NewApi, accounts = emptyList()),
+                account(autoCheckin = true),
+            ),
+        ).isTrue()
+        assertThat(
+            accountHasSiteCheckinEnabled(
+                site(platform = SitePlatform.Gemini, accounts = emptyList()),
+                account(autoCheckin = true),
+            ),
+        ).isFalse()
+        assertThat(
+            accountHasSiteCheckinEnabled(
+                site(platform = SitePlatform.NewApi, accounts = emptyList()),
+                account(autoCheckin = false),
+            ),
+        ).isFalse()
+    }
+
+    @Test
     fun searchAndCheckinFilterFollowVisibleAccountScope() {
         val sites = listOf(
             site(

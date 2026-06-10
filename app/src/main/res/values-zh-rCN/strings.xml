@@ -146,6 +146,8 @@
     <string name="site_checkin_filter_idle">未执行</string>
     <string name="site_checkin_filter_disabled">禁用</string>
     <string name="site_checkin_filter_empty">当前签到筛选没有匹配站点。</string>
+    <string name="site_checkin_unsupported">当前平台不支持签到。</string>
+    <string name="site_checkin_disabled">签到未启用。</string>
     <string name="site_create_title">创建站点</string>
     <string name="site_edit_title">编辑站点</string>
     <string name="site_account_create_title">创建账号</string>
