@@ -143,6 +143,73 @@ class SiteChannelFiltersTest {
         ).containsExactly("Attention", "Large").inOrder()
     }
 
+    @Test
+    fun accountGroupScopeAndModelSearchTrimVisibleModels() {
+        val account = account(
+            groups = listOf(
+                group(
+                    groupName = "Default",
+                    models = listOf(
+                        model("gpt-4o"),
+                        model("claude-3-5-sonnet", routeType = SiteModelRouteType.Anthropic),
+                    ),
+                ),
+                group(
+                    groupName = "Team Gemini",
+                    models = listOf(model("gemini-pro", routeType = SiteModelRouteType.Gemini)),
+                ),
+            ),
+        )
+
+        val modelResult = filterSiteChannelAccountGroups(
+            account = account,
+            groupScope = SITE_CHANNEL_GROUP_SCOPE_ALL,
+            modelQuery = "sonnet",
+        )
+        val groupResult = filterSiteChannelAccountGroups(
+            account = account,
+            groupScope = "team gemini",
+            modelQuery = "",
+        )
+        val routeResult = filterSiteChannelAccountGroups(
+            account = account,
+            groupScope = SITE_CHANNEL_GROUP_SCOPE_ALL,
+            modelQuery = "gemini",
+        )
+
+        assertThat(modelResult.map { it.group.groupKey }).containsExactly("default")
+        assertThat(modelResult.single().models.map { it.modelName }).containsExactly("claude-3-5-sonnet")
+        assertThat(groupResult.single().group.groupKey).isEqualTo("team gemini")
+        assertThat(groupResult.single().models.map { it.modelName }).containsExactly("gemini-pro")
+        assertThat(routeResult.map { it.group.groupKey }).containsExactly("team gemini")
+    }
+
+    @Test
+    fun accountModelSearchDropsEmptyGroups() {
+        val account = account(
+            groups = listOf(
+                group(groupName = "Default", models = listOf(model("gpt-4o"))),
+                group(groupName = "Archive", models = listOf(model("claude"))),
+            ),
+        )
+
+        assertThat(
+            filterSiteChannelAccountGroups(
+                account = account,
+                groupScope = SITE_CHANNEL_GROUP_SCOPE_ALL,
+                modelQuery = "missing",
+            ),
+        ).isEmpty()
+    }
+
+    private fun account(
+        groups: List<SiteChannelGroup>,
+    ): SiteChannelAccount = SiteChannelAccount(
+        accountId = 1,
+        accountName = "Account",
+        groups = groups,
+    )
+
     private fun card(
         siteId: Int,
         siteName: String,

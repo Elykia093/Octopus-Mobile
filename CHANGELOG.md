@@ -5,10 +5,11 @@
 ### Added
 
 - Added SiteChannel batch model route updates and batch model enable/disable actions for Projection groups.
+- Added account-level Projection group scoping and in-account model search.
 
 ### Verification
 
-- SiteChannel batch model request unit coverage.
+- SiteChannel batch model request and account filter unit coverage.
 
 ## [0.5.0] - 2026-06-10
 

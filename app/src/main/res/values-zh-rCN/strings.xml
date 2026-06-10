@@ -244,10 +244,15 @@
     <string name="site_channel_masked_pending_count">待补全 Key %1$d</string>
     <string name="site_channel_more_accounts">还有 %1$d 个账号</string>
     <string name="site_channel_account_summary">分组 %1$d · 模型 %2$d</string>
+    <string name="site_channel_account_scope_label">分组范围</string>
+    <string name="site_channel_account_scope_all">全部分组</string>
+    <string name="site_channel_account_model_search_hint">搜索账号内模型或分组</string>
+    <string name="site_channel_account_model_filter_empty">当前账号没有匹配模型。</string>
     <string name="site_channel_auto_sync">自动同步</string>
     <string name="site_channel_more_groups">还有 %1$d 个分组</string>
     <string name="site_channel_group_keys_count">Key %1$d/%2$d</string>
     <string name="site_channel_group_models_count">模型 %1$d</string>
+    <string name="site_channel_group_models_filtered_count">模型 %1$d/%2$d</string>
     <string name="site_channel_group_channels_count">渠道 %1$d</string>
     <string name="site_channel_projection_disabled">投影已停用</string>
     <string name="site_channel_projection_suspended">投影已暂停</string>

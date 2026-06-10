@@ -244,10 +244,15 @@
     <string name="site_channel_masked_pending_count">Pending keys %1$d</string>
     <string name="site_channel_more_accounts">+%1$d more accounts</string>
     <string name="site_channel_account_summary">Groups %1$d · Models %2$d</string>
+    <string name="site_channel_account_scope_label">Group scope</string>
+    <string name="site_channel_account_scope_all">All groups</string>
+    <string name="site_channel_account_model_search_hint">Search models in this account</string>
+    <string name="site_channel_account_model_filter_empty">No matching models in this account.</string>
     <string name="site_channel_auto_sync">Auto sync</string>
     <string name="site_channel_more_groups">+%1$d more groups</string>
     <string name="site_channel_group_keys_count">Keys %1$d/%2$d</string>
     <string name="site_channel_group_models_count">Models %1$d</string>
+    <string name="site_channel_group_models_filtered_count">Models %1$d/%2$d</string>
     <string name="site_channel_group_channels_count">Channels %1$d</string>
     <string name="site_channel_projection_disabled">Projection disabled</string>
     <string name="site_channel_projection_suspended">Projection suspended</string>

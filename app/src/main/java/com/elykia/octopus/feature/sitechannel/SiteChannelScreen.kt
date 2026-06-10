@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -469,6 +470,25 @@ private fun SiteChannelAccountBlock(
     onSetGroupModelsDisabled: (SiteChannelGroupTarget, Boolean) -> Unit,
     onDeleteManualModel: (SiteChannelModelTarget) -> Unit,
 ) {
+    var groupScope by remember(account.accountId) { mutableStateOf(SITE_CHANNEL_GROUP_SCOPE_ALL) }
+    var modelQuery by remember(account.accountId) { mutableStateOf("") }
+    LaunchedEffect(account.groups, groupScope) {
+        if (groupScope != SITE_CHANNEL_GROUP_SCOPE_ALL && account.groups.none { it.groupKey == groupScope }) {
+            groupScope = SITE_CHANNEL_GROUP_SCOPE_ALL
+        }
+    }
+    val accountModelQuery = modelQuery.trim()
+    val filterActive = groupScope != SITE_CHANNEL_GROUP_SCOPE_ALL || accountModelQuery.isNotBlank()
+    val visibleGroups = remember(account.groups, groupScope, accountModelQuery) {
+        filterSiteChannelAccountGroups(
+            account = account,
+            groupScope = groupScope,
+            modelQuery = accountModelQuery,
+        )
+    }
+    val groupsToShow = if (filterActive) visibleGroups else visibleGroups.take(MAX_GROUPS_PER_ACCOUNT)
+    val totalVisibleModels = visibleGroups.sumOf { it.models.size }
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -493,9 +513,30 @@ private fun SiteChannelAccountBlock(
                 )
             }
         }
+        if (account.groups.size > 1) {
+            Text(
+                text = stringResource(R.string.site_channel_account_scope_label),
+                style = MiuixTheme.textStyles.body2,
+                color = OctopusTokens.TextSecondary,
+            )
+            OptionChipGroup(
+                options = siteChannelGroupScopeOptions(account.groups),
+                selectedValue = groupScope,
+                onSelect = { groupScope = it },
+                columns = 2,
+            )
+        }
+        if (account.groups.any { it.models.isNotEmpty() }) {
+            SearchField(
+                value = modelQuery,
+                onValueChange = { modelQuery = it },
+                hint = stringResource(R.string.site_channel_account_model_search_hint),
+            )
+        }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             ToolbarChip(text = stringResource(if (account.enabled) R.string.common_enabled else R.string.common_disabled), selected = account.enabled)
             if (account.autoSync) ToolbarChip(text = stringResource(R.string.site_channel_auto_sync), selected = true)
+            if (filterActive) ToolbarChip(text = stringResource(R.string.site_channel_models_count, totalVisibleModels), selected = true)
             account.routeSummaries.filter { it.count > 0 }.take(ROUTE_SUMMARY_LIMIT).forEach { summary ->
                 ToolbarChip(text = "${routeTypeLabel(summary.routeType)} ${summary.count}")
             }
@@ -504,9 +545,18 @@ private fun SiteChannelAccountBlock(
                 onClick = if (submitting) null else { { onResetRoutes(siteId, account) } },
             )
         }
-        account.groups.take(MAX_GROUPS_PER_ACCOUNT).forEach { group ->
+        if (visibleGroups.isEmpty()) {
+            Text(
+                text = stringResource(R.string.site_channel_account_model_filter_empty),
+                style = MiuixTheme.textStyles.body2,
+                color = OctopusTokens.TextSecondary,
+            )
+        }
+        groupsToShow.forEach { visibleGroup ->
+            val group = visibleGroup.group
             SiteChannelGroupBlock(
                 target = SiteChannelGroupTarget(siteId = siteId, account = account, group = group),
+                visibleModels = visibleGroup.models,
                 submitting = submitting,
                 onCreateKey = onCreateKey,
                 onEditSourceKeys = onEditSourceKeys,
@@ -520,9 +570,9 @@ private fun SiteChannelAccountBlock(
                 onDeleteManualModel = onDeleteManualModel,
             )
         }
-        if (account.groups.size > MAX_GROUPS_PER_ACCOUNT) {
+        if (visibleGroups.size > groupsToShow.size) {
             Text(
-                text = stringResource(R.string.site_channel_more_groups, account.groups.size - MAX_GROUPS_PER_ACCOUNT),
+                text = stringResource(R.string.site_channel_more_groups, visibleGroups.size - groupsToShow.size),
                 style = MiuixTheme.textStyles.body2,
                 color = OctopusTokens.TextSecondary,
             )
@@ -533,6 +583,7 @@ private fun SiteChannelAccountBlock(
 @Composable
 private fun SiteChannelGroupBlock(
     target: SiteChannelGroupTarget,
+    visibleModels: List<SiteChannelModel>,
     submitting: Boolean,
     onCreateKey: (SiteChannelGroupTarget) -> Unit,
     onEditSourceKeys: (SiteChannelGroupTarget) -> Unit,
@@ -546,8 +597,9 @@ private fun SiteChannelGroupBlock(
     onDeleteManualModel: (SiteChannelModelTarget) -> Unit,
 ) {
     val group = target.group
-    val enabledModels = group.models.filter { it.modelName.isNotBlank() && !it.disabled }
-    val disabledModels = group.models.filter { it.modelName.isNotBlank() && it.disabled }
+    val bulkTarget = target.copy(group = group.copy(models = visibleModels))
+    val enabledModels = visibleModels.filter { it.modelName.isNotBlank() && !it.disabled }
+    val disabledModels = visibleModels.filter { it.modelName.isNotBlank() && it.disabled }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
             text = group.groupName.ifBlank { group.groupKey.ifBlank { stringResource(R.string.common_unknown) } },
@@ -560,7 +612,13 @@ private fun SiteChannelGroupBlock(
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             ToolbarChip(text = modelSyncStatusLabel(group.modelSyncStatus), selected = group.modelSyncStatus == "synced")
             ToolbarChip(text = stringResource(R.string.site_channel_group_keys_count, group.enabledKeyCount, group.keyCount))
-            ToolbarChip(text = stringResource(R.string.site_channel_group_models_count, group.models.size))
+            ToolbarChip(
+                text = if (visibleModels.size == group.models.size) {
+                    stringResource(R.string.site_channel_group_models_count, group.models.size)
+                } else {
+                    stringResource(R.string.site_channel_group_models_filtered_count, visibleModels.size, group.models.size)
+                },
+            )
             ToolbarChip(text = stringResource(R.string.site_channel_group_channels_count, group.projectedChannelIds.count { it > 0 }))
             if (group.projectionDisabled) ToolbarChip(text = stringResource(R.string.site_channel_projection_disabled), selected = true)
             if (group.projectionSuspended) ToolbarChip(text = stringResource(R.string.site_channel_projection_suspended), selected = true)
@@ -580,15 +638,15 @@ private fun SiteChannelGroupBlock(
             )
             ToolbarChip(
                 text = stringResource(R.string.site_channel_action_bulk_route),
-                onClick = if (submitting || enabledModels.isEmpty()) null else { { onBulkRoute(target) } },
+                onClick = if (submitting || enabledModels.isEmpty()) null else { { onBulkRoute(bulkTarget) } },
             )
             ToolbarChip(
                 text = stringResource(R.string.site_channel_action_enable_models),
-                onClick = if (submitting || disabledModels.isEmpty()) null else { { onSetGroupModelsDisabled(target, false) } },
+                onClick = if (submitting || disabledModels.isEmpty()) null else { { onSetGroupModelsDisabled(bulkTarget, false) } },
             )
             ToolbarChip(
                 text = stringResource(R.string.site_channel_action_disable_models),
-                onClick = if (submitting || enabledModels.isEmpty()) null else { { onSetGroupModelsDisabled(target, true) } },
+                onClick = if (submitting || enabledModels.isEmpty()) null else { { onSetGroupModelsDisabled(bulkTarget, true) } },
             )
             ToolbarChip(text = stringResource(R.string.site_channel_action_add_manual_model), onClick = if (submitting) null else { { onAddManualModels(target) } })
         }
@@ -601,7 +659,7 @@ private fun SiteChannelGroupBlock(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        group.models.take(MAX_MODELS_PER_GROUP).forEach { model ->
+        visibleModels.take(MAX_MODELS_PER_GROUP).forEach { model ->
             SiteChannelModelRow(
                 target = SiteChannelModelTarget(target.siteId, target.account, group, model),
                 submitting = submitting,
@@ -610,9 +668,9 @@ private fun SiteChannelGroupBlock(
                 onDeleteManualModel = onDeleteManualModel,
             )
         }
-        if (group.models.size > MAX_MODELS_PER_GROUP) {
+        if (visibleModels.size > MAX_MODELS_PER_GROUP) {
             Text(
-                text = stringResource(R.string.site_channel_more_models, group.models.size - MAX_MODELS_PER_GROUP),
+                text = stringResource(R.string.site_channel_more_models, visibleModels.size - MAX_MODELS_PER_GROUP),
                 style = MiuixTheme.textStyles.body2,
                 color = OctopusTokens.TextSecondary,
             )
@@ -1112,6 +1170,20 @@ private fun autoGroupLabel(value: Int): String = when (value) {
 }
 
 @Composable
+private fun siteChannelGroupScopeOptions(groups: List<SiteChannelGroup>): List<OptionChipItem<String>> =
+    listOf(
+        OptionChipItem(
+            SITE_CHANNEL_GROUP_SCOPE_ALL,
+            stringResource(R.string.site_channel_account_scope_all),
+        ),
+    ) + groups.map { group ->
+        OptionChipItem(
+            group.groupKey,
+            group.groupScopeLabel(),
+        )
+    }
+
+@Composable
 private fun siteChannelFilterOptions(): List<OptionChipItem<SiteChannelFilter>> = listOf(
     OptionChipItem(SiteChannelFilter.All, stringResource(R.string.site_channel_filter_all)),
     OptionChipItem(SiteChannelFilter.Attention, stringResource(R.string.site_channel_filter_attention)),
@@ -1141,6 +1213,11 @@ private fun parseModelNames(value: String): List<String> =
 
 private fun SiteChannelGroup.groupTitle(): String =
     groupName.ifBlank { groupKey.ifBlank { "#" } }
+
+private fun SiteChannelGroup.groupScopeLabel(): String {
+    val label = groupTitle()
+    return if (label.length <= GROUP_SCOPE_LABEL_LIMIT) label else label.take(GROUP_SCOPE_LABEL_LIMIT - 3) + "..."
+}
 
 private fun SiteChannelGroup.sourceKeyEditorItems(): List<SourceKeyEditorItem> =
     sourceKeys.map { key ->
@@ -1260,3 +1337,4 @@ private const val MAX_ACCOUNTS_PER_CARD = 2
 private const val MAX_GROUPS_PER_ACCOUNT = 3
 private const val MAX_MODELS_PER_GROUP = 3
 private const val ROUTE_SUMMARY_LIMIT = 4
+private const val GROUP_SCOPE_LABEL_LIMIT = 24

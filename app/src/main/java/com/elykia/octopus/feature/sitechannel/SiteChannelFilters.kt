@@ -1,5 +1,6 @@
 package com.elykia.octopus.feature.sitechannel
 
+import com.elykia.octopus.core.data.model.SiteChannelAccount
 import com.elykia.octopus.core.data.model.SiteChannelCard
 import com.elykia.octopus.core.data.model.SiteChannelGroup
 import com.elykia.octopus.core.data.model.SiteChannelModel
@@ -19,6 +20,13 @@ internal enum class SiteChannelSort {
     Attention,
 }
 
+internal const val SITE_CHANNEL_GROUP_SCOPE_ALL = "__site_channel_group_scope_all__"
+
+internal data class SiteChannelVisibleGroup(
+    val group: SiteChannelGroup,
+    val models: List<SiteChannelModel>,
+)
+
 internal fun filterAndSortSiteChannelCards(
     cards: List<SiteChannelCard>,
     query: String,
@@ -30,6 +38,31 @@ internal fun filterAndSortSiteChannelCards(
         .filter { card -> normalizedQuery.isBlank() || card.matchesSiteChannelQuery(normalizedQuery) }
         .filter { card -> card.matchesSiteChannelFilter(filter) }
         .sortedWith(siteChannelCardComparator(sort))
+}
+
+internal fun filterSiteChannelAccountGroups(
+    account: SiteChannelAccount,
+    groupScope: String,
+    modelQuery: String,
+): List<SiteChannelVisibleGroup> {
+    val normalizedGroupScope = groupScope.trim()
+    val normalizedQuery = modelQuery.trim()
+    return account.groups
+        .asSequence()
+        .filter { group -> normalizedGroupScope == SITE_CHANNEL_GROUP_SCOPE_ALL || group.groupKey == normalizedGroupScope }
+        .mapNotNull { group ->
+            val models = if (normalizedQuery.isBlank()) {
+                group.models
+            } else {
+                group.models.filter { model -> model.matchesAccountModelQuery(group, normalizedQuery) }
+            }
+            if (models.isEmpty() && normalizedQuery.isNotBlank()) {
+                null
+            } else {
+                SiteChannelVisibleGroup(group = group, models = models)
+            }
+        }
+        .toList()
 }
 
 internal fun SiteChannelCard.matchesSiteChannelQuery(query: String): Boolean {
@@ -123,6 +156,14 @@ private fun SiteChannelModel.hasHistory(): Boolean {
 }
 
 private fun isSupportedSiteRouteType(routeType: String): Boolean = routeType in SUPPORTED_ROUTE_TYPES
+
+private fun SiteChannelModel.matchesAccountModelQuery(group: SiteChannelGroup, query: String): Boolean =
+    modelName.containsQuery(query) ||
+        source.containsQuery(query) ||
+        routeType.containsQuery(query) ||
+        routeSource.containsQuery(query) ||
+        group.groupName.containsQuery(query) ||
+        group.groupKey.containsQuery(query)
 
 private fun String.containsQuery(query: String): Boolean =
     contains(query, ignoreCase = true)
