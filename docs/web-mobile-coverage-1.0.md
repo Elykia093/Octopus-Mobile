@@ -25,6 +25,7 @@ The remaining work is not primarily API coverage. It is user-facing behavior par
 - Setting semantics: Web exposes named controls for site automation, Responses WebSocket mode, SSE heartbeat, projected-channel auto-group, and outlier retirement. Mobile must avoid fallback raw keys and validate server-supported values.
 - Operation feedback: Web shows focused toast/status feedback for save, sync, check-in, import/export, and destructive operations. Mobile should keep tightening loading, success, and failure states across modules.
 - View options: Web has richer toolbar/search/view-option state in several modules. Mobile has search/filter coverage in many places but still needs a full per-module behavior audit.
+- Projection behavior: Web SiteChannel loads request history by default and offers quick filters for attention, request history, and disabled models. Mobile now mirrors these list-level flows and keeps the remaining gap focused on bulk model operations and deeper account-panel preferences.
 - Release flow: 0.4.0 added signed release support; 0.5.0 starts GitHub Release automation.
 
 ## 0.5.0 Slice
@@ -36,6 +37,13 @@ First 0.5.0 Web parity slice:
 - Validate projected-channel auto-group modes: `0`, `1`, `2`, `3`, `true`, `false`.
 - Validate Responses WebSocket mode: `off`, `transform`, `passthrough`.
 - Validate SSE heartbeat values and outlier-retirement numeric ranges against server constraints.
+
+Second 0.5.0 Web parity slice:
+
+- Load SiteChannel projection data with `include_history=true`, matching the Web default.
+- Add Mobile SiteChannel filters for attention, request history, and disabled models.
+- Add Mobile SiteChannel sorting by name, model count, and attention priority.
+- Cover SiteChannel filter/search/sort behavior with unit tests.
 
 ## Recurring Verification
 

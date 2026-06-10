@@ -65,6 +65,8 @@ fun SiteChannelScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var searchVisible by remember { mutableStateOf(false) }
     var searchTerm by remember { mutableStateOf("") }
+    var filter by remember { mutableStateOf(SiteChannelFilter.All) }
+    var sort by remember { mutableStateOf(SiteChannelSort.NameAsc) }
     var createKeyTarget by remember { mutableStateOf<SiteChannelGroupTarget?>(null) }
     var sourceKeyTarget by remember { mutableStateOf<SiteChannelGroupTarget?>(null) }
     var manualModelTarget by remember { mutableStateOf<SiteChannelGroupTarget?>(null) }
@@ -72,7 +74,9 @@ fun SiteChannelScreen(
     var routeTarget by remember { mutableStateOf<SiteChannelModelTarget?>(null) }
 
     val query = searchTerm.trim()
-    val cards = uiState.cards.filter { card -> query.isBlank() || card.matches(query) }
+    val cards = remember(uiState.cards, query, filter, sort) {
+        filterAndSortSiteChannelCards(uiState.cards, query, filter, sort)
+    }
 
     AppLazyPageScaffold(
         title = stringResource(R.string.site_channel_title),
@@ -110,6 +114,16 @@ fun SiteChannelScreen(
                             value = searchTerm,
                             onValueChange = { searchTerm = it },
                             hint = stringResource(R.string.site_channel_search_hint),
+                        )
+                    }
+                }
+                if (uiState.cards.isNotEmpty()) {
+                    item {
+                        SiteChannelViewOptions(
+                            filter = filter,
+                            onFilterChange = { filter = it },
+                            sort = sort,
+                            onSortChange = { sort = it },
                         )
                     }
                 }
@@ -274,6 +288,41 @@ fun SiteChannelScreen(
             }
         },
     )
+}
+
+@Composable
+private fun SiteChannelViewOptions(
+    filter: SiteChannelFilter,
+    onFilterChange: (SiteChannelFilter) -> Unit,
+    sort: SiteChannelSort,
+    onSortChange: (SiteChannelSort) -> Unit,
+) {
+    AppListCard {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                text = stringResource(R.string.site_channel_filter_label),
+                style = MiuixTheme.textStyles.body2,
+                color = OctopusTokens.TextSecondary,
+            )
+            OptionChipGroup(
+                options = siteChannelFilterOptions(),
+                selectedValue = filter,
+                onSelect = onFilterChange,
+                columns = 2,
+            )
+            Text(
+                text = stringResource(R.string.site_channel_sort_label),
+                style = MiuixTheme.textStyles.body2,
+                color = OctopusTokens.TextSecondary,
+            )
+            OptionChipGroup(
+                options = siteChannelSortOptions(),
+                selectedValue = sort,
+                onSelect = onSortChange,
+                columns = 2,
+            )
+        }
+    }
 }
 
 @Composable
@@ -911,20 +960,6 @@ private fun DialogButtons(
     }
 }
 
-private fun SiteChannelCard.matches(query: String): Boolean {
-    val normalized = query.lowercase()
-    if (siteName.contains(normalized, ignoreCase = true) || baseUrl.contains(normalized, ignoreCase = true)) return true
-    return accounts.any { account ->
-        account.accountName.contains(normalized, ignoreCase = true) ||
-            account.groups.any { group ->
-                group.groupName.contains(normalized, ignoreCase = true) ||
-                    group.groupKey.contains(normalized, ignoreCase = true) ||
-                    group.projectedChannels.any { it.channelName.contains(normalized, ignoreCase = true) } ||
-                    group.models.any { it.modelName.contains(normalized, ignoreCase = true) }
-            }
-    }
-}
-
 private fun SiteChannelAccount.modelsOrDeclaredCount(): Int =
     groups.sumOf { it.models.size }.takeIf { it > 0 } ?: modelCount
 
@@ -974,6 +1009,22 @@ private fun autoGroupLabel(value: Int): String = when (value) {
     3 -> stringResource(R.string.channel_auto_group_regex)
     else -> stringResource(R.string.channel_auto_group_unknown, value)
 }
+
+@Composable
+private fun siteChannelFilterOptions(): List<OptionChipItem<SiteChannelFilter>> = listOf(
+    OptionChipItem(SiteChannelFilter.All, stringResource(R.string.site_channel_filter_all)),
+    OptionChipItem(SiteChannelFilter.Attention, stringResource(R.string.site_channel_filter_attention)),
+    OptionChipItem(SiteChannelFilter.WithHistory, stringResource(R.string.site_channel_filter_with_history)),
+    OptionChipItem(SiteChannelFilter.Disabled, stringResource(R.string.site_channel_filter_disabled)),
+)
+
+@Composable
+private fun siteChannelSortOptions(): List<OptionChipItem<SiteChannelSort>> = listOf(
+    OptionChipItem(SiteChannelSort.NameAsc, stringResource(R.string.site_channel_sort_name_asc)),
+    OptionChipItem(SiteChannelSort.NameDesc, stringResource(R.string.site_channel_sort_name_desc)),
+    OptionChipItem(SiteChannelSort.ModelsDesc, stringResource(R.string.site_channel_sort_models_desc)),
+    OptionChipItem(SiteChannelSort.Attention, stringResource(R.string.site_channel_sort_attention)),
+)
 
 @Composable
 private fun projectedChannelLine(group: SiteChannelGroup): String? {

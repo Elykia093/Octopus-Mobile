@@ -7,11 +7,17 @@
 - Added a PowerShell release helper that extracts version notes from `CHANGELOG.md`, creates a GitHub Release through GitHub CLI, and uploads the generated APK.
 - Added the 0.5.0 roadmap focused on release automation and safer version iteration.
 - Added Mobile setting labels, switch handling, and validation for Web setting keys including site automation, Responses WebSocket, SSE heartbeat, projected channel auto-group, and outlier retirement.
+- Added SiteChannel projection filters and sorting for attention, request history, disabled models, model count, and attention-first review flows.
 - Added a Web/Mobile coverage baseline for the 1.0 parity track.
+
+### Changed
+
+- Aligned the Mobile SiteChannel projection list with the Web default by loading request history with `include_history=true`.
 
 ### Verification
 
 - `scripts/create-github-release.ps1 -Version 0.4.0 -DryRun`
+- SiteChannel filter and sort unit coverage.
 
 ## [0.4.0] - 2026-06-10
 

@@ -224,6 +224,16 @@
     <string name="site_channel_empty">No site-channel projection data.</string>
     <string name="site_channel_search_hint">Search sites, accounts, groups, models or channels</string>
     <string name="site_channel_search_empty">No matching projection data.</string>
+    <string name="site_channel_filter_label">Filter</string>
+    <string name="site_channel_filter_all">All</string>
+    <string name="site_channel_filter_attention">Needs attention</string>
+    <string name="site_channel_filter_with_history">With history</string>
+    <string name="site_channel_filter_disabled">Disabled models</string>
+    <string name="site_channel_sort_label">Sort</string>
+    <string name="site_channel_sort_name_asc">Name A-Z</string>
+    <string name="site_channel_sort_name_desc">Name Z-A</string>
+    <string name="site_channel_sort_models_desc">Most models</string>
+    <string name="site_channel_sort_attention">Attention first</string>
     <string name="site_channel_site_fallback">Site #%1$d</string>
     <string name="site_channel_account_fallback">Account #%1$d</string>
     <string name="site_channel_accounts_count">Accounts %1$d</string>

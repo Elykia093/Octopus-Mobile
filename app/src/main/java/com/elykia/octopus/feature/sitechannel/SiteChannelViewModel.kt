@@ -48,7 +48,7 @@ class SiteChannelViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(loading = true, error = null, operationError = null)
-            when (val result = repository.siteChannels(includeHistory = false)) {
+            when (val result = repository.siteChannels(includeHistory = true)) {
                 is AppResult.Success -> _uiState.value = _uiState.value.copy(
                     loading = false,
                     cards = result.data.sortedWith(compareBy<SiteChannelCard> { it.siteName.lowercase() }.thenBy { it.siteId }),

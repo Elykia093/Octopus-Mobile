@@ -2,7 +2,7 @@
 
 ## 目标
 
-0.5.0 聚焦“发布自动化与版本迭代安全”。0.4.0 已补齐可配置签名和 CI signed release 基础，下一步把手工 GitHub Release 流程收敛成可复用工具，降低每个版本发布时的重复操作和遗漏风险。
+0.5.0 聚焦“发布自动化、版本迭代安全、Web 行为对齐”。0.4.0 已补齐可配置签名和 CI signed release 基础，下一步把手工 GitHub Release 流程收敛成可复用工具，同时开始按 Web 管理端高频操作补齐移动端的筛选、排序和反馈体验。
 
 ## 本轮起点
 
@@ -18,17 +18,24 @@
 - 脚本支持 `-Signed`，用于真实签名 APK 产物命名。
 - 新增 1.0 Web/Mobile 覆盖基线，确认当前 Mobile 已覆盖 Web 参考源码中的 `/api/v1` 路径。
 - 补齐 Mobile 设置页对 Web 设置项的标题、开关识别和校验规则。
+- 对齐 Web SiteChannel 投影列表行为：默认加载 `include_history=true`，新增未正确配置、有请求历史、禁用模型筛选，以及名称、模型数量、异常优先排序。
 
-## 后续候选
+## 0.5.0 剩余收口
 
 1. 版本准备脚本：统一更新 `versionCode`、`versionName` 和 `CHANGELOG.md` 日期。
 2. Release checklist：在脚本中检查 git 工作区、tag 是否存在、当前版本是否匹配。
 3. GitHub Actions 手动发版 workflow：通过 workflow_dispatch 输入版本号，自动构建并创建 Release。
 4. Signed APK 命名固化：让 Gradle 输出文件名直接带版本号和 signed/unsigned 标识。
-5. Web 行为审计：按 Home、Site、Projection、Channel、Group、Model、API Key、Log、Setting 模块核对搜索、筛选、反馈和批量操作体验。
+
+## 后续候选
+
+1. Web 行为审计：按 Home、Site、Projection、Channel、Group、Model、API Key、Log、Setting 模块核对搜索、筛选、反馈和批量操作体验。
+2. Projection 批量模型操作：Web 支持选中模型后批量切换路由、启用、禁用；Mobile 当前仍以单模型操作为主。
+3. Projection 面板偏好：Web 支持 compact/table sort 等细粒度偏好；Mobile 已有列表级排序，后续继续评估是否需要账号内模型排序。
 
 ## 验证基线
 
 - `scripts/create-github-release.ps1 -Version 0.4.0 -DryRun`
 - `git diff --check`
 - `.\gradlew.bat testReleaseUnitTest`
+- `.\gradlew.bat assembleRelease`
