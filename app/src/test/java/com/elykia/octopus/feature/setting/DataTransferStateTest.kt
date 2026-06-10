@@ -186,10 +186,23 @@ class DataTransferStateTest {
         assertThat(validateSettingValue("stats_save_interval", "1440")).isNull()
         assertThat(validateSettingValue("model_info_update_interval", "8760")).isNull()
         assertThat(validateSettingValue("sync_llm_interval", "8760")).isNull()
+        assertThat(validateSettingValue("site_sync_interval", "8760")).isNull()
+        assertThat(validateSettingValue("site_checkin_interval", "8760")).isNull()
         assertThat(validateSettingValue("relay_log_keep_period", "3650")).isNull()
         assertThat(validateSettingValue("circuit_breaker_threshold", "1000")).isNull()
         assertThat(validateSettingValue("circuit_breaker_cooldown", "86400")).isNull()
         assertThat(validateSettingValue("circuit_breaker_max_cooldown", "604800")).isNull()
+        assertThat(validateSettingValue("sse_heartbeat_interval", "0")).isNull()
+        assertThat(validateSettingValue("sse_pre_stream_heartbeat_delay", "0")).isNull()
+        assertThat(validateSettingValue("outlier_window_capacity", "20")).isNull()
+        assertThat(validateSettingValue("outlier_fail_rate_pct", "100")).isNull()
+        assertThat(validateSettingValue("outlier_retire_interval", "1")).isNull()
+        assertThat(validateSettingValue("outlier_window_minutes", "1")).isNull()
+        assertThat(validateSettingValue("outlier_min_samples", "1")).isNull()
+        assertThat(validateSettingValue("outlier_consec_fails", "1")).isNull()
+        assertThat(validateSettingValue("outlier_recover_streak", "1")).isNull()
+        assertThat(validateSettingValue("outlier_reap_minutes", "1")).isNull()
+        assertThat(validateSettingValue("outlier_cf_recover_minutes", "1")).isNull()
     }
 
     @Test
@@ -206,6 +219,38 @@ class DataTransferStateTest {
             .isEqualTo(SettingValidationIssue.InvalidNumber)
         assertThat(validateSettingValue("stats_save_interval", "Infinity"))
             .isEqualTo(SettingValidationIssue.InvalidNumber)
+        assertThat(validateSettingValue("sse_heartbeat_interval", "-1"))
+            .isEqualTo(SettingValidationIssue.InvalidNumber)
+        assertThat(validateSettingValue("outlier_window_capacity", "21"))
+            .isEqualTo(SettingValidationIssue.InvalidNumber)
+        assertThat(validateSettingValue("outlier_fail_rate_pct", "101"))
+            .isEqualTo(SettingValidationIssue.InvalidNumber)
+        assertThat(validateSettingValue("outlier_min_samples", "0"))
+            .isEqualTo(SettingValidationIssue.InvalidNumber)
+    }
+
+    @Test
+    fun settingValidationAcceptsWebOptionSettings() {
+        assertThat(validateSettingValue("projected_channel_auto_group_enabled", "0")).isNull()
+        assertThat(validateSettingValue("projected_channel_auto_group_enabled", "1")).isNull()
+        assertThat(validateSettingValue("projected_channel_auto_group_enabled", "2")).isNull()
+        assertThat(validateSettingValue("projected_channel_auto_group_enabled", "3")).isNull()
+        assertThat(validateSettingValue("projected_channel_auto_group_enabled", "true")).isNull()
+        assertThat(validateSettingValue("projected_channel_auto_group_enabled", "false")).isNull()
+
+        assertThat(validateSettingValue("responses_ws_default_mode", "off")).isNull()
+        assertThat(validateSettingValue("responses_ws_default_mode", "transform")).isNull()
+        assertThat(validateSettingValue("responses_ws_default_mode", "passthrough")).isNull()
+    }
+
+    @Test
+    fun settingValidationRejectsInvalidWebOptions() {
+        assertThat(validateSettingValue("projected_channel_auto_group_enabled", "4"))
+            .isEqualTo(SettingValidationIssue.InvalidOption)
+        assertThat(validateSettingValue("projected_channel_auto_group_enabled", "enabled"))
+            .isEqualTo(SettingValidationIssue.InvalidOption)
+        assertThat(validateSettingValue("responses_ws_default_mode", "auto"))
+            .isEqualTo(SettingValidationIssue.InvalidOption)
     }
 
     @Test

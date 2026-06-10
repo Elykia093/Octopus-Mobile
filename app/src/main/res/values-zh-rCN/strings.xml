@@ -647,6 +647,23 @@
     <string name="setting_model_info_update_interval_summary">单位为小时。</string>
     <string name="setting_sync_llm_interval_label">渠道同步间隔</string>
     <string name="setting_sync_llm_interval_summary">单位为小时。</string>
+    <string name="setting_site_sync_interval_label">站点同步间隔</string>
+    <string name="setting_site_checkin_interval_label">站点签到间隔</string>
+    <string name="setting_responses_ws_enabled_label">Responses WebSocket</string>
+    <string name="setting_responses_ws_default_mode_label">Responses WebSocket 模式</string>
+    <string name="setting_sse_heartbeat_interval_label">SSE 心跳间隔</string>
+    <string name="setting_sse_pre_stream_heartbeat_delay_label">SSE 建流前心跳延迟</string>
+    <string name="setting_projected_channel_auto_group_enabled_label">投影渠道自动分组</string>
+    <string name="setting_outlier_retire_enabled_label">离群退役</string>
+    <string name="setting_outlier_retire_interval_label">离群检测间隔</string>
+    <string name="setting_outlier_window_capacity_label">离群窗口容量</string>
+    <string name="setting_outlier_window_minutes_label">离群窗口分钟</string>
+    <string name="setting_outlier_min_samples_label">离群最小样本数</string>
+    <string name="setting_outlier_fail_rate_pct_label">离群失败率阈值</string>
+    <string name="setting_outlier_consec_fails_label">离群连续失败阈值</string>
+    <string name="setting_outlier_recover_streak_label">离群恢复连续成功数</string>
+    <string name="setting_outlier_reap_minutes_label">离群窗口回收分钟</string>
+    <string name="setting_outlier_cf_recover_minutes_label">离群 CF 恢复冷却分钟</string>
     <string name="setting_circuit_breaker_threshold_label">熔断触发阈值</string>
     <string name="setting_circuit_breaker_threshold_summary">连续失败达到该次数后触发熔断。</string>
     <string name="setting_circuit_breaker_cooldown_label">基础冷却时间</string>
@@ -708,6 +725,7 @@
     <string name="setting_edit_hint">请输入新值</string>
     <string name="setting_edit_invalid_number">请输入有效的数字。</string>
     <string name="setting_edit_invalid_cors">请输入有效的 CORS Origin。</string>
+    <string name="setting_edit_invalid_option">请输入支持的选项。</string>
 
     <string name="apikey_fallback_name">密钥 #%1$d</string>
     <string name="empty_title">暂无数据</string>

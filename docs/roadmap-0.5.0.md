@@ -16,6 +16,8 @@
 - 脚本支持从 `CHANGELOG.md` 提取指定版本的发布说明。
 - 脚本支持 `-DryRun`，发布前可预览 tag、仓库、附件和 release notes。
 - 脚本支持 `-Signed`，用于真实签名 APK 产物命名。
+- 新增 1.0 Web/Mobile 覆盖基线，确认当前 Mobile 已覆盖 Web 参考源码中的 `/api/v1` 路径。
+- 补齐 Mobile 设置页对 Web 设置项的标题、开关识别和校验规则。
 
 ## 后续候选
 
@@ -23,8 +25,10 @@
 2. Release checklist：在脚本中检查 git 工作区、tag 是否存在、当前版本是否匹配。
 3. GitHub Actions 手动发版 workflow：通过 workflow_dispatch 输入版本号，自动构建并创建 Release。
 4. Signed APK 命名固化：让 Gradle 输出文件名直接带版本号和 signed/unsigned 标识。
+5. Web 行为审计：按 Home、Site、Projection、Channel、Group、Model、API Key、Log、Setting 模块核对搜索、筛选、反馈和批量操作体验。
 
 ## 验证基线
 
 - `scripts/create-github-release.ps1 -Version 0.4.0 -DryRun`
 - `git diff --check`
+- `.\gradlew.bat testReleaseUnitTest`

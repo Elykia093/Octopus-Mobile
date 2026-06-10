@@ -662,8 +662,16 @@ private fun settingItemIcon(key: String): ImageVector = when (key) {
     "stats_save_interval" -> AppMiuixIcons.Time
     "cors_allow_origins" -> AppMiuixIcons.ApiKey
     "relay_log_keep_period" -> AppMiuixIcons.Log
+    "site_sync_interval", "site_checkin_interval" -> AppMiuixIcons.Site
     "model_info_update_interval" -> AppMiuixIcons.Cost
     "sync_llm_interval" -> AppMiuixIcons.Sync
+    "responses_ws_enabled", "responses_ws_default_mode" -> AppMiuixIcons.Request
+    "sse_heartbeat_interval", "sse_pre_stream_heartbeat_delay" -> AppMiuixIcons.Time
+    "projected_channel_auto_group_enabled" -> AppMiuixIcons.Group
+    "outlier_retire_enabled" -> AppMiuixIcons.Success
+    "outlier_retire_interval", "outlier_window_capacity", "outlier_window_minutes",
+    "outlier_min_samples", "outlier_fail_rate_pct", "outlier_consec_fails",
+    "outlier_recover_streak", "outlier_reap_minutes", "outlier_cf_recover_minutes" -> AppMiuixIcons.Info
     "circuit_breaker_threshold" -> AppMiuixIcons.Info
     "circuit_breaker_cooldown" -> AppMiuixIcons.Time
     "circuit_breaker_max_cooldown" -> AppMiuixIcons.Time
@@ -678,8 +686,25 @@ private fun settingItemTitle(key: String): String = when (key) {
     "cors_allow_origins" -> stringResource(R.string.setting_cors_allow_origins_label)
     "relay_log_keep_period" -> stringResource(R.string.setting_log_keep_period_label)
     "relay_log_keep_enabled" -> stringResource(R.string.setting_log_keep_enabled_label)
+    "site_sync_interval" -> stringResource(R.string.setting_site_sync_interval_label)
+    "site_checkin_interval" -> stringResource(R.string.setting_site_checkin_interval_label)
     "model_info_update_interval" -> stringResource(R.string.setting_model_info_update_interval_label)
     "sync_llm_interval" -> stringResource(R.string.setting_sync_llm_interval_label)
+    "responses_ws_enabled" -> stringResource(R.string.setting_responses_ws_enabled_label)
+    "responses_ws_default_mode" -> stringResource(R.string.setting_responses_ws_default_mode_label)
+    "sse_heartbeat_interval" -> stringResource(R.string.setting_sse_heartbeat_interval_label)
+    "sse_pre_stream_heartbeat_delay" -> stringResource(R.string.setting_sse_pre_stream_heartbeat_delay_label)
+    "projected_channel_auto_group_enabled" -> stringResource(R.string.setting_projected_channel_auto_group_enabled_label)
+    "outlier_retire_enabled" -> stringResource(R.string.setting_outlier_retire_enabled_label)
+    "outlier_retire_interval" -> stringResource(R.string.setting_outlier_retire_interval_label)
+    "outlier_window_capacity" -> stringResource(R.string.setting_outlier_window_capacity_label)
+    "outlier_window_minutes" -> stringResource(R.string.setting_outlier_window_minutes_label)
+    "outlier_min_samples" -> stringResource(R.string.setting_outlier_min_samples_label)
+    "outlier_fail_rate_pct" -> stringResource(R.string.setting_outlier_fail_rate_pct_label)
+    "outlier_consec_fails" -> stringResource(R.string.setting_outlier_consec_fails_label)
+    "outlier_recover_streak" -> stringResource(R.string.setting_outlier_recover_streak_label)
+    "outlier_reap_minutes" -> stringResource(R.string.setting_outlier_reap_minutes_label)
+    "outlier_cf_recover_minutes" -> stringResource(R.string.setting_outlier_cf_recover_minutes_label)
     "circuit_breaker_threshold" -> stringResource(R.string.setting_circuit_breaker_threshold_label)
     "circuit_breaker_cooldown" -> stringResource(R.string.setting_circuit_breaker_cooldown_label)
     "circuit_breaker_max_cooldown" -> stringResource(R.string.setting_circuit_breaker_max_cooldown_label)
@@ -690,21 +715,37 @@ private val NUMERIC_KEYS = setOf(
     "stats_save_interval",
     "model_info_update_interval",
     "sync_llm_interval",
+    "site_sync_interval",
+    "site_checkin_interval",
     "relay_log_keep_period",
     "circuit_breaker_threshold",
     "circuit_breaker_cooldown",
     "circuit_breaker_max_cooldown",
+    "sse_heartbeat_interval",
+    "sse_pre_stream_heartbeat_delay",
+    "outlier_retire_interval",
+    "outlier_window_capacity",
+    "outlier_window_minutes",
+    "outlier_min_samples",
+    "outlier_fail_rate_pct",
+    "outlier_consec_fails",
+    "outlier_recover_streak",
+    "outlier_reap_minutes",
+    "outlier_cf_recover_minutes",
 )
 
 private val BOOLEAN_SETTING_KEYS = setOf(
     "relay_log_keep_enabled",
+    "responses_ws_enabled",
     "group_health_enabled",
+    "outlier_retire_enabled",
 )
 
 internal enum class SettingValidationIssue {
     InvalidNumber,
     InvalidUrl,
     InvalidCors,
+    InvalidOption,
 }
 
 internal fun validateSettingValue(key: String, value: String): SettingValidationIssue? = when (key) {
@@ -714,18 +755,33 @@ internal fun validateSettingValue(key: String, value: String): SettingValidation
             "stats_save_interval" -> 1..1440
             "model_info_update_interval" -> 1..8760
             "sync_llm_interval" -> 1..8760
+            "site_sync_interval" -> 1..8760
+            "site_checkin_interval" -> 1..8760
             "relay_log_keep_period" -> 1..3650
             "circuit_breaker_threshold" -> 1..1000
             "circuit_breaker_cooldown" -> 1..86400
             "circuit_breaker_max_cooldown" -> 1..604800
+            "sse_heartbeat_interval" -> 0..Int.MAX_VALUE
+            "sse_pre_stream_heartbeat_delay" -> 0..Int.MAX_VALUE
+            "outlier_window_capacity" -> 1..20
+            "outlier_fail_rate_pct" -> 1..100
             else -> 1..Int.MAX_VALUE
         }
         if (number == null || number !in range) SettingValidationIssue.InvalidNumber else null
     }
     "proxy_url" -> if (value.isBlank() || value.isValidSettingUrl()) null else SettingValidationIssue.InvalidUrl
     "cors_allow_origins" -> if (value.isBlank() || value.hasValidCorsOrigins()) null else SettingValidationIssue.InvalidCors
+    "projected_channel_auto_group_enabled" -> {
+        if (value.trim() in PROJECTED_CHANNEL_AUTO_GROUP_VALUES) null else SettingValidationIssue.InvalidOption
+    }
+    "responses_ws_default_mode" -> {
+        if (value.trim() in RESPONSES_WS_DEFAULT_MODES) null else SettingValidationIssue.InvalidOption
+    }
     else -> null
 }
+
+private val PROJECTED_CHANNEL_AUTO_GROUP_VALUES = setOf("0", "1", "2", "3", "true", "false")
+private val RESPONSES_WS_DEFAULT_MODES = setOf("off", "transform", "passthrough")
 
 internal fun canSubmitSettingEdit(key: String, value: String): Boolean =
     validateSettingValue(key, value) == null
@@ -791,6 +847,7 @@ private fun settingValidationMessage(issue: SettingValidationIssue): String = wh
     SettingValidationIssue.InvalidNumber -> stringResource(R.string.setting_edit_invalid_number)
     SettingValidationIssue.InvalidUrl -> stringResource(R.string.message_invalid_url)
     SettingValidationIssue.InvalidCors -> stringResource(R.string.setting_edit_invalid_cors)
+    SettingValidationIssue.InvalidOption -> stringResource(R.string.setting_edit_invalid_option)
 }
 
 @Composable

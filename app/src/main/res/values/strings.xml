@@ -698,6 +698,23 @@
     <string name="setting_model_info_update_interval_summary">Value in hours.</string>
     <string name="setting_sync_llm_interval_label">Channel sync interval</string>
     <string name="setting_sync_llm_interval_summary">Value in hours.</string>
+    <string name="setting_site_sync_interval_label">Site sync interval</string>
+    <string name="setting_site_checkin_interval_label">Site check-in interval</string>
+    <string name="setting_responses_ws_enabled_label">Responses WebSocket</string>
+    <string name="setting_responses_ws_default_mode_label">Responses WebSocket mode</string>
+    <string name="setting_sse_heartbeat_interval_label">SSE heartbeat interval</string>
+    <string name="setting_sse_pre_stream_heartbeat_delay_label">SSE pre-stream heartbeat delay</string>
+    <string name="setting_projected_channel_auto_group_enabled_label">Projected channel auto group</string>
+    <string name="setting_outlier_retire_enabled_label">Outlier retirement</string>
+    <string name="setting_outlier_retire_interval_label">Outlier check interval</string>
+    <string name="setting_outlier_window_capacity_label">Outlier window capacity</string>
+    <string name="setting_outlier_window_minutes_label">Outlier window minutes</string>
+    <string name="setting_outlier_min_samples_label">Outlier minimum samples</string>
+    <string name="setting_outlier_fail_rate_pct_label">Outlier fail rate percent</string>
+    <string name="setting_outlier_consec_fails_label">Outlier consecutive failures</string>
+    <string name="setting_outlier_recover_streak_label">Outlier recovery streak</string>
+    <string name="setting_outlier_reap_minutes_label">Outlier reap minutes</string>
+    <string name="setting_outlier_cf_recover_minutes_label">Outlier CF recovery minutes</string>
     <string name="setting_circuit_breaker_threshold_label">Circuit breaker threshold</string>
     <string name="setting_circuit_breaker_threshold_summary">Trigger after this many continuous failures.</string>
     <string name="setting_circuit_breaker_cooldown_label">Base cooldown</string>
@@ -709,6 +726,7 @@
     <string name="setting_edit_hint">Enter new value</string>
     <string name="setting_edit_invalid_number">Please enter a valid number.</string>
     <string name="setting_edit_invalid_cors">Please enter valid CORS origins.</string>
+    <string name="setting_edit_invalid_option">Please enter a supported option.</string>
 
     <string name="empty_title">No data</string>
     <string name="error_title">Load failed</string>

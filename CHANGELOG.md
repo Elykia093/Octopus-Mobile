@@ -6,6 +6,8 @@
 
 - Added a PowerShell release helper that extracts version notes from `CHANGELOG.md`, creates a GitHub Release through GitHub CLI, and uploads the generated APK.
 - Added the 0.5.0 roadmap focused on release automation and safer version iteration.
+- Added Mobile setting labels, switch handling, and validation for Web setting keys including site automation, Responses WebSocket, SSE heartbeat, projected channel auto-group, and outlier retirement.
+- Added a Web/Mobile coverage baseline for the 1.0 parity track.
 
 ### Verification
 
