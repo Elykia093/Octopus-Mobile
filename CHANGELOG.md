@@ -10,6 +10,7 @@
 - Added SiteChannel projection filters and sorting for attention, request history, disabled models, model count, and attention-first review flows.
 - Added a Web/Mobile coverage baseline for the 1.0 parity track.
 - Added a release preparation helper for updating Gradle version metadata and changelog release dates.
+- Added an Android Release GitHub Actions workflow for manual versioned release builds, tag creation, and GitHub Release publishing.
 
 ### Changed
 
@@ -20,6 +21,7 @@
 
 - `scripts/create-github-release.ps1 -Version 0.4.0 -DryRun`
 - `scripts/prepare-release.ps1 -Version 0.5.0 -DryRun`
+- GitHub Actions release workflow YAML parse check.
 - SiteChannel filter and sort unit coverage.
 
 ## [0.4.0] - 2026-06-10

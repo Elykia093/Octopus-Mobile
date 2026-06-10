@@ -1,0 +1,132 @@
+name: Android Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, for example 0.5.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      OCTOPUS_RELEASE_KEYSTORE_BASE64: ${{ secrets.OCTOPUS_RELEASE_KEYSTORE_BASE64 }}
+      OCTOPUS_RELEASE_STORE_PASSWORD: ${{ secrets.OCTOPUS_RELEASE_STORE_PASSWORD }}
+      OCTOPUS_RELEASE_KEY_ALIAS: ${{ secrets.OCTOPUS_RELEASE_KEY_ALIAS }}
+      OCTOPUS_RELEASE_KEY_PASSWORD: ${{ secrets.OCTOPUS_RELEASE_KEY_PASSWORD }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Accept Android SDK licenses
+        shell: bash
+        run: |
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(command -v sdkmanager)"
+          fi
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(command -v sdkmanager)"
+          fi
+          "$SDKMANAGER" --install "platform-tools" "build-tools;37.0.0" "platforms;android-37.0"
+
+      - name: Normalize Android 37 platform directory
+        shell: bash
+        run: |
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          if [ -d "$SDK_ROOT/platforms/android-37.0" ] && [ ! -d "$SDK_ROOT/platforms/android-37" ]; then
+            mv "$SDK_ROOT/platforms/android-37.0" "$SDK_ROOT/platforms/android-37"
+            sed -i 's/platforms;android-37.0/platforms;android-37/' "$SDK_ROOT/platforms/android-37/package.xml" || true
+            sed -i 's/<api-level>37.0<\/api-level>/<api-level>37<\/api-level>/' "$SDK_ROOT/platforms/android-37/package.xml" || true
+            sed -i 's/AndroidVersion.ApiLevel=37.0/AndroidVersion.ApiLevel=37/' "$SDK_ROOT/platforms/android-37/source.properties" || true
+          fi
+
+      - name: Restore release keystore
+        if: ${{ env.OCTOPUS_RELEASE_KEYSTORE_BASE64 != '' }}
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/octopus-signing"
+          printf '%s' "$OCTOPUS_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/octopus-signing/release.jks"
+          echo "OCTOPUS_RELEASE_STORE_FILE=$RUNNER_TEMP/octopus-signing/release.jks" >> "$GITHUB_ENV"
+
+      - name: Grant execute permission
+        run: chmod +x gradlew
+
+      - name: Test release unit tests
+        run: ./gradlew testReleaseUnitTest --stacktrace
+
+      - name: Build release
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Create or verify release tag
+        shell: bash
+        run: |
+          VERSION="${{ inputs.version }}"
+          VERSION="${VERSION#v}"
+          TAG="v$VERSION"
+          if git rev-parse --verify "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Release tag $TAG already exists."
+            TAG_SHA="$(git rev-list -n 1 "$TAG")"
+            HEAD_SHA="$(git rev-parse HEAD)"
+            if [ "$TAG_SHA" != "$HEAD_SHA" ]; then
+              echo "Release tag $TAG points to $TAG_SHA, but the current commit is $HEAD_SHA."
+              exit 1
+            fi
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
+
+      - name: Create GitHub Release
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.version }}".Trim().TrimStart("v")
+          $apk = Get-ChildItem -LiteralPath "app/build/outputs/apk/release" -Filter "*.apk" |
+            Sort-Object Name |
+            Select-Object -First 1
+          if (-not $apk) {
+            throw "No release APK was produced."
+          }
+
+          $arguments = @(
+            "-Version", $version,
+            "-AssetPath", $apk.FullName,
+            "-GhPath", "gh"
+          )
+          if ($env:OCTOPUS_RELEASE_STORE_FILE) {
+            $arguments += "-Signed"
+          }
+
+          ./scripts/create-github-release.ps1 @arguments

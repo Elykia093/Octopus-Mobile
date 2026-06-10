@@ -114,6 +114,8 @@ $env:GH_CLI_PATH = "D:\GitHub CLI\gh.exe" # gh 不在 PATH 时设置
 .\scripts\create-github-release.ps1 -Version 0.4.0
 ```
 
+也可以在 GitHub Actions 中手动运行 `Android Release` workflow，输入已经准备好的版本号。该 workflow 会执行 release 单元测试、构建 APK、创建缺失的 `vX.Y.Z` tag，并通过同一个 release 脚本创建 GitHub Release。
+
 ## 开发说明
 
 - 业务页面放在各自的 `feature/*` 包中，`feature/app` 只保留应用壳和导航。
@@ -129,4 +131,4 @@ $env:GH_CLI_PATH = "D:\GitHub CLI\gh.exe" # gh 不在 PATH 时设置
 
 ## CI
 
-仓库包含 Android GitHub Actions workflow，会在推送和 PR 时执行 release 单元测试、release 构建并上传 release 构建产物。
+仓库包含 Android GitHub Actions workflow，会在推送和 PR 时执行 release 单元测试、release 构建并上传 release 构建产物；正式发版使用独立的 `Android Release` 手动 workflow。
