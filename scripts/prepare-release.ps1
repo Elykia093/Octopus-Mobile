@@ -53,6 +53,20 @@ function Replace-RequiredOnce {
     return $regex.Replace($Text, $Replacement, 1)
 }
 
+function Write-Utf8NoBom {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Path,
+        [Parameter(Mandatory = $true)]
+        [string] $Text
+    )
+
+    $resolvedPath = Resolve-Path -LiteralPath $Path -ErrorAction Stop
+    $encoding = New-Object System.Text.UTF8Encoding($false)
+    $normalizedText = $Text.TrimEnd("`r", "`n") + [Environment]::NewLine
+    [System.IO.File]::WriteAllText($resolvedPath.Path, $normalizedText, $encoding)
+}
+
 $build = Get-Content -LiteralPath $buildPath -Raw
 $currentCodeMatch = [regex]::Match($build, "versionCode\s*=\s*(?<code>\d+)")
 if (-not $currentCodeMatch.Success) {
@@ -105,7 +119,7 @@ if ($DryRun) {
     exit 0
 }
 
-Set-Content -LiteralPath $buildPath -Value $nextBuild -Encoding UTF8
-Set-Content -LiteralPath $changelogPath -Value $nextChangelog -Encoding UTF8
+Write-Utf8NoBom -Path $buildPath -Text $nextBuild
+Write-Utf8NoBom -Path $changelogPath -Text $nextChangelog
 
 Write-Host "Prepared release v$versionNumber."

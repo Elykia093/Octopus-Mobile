@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.5.0] - Unreleased
+## [0.5.0] - 2026-06-10
 
 ### Added
 
@@ -21,7 +21,7 @@
 
 ### Verification
 
-- `scripts/create-github-release.ps1 -Version 0.4.0 -DryRun`
+- `scripts/create-github-release.ps1 -Version 0.5.0 -DryRun`
 - `scripts/prepare-release.ps1 -Version 0.5.0 -DryRun`
 - `.\gradlew.bat testReleaseUnitTest`
 - `.\gradlew.bat assembleRelease`
