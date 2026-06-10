@@ -7,10 +7,11 @@
 - Added SiteChannel batch model route updates and batch model enable/disable actions for Projection groups.
 - Added account-level Projection group scoping and in-account model search.
 - Added account-level Projection model sorting by model name, group name, route type, and recent request.
+- Added Projection advanced settings validation for param override JSON objects.
 
 ### Verification
 
-- SiteChannel batch model request, account filter, and account sort unit coverage.
+- SiteChannel batch model request, account filter/sort, and projected settings validation unit coverage.
 
 ## [0.5.0] - 2026-06-10
 

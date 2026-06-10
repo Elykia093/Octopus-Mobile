@@ -312,6 +312,7 @@
     <string name="site_channel_projected_settings_title">投影渠道设置</string>
     <string name="site_channel_auto_group_label">自动分组</string>
     <string name="site_channel_param_override_label">参数覆盖 JSON</string>
+    <string name="site_channel_param_override_invalid">%1$s 的参数覆盖必须是 JSON 对象。</string>
 
     <string name="proxy_pool_title">代理池</string>
     <string name="proxy_pool_panel_summary">管理可复用代理配置与引用关系。</string>

@@ -51,6 +51,8 @@ import com.elykia.octopus.core.designsystem.SecureVisibleWindow
 import com.elykia.octopus.core.designsystem.SoftIconTile
 import com.elykia.octopus.core.designsystem.ToolbarChip
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -1048,6 +1050,7 @@ private fun ProjectedSettingsDialog(
     if (target == null) return
     var items by remember(target.group.groupKey) { mutableStateOf(target.group.projectedChannels.map { it.toEditorItem() }) }
     val request = remember(target.group, items) { buildProjectedSettingsRequest(target.group.projectedChannels, items) }
+    val invalidItems = remember(items) { invalidProjectedSettingsParamOverrideItems(items) }
     val scrollState = rememberScrollState()
 
     OverlayDialog(
@@ -1059,6 +1062,14 @@ private fun ProjectedSettingsDialog(
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             DialogScrollableColumn(fraction = 0.66f, scrollState = scrollState) {
                 operationError?.takeIf { it.isNotBlank() }?.let { OperationErrorCard(message = it) }
+                invalidItems.firstOrNull()?.let { item ->
+                    OperationErrorCard(
+                        message = stringResource(
+                            R.string.site_channel_param_override_invalid,
+                            item.channelName.ifBlank { "#${item.channelId}" },
+                        ),
+                    )
+                }
                 items.forEachIndexed { index, item ->
                     ProjectedSettingsRow(
                         item = item,
@@ -1071,7 +1082,7 @@ private fun ProjectedSettingsDialog(
             }
             DialogButtons(
                 submitting = submitting,
-                confirmEnabled = request.isNotEmpty(),
+                confirmEnabled = request.isNotEmpty() && invalidItems.isEmpty(),
                 onDismiss = onDismiss,
                 onConfirm = { onConfirm(target, request) },
             )
@@ -1306,7 +1317,7 @@ private fun SiteProjectedChannelSettings.toEditorItem(): ProjectedSettingsEditor
         paramOverride = paramOverride,
     )
 
-private fun buildProjectedSettingsRequest(
+internal fun buildProjectedSettingsRequest(
     original: List<SiteProjectedChannelSettings>,
     items: List<ProjectedSettingsEditorItem>,
 ): List<SiteProjectedChannelSettingsUpdateRequest> {
@@ -1323,6 +1334,17 @@ private fun buildProjectedSettingsRequest(
             )
         }
     }
+}
+
+internal fun invalidProjectedSettingsParamOverrideItems(
+    items: List<ProjectedSettingsEditorItem>,
+): List<ProjectedSettingsEditorItem> =
+    items.filter { item -> !isValidProjectedSettingsParamOverride(item.paramOverride) }
+
+private fun isValidProjectedSettingsParamOverride(value: String): Boolean {
+    val trimmed = value.trim()
+    if (trimmed.isBlank()) return true
+    return runCatching { Json.parseToJsonElement(trimmed) is JsonObject }.getOrDefault(false)
 }
 
 private data class SiteChannelGroupTarget(
@@ -1347,7 +1369,7 @@ private data class SourceKeyEditorItem(
     val isNew: Boolean,
 )
 
-private data class ProjectedSettingsEditorItem(
+internal data class ProjectedSettingsEditorItem(
     val channelId: Int,
     val channelName: String,
     val autoGroup: Int,

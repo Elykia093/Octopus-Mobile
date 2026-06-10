@@ -19,11 +19,11 @@
 - 新增账号内分组范围切换和模型搜索。
 - 搜索结果会收窄模型列表，批量操作跟随当前可见模型范围。
 - 新增账号内模型排序：模型名、分组名、端点格式、最近请求。
+- 新增 Projection advanced settings 的参数覆盖 JSON 对象校验。
 
 ## 后续候选
 
-1. Projection advanced settings polish：参数覆盖 JSON 的校验与更清晰反馈。
-2. Site workflows 审计：站点同步、签到、导入、归档站点、代理模式、账号编辑。
+1. Site workflows 审计：站点同步、签到、导入、归档站点、代理模式、账号编辑。
 
 ## 验证基线
 

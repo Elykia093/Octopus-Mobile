@@ -312,6 +312,7 @@
     <string name="site_channel_projected_settings_title">Projected channel settings</string>
     <string name="site_channel_auto_group_label">Auto group</string>
     <string name="site_channel_param_override_label">Param override JSON</string>
+    <string name="site_channel_param_override_invalid">%1$s param override must be a JSON object.</string>
 
     <string name="proxy_pool_title">Proxy Pool</string>
     <string name="proxy_pool_panel_summary">Manage reusable proxy configurations and their references.</string>
