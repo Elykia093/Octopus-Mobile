@@ -6,10 +6,12 @@
 
 - Added a Site check-in overview and status filters aligned with the Web admin CheckinPanel.
 - Added Site check-in status derivation, summary, search, and filter unit coverage.
+- Added richer Site account sync and check-in operation messages using server status, result details, and check-in rewards.
 
 ### Changed
 
 - Site search and batch scope now follow the visible accounts produced by check-in status filters.
+- Failed Site account sync and check-in results now surface as operation errors instead of generic success messages.
 
 ## [0.6.0] - 2026-06-10
 

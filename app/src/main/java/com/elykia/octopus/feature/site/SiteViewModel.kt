@@ -256,8 +256,13 @@ class SiteViewModel @Inject constructor(
     fun syncAccount(account: SiteAccount) {
         launchMutation(
             block = { repository.syncAccount(account.id) },
-            onSuccess = {
-                _uiState.value = _uiState.value.copy(operationMessage = "同步已完成。")
+            onSuccess = { result ->
+                val message = result.toSiteSyncOperationMessage()
+                _uiState.value = if (result.status.isFailedSiteOperationStatus()) {
+                    _uiState.value.copy(operationError = message)
+                } else {
+                    _uiState.value.copy(operationMessage = message)
+                }
             },
         )
     }
@@ -265,8 +270,13 @@ class SiteViewModel @Inject constructor(
     fun checkinAccount(account: SiteAccount) {
         launchMutation(
             block = { repository.checkinAccount(account.id) },
-            onSuccess = {
-                _uiState.value = _uiState.value.copy(operationMessage = "签到已完成。")
+            onSuccess = { result ->
+                val message = result.toSiteCheckinOperationMessage()
+                _uiState.value = if (result.status.isFailedSiteOperationStatus()) {
+                    _uiState.value.copy(operationError = message)
+                } else {
+                    _uiState.value.copy(operationMessage = message)
+                }
             },
         )
     }
