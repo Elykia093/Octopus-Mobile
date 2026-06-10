@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.0] - Unreleased
+
+### Added
+
+- Added a Site check-in overview and status filters aligned with the Web admin CheckinPanel.
+- Added Site check-in status derivation, summary, search, and filter unit coverage.
+
+### Changed
+
+- Site search and batch scope now follow the visible accounts produced by check-in status filters.
+
 ## [0.6.0] - 2026-06-10
 
 ### Added

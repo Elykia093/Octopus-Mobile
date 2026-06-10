@@ -136,6 +136,16 @@
     <string name="site_search_hint">搜索站点或账号</string>
     <string name="site_search_empty">没有匹配的站点。</string>
     <string name="site_panel_summary">管理上游站点、账号、同步和签到。</string>
+    <string name="site_checkin_overview_title">签到总览</string>
+    <string name="site_checkin_visible_count">%1$d 站点 · %2$d 账号</string>
+    <string name="site_checkin_failed_count">失败 %1$d</string>
+    <string name="site_checkin_filter_chip">%1$d %2$s</string>
+    <string name="site_checkin_filter_all">全部</string>
+    <string name="site_checkin_filter_success">成功</string>
+    <string name="site_checkin_filter_failed">失败</string>
+    <string name="site_checkin_filter_idle">未执行</string>
+    <string name="site_checkin_filter_disabled">禁用</string>
+    <string name="site_checkin_filter_empty">当前签到筛选没有匹配站点。</string>
     <string name="site_create_title">创建站点</string>
     <string name="site_edit_title">编辑站点</string>
     <string name="site_account_create_title">创建账号</string>

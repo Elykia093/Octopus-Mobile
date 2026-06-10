@@ -28,6 +28,7 @@ Bring Octopus-Mobile to functional parity with the active Web management console
 
 ### 0.7.x
 
+- Site workflows: check-in overview, status filters, sync/check-in feedback, import/archive/account editing parity polish.
 - Home and health workflows: group health summary, run-all/full-probe behavior, status drilldown, and stale/failed state recovery.
 - Channel workflows: Web parity audit for channel batch operations, model sync, key handling, proxy configuration, and operation feedback.
 - Log workflows: close remaining gaps around jump targets, site-action target feedback, stream fallback, and destructive actions.

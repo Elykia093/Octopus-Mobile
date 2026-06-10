@@ -43,6 +43,7 @@ import com.elykia.octopus.core.designsystem.DialogScrollableColumn
 import com.elykia.octopus.core.designsystem.ErrorStateCard
 import com.elykia.octopus.core.designsystem.InlineEmptyCard
 import com.elykia.octopus.core.designsystem.LoadingStateCard
+import com.elykia.octopus.core.designsystem.OctopusTones
 import com.elykia.octopus.core.designsystem.OctopusTokens
 import com.elykia.octopus.core.designsystem.OperationErrorCard
 import com.elykia.octopus.core.designsystem.PageActionButton
@@ -52,6 +53,7 @@ import com.elykia.octopus.core.designsystem.SoftIconTile
 import com.elykia.octopus.core.designsystem.ToolbarChip
 import com.elykia.octopus.core.designsystem.formatMoney
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
+import java.time.LocalDate
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -82,6 +84,7 @@ fun SiteScreen(
     var showBatchDialog by remember { mutableStateOf(false) }
     var batchActionToConfirm by remember { mutableStateOf<String?>(null) }
     var availableModelsSite by remember { mutableStateOf<Site?>(null) }
+    var checkinFilter by remember { mutableStateOf(SiteCheckinFilter.All) }
 
     val editingSite = editingSiteId?.let { id -> uiState.sites.firstOrNull { it.id == id } }
     val accountDialogSite = accountDialogSiteId?.let { id -> uiState.sites.firstOrNull { it.id == id } }
@@ -89,13 +92,10 @@ fun SiteScreen(
         uiState.sites.asSequence().flatMap { it.accounts.orEmpty().asSequence() }.firstOrNull { it.id == id }
     }
     val query = searchTerm.trim()
-    val sites = uiState.sites.filter { site ->
-        query.isBlank() ||
-            site.name.contains(query, ignoreCase = true) ||
-            site.baseUrl.contains(query, ignoreCase = true) ||
-            site.platform.contains(query, ignoreCase = true) ||
-            site.accounts.orEmpty().any { it.name.contains(query, ignoreCase = true) }
-    }
+    val checkinToday = LocalDate.now()
+    val checkinSummary = buildSiteCheckinSummary(uiState.sites, checkinToday)
+    val sites = filterSitesByQueryAndCheckin(uiState.sites, query, checkinFilter, checkinToday)
+    val visibleAccountCount = sites.sumOf { it.accounts.orEmpty().size }
 
     AppLazyPageScaffold(
         title = stringResource(R.string.site_title),
@@ -187,6 +187,17 @@ fun SiteScreen(
                 uiState.operationMessage?.takeIf { it.isNotBlank() }?.let { message ->
                     item { AppInfoChip(text = message, icon = AppMiuixIcons.Info, tint = OctopusTokens.Accent) }
                 }
+                if (uiState.sites.isNotEmpty()) {
+                    item {
+                        SiteCheckinFilterPanel(
+                            summary = checkinSummary,
+                            selectedFilter = checkinFilter,
+                            visibleSiteCount = sites.size,
+                            visibleAccountCount = visibleAccountCount,
+                            onFilterChange = { checkinFilter = it },
+                        )
+                    }
+                }
                 when {
                     uiState.sites.isEmpty() -> item {
                         InlineEmptyCard(
@@ -197,7 +208,13 @@ fun SiteScreen(
                     sites.isEmpty() -> item {
                         InlineEmptyCard(
                             title = stringResource(R.string.empty_title),
-                            summary = stringResource(R.string.site_search_empty),
+                            summary = stringResource(
+                                if (checkinFilter == SiteCheckinFilter.All) {
+                                    R.string.site_search_empty
+                                } else {
+                                    R.string.site_checkin_filter_empty
+                                },
+                            ),
                         )
                     }
                     else -> items(sites, key = { it.id }) { site ->
@@ -530,6 +547,62 @@ private fun SiteBatchDialog(
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(text = stringResource(R.string.action_close), enabled = !submitting, onClick = onDismiss)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SiteCheckinFilterPanel(
+    summary: SiteCheckinSummary,
+    selectedFilter: SiteCheckinFilter,
+    visibleSiteCount: Int,
+    visibleAccountCount: Int,
+    onFilterChange: (SiteCheckinFilter) -> Unit,
+) {
+    AppListCard {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SoftIconTile(
+                    icon = AppMiuixIcons.Time,
+                    contentDescription = stringResource(R.string.site_checkin_overview_title),
+                    tint = OctopusTokens.Accent,
+                )
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = stringResource(R.string.site_checkin_overview_title),
+                        style = MiuixTheme.textStyles.title3,
+                        fontWeight = FontWeight.SemiBold,
+                        color = OctopusTokens.TextPrimary,
+                    )
+                    Text(
+                        text = stringResource(R.string.site_checkin_visible_count, visibleSiteCount, visibleAccountCount),
+                        style = MiuixTheme.textStyles.body2,
+                        color = OctopusTokens.TextSecondary,
+                    )
+                }
+                AppInfoChip(
+                    text = stringResource(R.string.site_checkin_failed_count, summary.failed),
+                    icon = AppMiuixIcons.Info,
+                    tint = if (summary.failed > 0) OctopusTones.Danger else OctopusTokens.TextSecondary,
+                )
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SiteCheckinFilter.entries.forEach { filter ->
+                    ToolbarChip(
+                        text = stringResource(
+                            R.string.site_checkin_filter_chip,
+                            siteCheckinFilterCount(summary, filter),
+                            siteCheckinFilterLabel(filter),
+                        ),
+                        selected = selectedFilter == filter,
+                        onClick = { onFilterChange(filter) },
+                    )
+                }
             }
         }
     }
@@ -1273,6 +1346,23 @@ private fun DialogLabel(text: String) {
 @Composable
 private fun proxyConfigurationLabel(proxy: ProxyConfiguration): String =
     proxy.name.ifBlank { "#${proxy.id}" } + if (proxy.enabled) "" else " ${stringResource(R.string.common_disabled)}"
+
+private fun siteCheckinFilterCount(summary: SiteCheckinSummary, filter: SiteCheckinFilter): Int = when (filter) {
+    SiteCheckinFilter.All -> summary.total
+    SiteCheckinFilter.Success -> summary.success
+    SiteCheckinFilter.Failed -> summary.failed
+    SiteCheckinFilter.Idle -> summary.idle
+    SiteCheckinFilter.Disabled -> summary.disabled
+}
+
+@Composable
+private fun siteCheckinFilterLabel(filter: SiteCheckinFilter): String = when (filter) {
+    SiteCheckinFilter.All -> stringResource(R.string.site_checkin_filter_all)
+    SiteCheckinFilter.Success -> stringResource(R.string.site_checkin_filter_success)
+    SiteCheckinFilter.Failed -> stringResource(R.string.site_checkin_filter_failed)
+    SiteCheckinFilter.Idle -> stringResource(R.string.site_checkin_filter_idle)
+    SiteCheckinFilter.Disabled -> stringResource(R.string.site_checkin_filter_disabled)
+}
 
 @Composable
 private fun importSourceLabel(source: SiteImportSource): String = when (source) {

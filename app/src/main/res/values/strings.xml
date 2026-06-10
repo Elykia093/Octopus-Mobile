@@ -136,6 +136,16 @@
     <string name="site_search_hint">Search sites or accounts</string>
     <string name="site_search_empty">No matching sites.</string>
     <string name="site_panel_summary">Manage upstream sites, accounts, sync and check-in.</string>
+    <string name="site_checkin_overview_title">Check-in overview</string>
+    <string name="site_checkin_visible_count">%1$d sites · %2$d accounts</string>
+    <string name="site_checkin_failed_count">Failed %1$d</string>
+    <string name="site_checkin_filter_chip">%1$d %2$s</string>
+    <string name="site_checkin_filter_all">All</string>
+    <string name="site_checkin_filter_success">Success</string>
+    <string name="site_checkin_filter_failed">Failed</string>
+    <string name="site_checkin_filter_idle">Idle</string>
+    <string name="site_checkin_filter_disabled">Disabled</string>
+    <string name="site_checkin_filter_empty">No sites match this check-in filter.</string>
     <string name="site_create_title">Create site</string>
     <string name="site_edit_title">Edit site</string>
     <string name="site_account_create_title">Create account</string>
