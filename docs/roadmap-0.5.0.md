@@ -16,16 +16,16 @@
 - 脚本支持从 `CHANGELOG.md` 提取指定版本的发布说明。
 - 脚本支持 `-DryRun`，发布前可预览 tag、仓库、附件和 release notes。
 - 脚本支持 `-Signed`，用于真实签名 APK 产物命名。
+- 新增 `scripts/prepare-release.ps1`，可统一更新 `versionCode`、`versionName` 和 `CHANGELOG.md` 日期，并支持 `-DryRun`。
+- `scripts/create-github-release.ps1` 增加正式发版检查：工作区必须干净、tag 必须存在、Gradle 版本必须匹配、changelog 不能仍是 Unreleased、APK 和 GitHub CLI 必须可用。
 - 新增 1.0 Web/Mobile 覆盖基线，确认当前 Mobile 已覆盖 Web 参考源码中的 `/api/v1` 路径。
 - 补齐 Mobile 设置页对 Web 设置项的标题、开关识别和校验规则。
 - 对齐 Web SiteChannel 投影列表行为：默认加载 `include_history=true`，新增未正确配置、有请求历史、禁用模型筛选，以及名称、模型数量、异常优先排序。
 
 ## 0.5.0 剩余收口
 
-1. 版本准备脚本：统一更新 `versionCode`、`versionName` 和 `CHANGELOG.md` 日期。
-2. Release checklist：在脚本中检查 git 工作区、tag 是否存在、当前版本是否匹配。
-3. GitHub Actions 手动发版 workflow：通过 workflow_dispatch 输入版本号，自动构建并创建 Release。
-4. Signed APK 命名固化：让 Gradle 输出文件名直接带版本号和 signed/unsigned 标识。
+1. GitHub Actions 手动发版 workflow：通过 workflow_dispatch 输入版本号，自动构建并创建 Release。
+2. Signed APK 命名固化：让 Gradle 输出文件名直接带版本号和 signed/unsigned 标识。
 
 ## 后续候选
 
@@ -36,6 +36,7 @@
 ## 验证基线
 
 - `scripts/create-github-release.ps1 -Version 0.4.0 -DryRun`
+- `scripts/prepare-release.ps1 -Version 0.5.0 -DryRun`
 - `git diff --check`
 - `.\gradlew.bat testReleaseUnitTest`
 - `.\gradlew.bat assembleRelease`

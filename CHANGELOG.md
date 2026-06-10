@@ -9,14 +9,17 @@
 - Added Mobile setting labels, switch handling, and validation for Web setting keys including site automation, Responses WebSocket, SSE heartbeat, projected channel auto-group, and outlier retirement.
 - Added SiteChannel projection filters and sorting for attention, request history, disabled models, model count, and attention-first review flows.
 - Added a Web/Mobile coverage baseline for the 1.0 parity track.
+- Added a release preparation helper for updating Gradle version metadata and changelog release dates.
 
 ### Changed
 
 - Aligned the Mobile SiteChannel projection list with the Web default by loading request history with `include_history=true`.
+- Hardened the GitHub Release helper with checks for a clean git tree, existing tag, Gradle version match, dated changelog entry, asset path, and GitHub CLI availability.
 
 ### Verification
 
 - `scripts/create-github-release.ps1 -Version 0.4.0 -DryRun`
+- `scripts/prepare-release.ps1 -Version 0.5.0 -DryRun`
 - SiteChannel filter and sort unit coverage.
 
 ## [0.4.0] - 2026-06-10
