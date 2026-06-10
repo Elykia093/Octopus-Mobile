@@ -4,7 +4,7 @@ param(
     [string] $Version,
 
     [string] $Repository = "Elykia093/Octopus-Mobile",
-    [string] $AssetPath = "app/build/outputs/apk/release/app-release-unsigned.apk",
+    [string] $AssetPath = "",
     [string] $GhPath = $(if ($env:GH_CLI_PATH) { $env:GH_CLI_PATH } else { "gh" }),
     [switch] $Signed,
     [switch] $SkipGitChecks,
@@ -65,7 +65,16 @@ if ($build -notmatch $versionNamePattern) {
     throw "app/build.gradle.kts versionName does not match $versionNumber."
 }
 
-$asset = Resolve-Path -LiteralPath $AssetPath -ErrorAction Stop
+$releaseOutputDir = Join-Path $PSScriptRoot "..\app\build\outputs\apk\release"
+if ([string]::IsNullOrWhiteSpace($AssetPath)) {
+    $assetCandidates = @(Get-ChildItem -LiteralPath $releaseOutputDir -Filter $assetName -File -ErrorAction SilentlyContinue)
+    if ($assetCandidates.Count -ne 1) {
+        throw "Expected exactly one release APK named $assetName in $releaseOutputDir, found $($assetCandidates.Count)."
+    }
+    $asset = $assetCandidates[0]
+} else {
+    $asset = Resolve-Path -LiteralPath $AssetPath -ErrorAction Stop
+}
 $changelog = Get-Content -LiteralPath $changelogPath -Raw
 $escapedVersion = [regex]::Escape($versionNumber)
 $sectionPattern = "(?ms)^## \[$escapedVersion\] - (?<date>[^\r\n]+)\r?\n(?<body>.*?)(?=^## \[|\z)"
@@ -94,7 +103,8 @@ $($section.Groups["body"].Value.Trim())
 - $assetName
 "@
 
-$assetArgument = "$($asset.Path)#$assetName"
+$assetPath = if ($asset -is [System.Management.Automation.PathInfo]) { $asset.Path } else { $asset.FullName }
+$assetArgument = "$assetPath#$assetName"
 $ghArguments = @(
     "release",
     "create",

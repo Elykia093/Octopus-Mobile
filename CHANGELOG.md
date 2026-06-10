@@ -11,16 +11,20 @@
 - Added a Web/Mobile coverage baseline for the 1.0 parity track.
 - Added a release preparation helper for updating Gradle version metadata and changelog release dates.
 - Added an Android Release GitHub Actions workflow for manual versioned release builds, tag creation, and GitHub Release publishing.
+- Added versioned release APK output names that distinguish signed and unsigned artifacts.
 
 ### Changed
 
 - Aligned the Mobile SiteChannel projection list with the Web default by loading request history with `include_history=true`.
 - Hardened the GitHub Release helper with checks for a clean git tree, existing tag, Gradle version match, dated changelog entry, asset path, and GitHub CLI availability.
+- Updated the GitHub Release helper to auto-discover the versioned release APK when `-AssetPath` is omitted.
 
 ### Verification
 
 - `scripts/create-github-release.ps1 -Version 0.4.0 -DryRun`
 - `scripts/prepare-release.ps1 -Version 0.5.0 -DryRun`
+- `.\gradlew.bat testReleaseUnitTest`
+- `.\gradlew.bat assembleRelease`
 - GitHub Actions release workflow YAML parse check.
 - SiteChannel filter and sort unit coverage.
 

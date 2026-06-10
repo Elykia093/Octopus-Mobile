@@ -84,6 +84,29 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+}
+
+val releaseArtifactFlavor = if (hasReleaseSigning) "signed" else "unsigned"
+val releaseArtifactName = "Octopus-Mobile-v${android.defaultConfig.versionName}-$releaseArtifactFlavor.apk"
+val copyVersionedReleaseApk = tasks.register("copyVersionedReleaseApk") {
+    dependsOn("packageRelease")
+    doLast {
+        copy {
+            from(layout.buildDirectory.dir("outputs/apk/release")) {
+                include("*.apk")
+                exclude("Octopus-Mobile-v*.apk")
+                rename { releaseArtifactName }
+            }
+            into(layout.buildDirectory.dir("outputs/apk/release"))
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == "assembleRelease") {
+        finalizedBy(copyVersionedReleaseApk)
+    }
 }
 
 dependencies {

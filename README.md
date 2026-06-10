@@ -68,7 +68,8 @@ Linux/macOS:
 Release APK 输出位置：
 
 ```text
-app/build/outputs/apk/release/*.apk
+app/build/outputs/apk/release/Octopus-Mobile-v<version>-unsigned.apk
+app/build/outputs/apk/release/Octopus-Mobile-v<version>-signed.apk
 ```
 
 ## 发布构建
@@ -106,7 +107,7 @@ OCTOPUS_RELEASE_KEY_PASSWORD
 .\scripts\prepare-release.ps1 -Version 0.5.0
 ```
 
-创建 GitHub Release 可使用辅助脚本。脚本会从 `CHANGELOG.md` 读取对应版本说明，检查工作区、tag、Gradle 版本号、附件路径和 GitHub CLI，再上传当前 release APK：
+创建 GitHub Release 可使用辅助脚本。脚本会从 `CHANGELOG.md` 读取对应版本说明，检查工作区、tag、Gradle 版本号、APK 文件名和 GitHub CLI，再上传当前 release APK：
 
 ```powershell
 $env:GH_CLI_PATH = "D:\GitHub CLI\gh.exe" # gh 不在 PATH 时设置
