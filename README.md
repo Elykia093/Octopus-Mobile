@@ -68,16 +68,36 @@ Linux/macOS:
 Release APK 输出位置：
 
 ```text
-app/build/outputs/apk/release/app-release-unsigned.apk
+app/build/outputs/apk/release/*.apk
 ```
 
 ## 发布构建
+
+未配置签名时会继续产出本地验证用的 unsigned APK：
 
 ```powershell
 .\gradlew.bat assembleRelease
 ```
 
-当前 release 包仍使用默认未签名输出，正式发布前需要补充签名配置、release 日志策略和混淆压缩策略。
+正式分发前配置以下 Gradle 属性或环境变量后再执行 release 构建：
+
+```text
+OCTOPUS_RELEASE_STORE_FILE=/absolute/path/to/release.jks
+OCTOPUS_RELEASE_STORE_PASSWORD=***
+OCTOPUS_RELEASE_KEY_ALIAS=octopus
+OCTOPUS_RELEASE_KEY_PASSWORD=***
+```
+
+GitHub Actions 可使用这些 Secrets：
+
+```text
+OCTOPUS_RELEASE_KEYSTORE_BASE64
+OCTOPUS_RELEASE_STORE_PASSWORD
+OCTOPUS_RELEASE_KEY_ALIAS
+OCTOPUS_RELEASE_KEY_PASSWORD
+```
+
+`OCTOPUS_RELEASE_KEYSTORE_BASE64` 是 keystore 文件的 base64 内容，CI 会在临时目录恢复 keystore 并注入 `OCTOPUS_RELEASE_STORE_FILE`。签名参数必须全部提供；只提供一部分时构建会失败，避免误产出不可分发包。
 
 ## 开发说明
 
@@ -89,7 +109,7 @@ app/build/outputs/apk/release/app-release-unsigned.apk
 ## 后续优化方向
 
 - 继续收窄各页面 ViewModel 的状态与操作边界。
-- 收紧 release 签名、混淆压缩和明文流量策略。
+- 完善 GitHub Release 自动发版和签名产物上传策略。
 - 完善增删改操作的 loading、错误提示和成功反馈。
 
 ## CI

@@ -10,6 +10,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      OCTOPUS_RELEASE_KEYSTORE_BASE64: ${{ secrets.OCTOPUS_RELEASE_KEYSTORE_BASE64 }}
+      OCTOPUS_RELEASE_STORE_PASSWORD: ${{ secrets.OCTOPUS_RELEASE_STORE_PASSWORD }}
+      OCTOPUS_RELEASE_KEY_ALIAS: ${{ secrets.OCTOPUS_RELEASE_KEY_ALIAS }}
+      OCTOPUS_RELEASE_KEY_PASSWORD: ${{ secrets.OCTOPUS_RELEASE_KEY_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -56,6 +61,14 @@ jobs:
             sed -i 's/AndroidVersion.ApiLevel=37.0/AndroidVersion.ApiLevel=37/' "$SDK_ROOT/platforms/android-37/source.properties" || true
           fi
 
+      - name: Restore release keystore
+        if: ${{ env.OCTOPUS_RELEASE_KEYSTORE_BASE64 != '' }}
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/octopus-signing"
+          printf '%s' "$OCTOPUS_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/octopus-signing/release.jks"
+          echo "OCTOPUS_RELEASE_STORE_FILE=$RUNNER_TEMP/octopus-signing/release.jks" >> "$GITHUB_ENV"
+
       - name: Grant execute permission
         run: chmod +x gradlew
 
@@ -65,9 +78,9 @@ jobs:
       - name: Build release
         run: ./gradlew assembleRelease --stacktrace
 
-      - name: Upload unsigned release APK for verification
+      - name: Upload release APK
         uses: actions/upload-artifact@v7
         with:
-          name: octopus-release-unsigned-verification
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          name: octopus-release-apk
+          path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error

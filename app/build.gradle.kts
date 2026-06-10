@@ -1,9 +1,32 @@
+import org.gradle.api.GradleException
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.legacy.kapt)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt.android)
+}
+
+fun releaseSigningValue(name: String): String? =
+    providers.gradleProperty(name).orNull?.takeIf { it.isNotBlank() }
+        ?: providers.environmentVariable(name).orNull?.takeIf { it.isNotBlank() }
+
+val releaseSigningInputs = mapOf(
+    "OCTOPUS_RELEASE_STORE_FILE" to releaseSigningValue("OCTOPUS_RELEASE_STORE_FILE"),
+    "OCTOPUS_RELEASE_STORE_PASSWORD" to releaseSigningValue("OCTOPUS_RELEASE_STORE_PASSWORD"),
+    "OCTOPUS_RELEASE_KEY_ALIAS" to releaseSigningValue("OCTOPUS_RELEASE_KEY_ALIAS"),
+    "OCTOPUS_RELEASE_KEY_PASSWORD" to releaseSigningValue("OCTOPUS_RELEASE_KEY_PASSWORD"),
+)
+val hasPartialReleaseSigning = releaseSigningInputs.values.any { it != null } &&
+    releaseSigningInputs.values.any { it == null }
+val hasReleaseSigning = releaseSigningInputs.values.all { it != null }
+
+if (hasPartialReleaseSigning) {
+    throw GradleException(
+        "Release signing is partially configured. Provide all of: " +
+            releaseSigningInputs.keys.joinToString(", "),
+    )
 }
 
 android {
@@ -21,8 +44,22 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(requireNotNull(releaseSigningInputs.getValue("OCTOPUS_RELEASE_STORE_FILE")))
+                storePassword = requireNotNull(releaseSigningInputs.getValue("OCTOPUS_RELEASE_STORE_PASSWORD"))
+                keyAlias = requireNotNull(releaseSigningInputs.getValue("OCTOPUS_RELEASE_KEY_ALIAS"))
+                keyPassword = requireNotNull(releaseSigningInputs.getValue("OCTOPUS_RELEASE_KEY_PASSWORD"))
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

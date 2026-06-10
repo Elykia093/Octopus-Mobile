@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0] - Unreleased
+
+### Added
+
+- Added optional release signing configuration through Gradle properties or environment variables without committing signing secrets.
+- Added GitHub Actions release keystore restoration from secrets for signed CI release builds.
+
+### Changed
+
+- Updated release artifact upload to collect the generated release APK whether the build is signed or unsigned.
+- Documented local and CI release signing inputs for formal distribution builds.
+
 ## [0.3.0] - 2026-06-09
 
 ### Added
