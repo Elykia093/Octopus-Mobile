@@ -271,6 +271,9 @@
     <string name="site_channel_action_source_keys">Source keys</string>
     <string name="site_channel_action_create_projection_key">Create key</string>
     <string name="site_channel_action_projected_settings">Channel settings</string>
+    <string name="site_channel_action_bulk_route">Bulk route</string>
+    <string name="site_channel_action_enable_models">Enable models</string>
+    <string name="site_channel_action_disable_models">Disable models</string>
     <string name="site_channel_action_add_manual_model">Add model</string>
     <string name="site_channel_action_enable_projection">Enable projection</string>
     <string name="site_channel_action_disable_projection">Disable projection</string>
@@ -294,6 +297,8 @@
     <string name="site_channel_manual_models_label">Model names</string>
     <string name="site_channel_route_type_label">Route type</string>
     <string name="site_channel_model_route_title">Model route</string>
+    <string name="site_channel_bulk_route_title">Bulk model route</string>
+    <string name="site_channel_bulk_route_summary">%1$s · %2$d models will change</string>
     <string name="site_channel_projected_settings_title">Projected channel settings</string>
     <string name="site_channel_auto_group_label">Auto group</string>
     <string name="site_channel_param_override_label">Param override JSON</string>

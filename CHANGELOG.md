@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.0] - Unreleased
+
+### Added
+
+- Added SiteChannel batch model route updates and batch model enable/disable actions for Projection groups.
+
+### Verification
+
+- SiteChannel batch model request unit coverage.
+
 ## [0.5.0] - 2026-06-10
 
 ### Added

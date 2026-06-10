@@ -72,6 +72,7 @@ fun SiteChannelScreen(
     var manualModelTarget by remember { mutableStateOf<SiteChannelGroupTarget?>(null) }
     var projectedSettingsTarget by remember { mutableStateOf<SiteChannelGroupTarget?>(null) }
     var routeTarget by remember { mutableStateOf<SiteChannelModelTarget?>(null) }
+    var bulkRouteTarget by remember { mutableStateOf<SiteChannelGroupTarget?>(null) }
 
     val query = searchTerm.trim()
     val cards = remember(uiState.cards, query, filter, sort) {
@@ -158,6 +159,7 @@ fun SiteChannelScreen(
                             onAddManualModels = { manualModelTarget = it },
                             onEditProjectedSettings = { projectedSettingsTarget = it },
                             onEditRoute = { routeTarget = it },
+                            onBulkRoute = { bulkRouteTarget = it },
                             onToggleProjection = { target ->
                                 viewModel.setGroupProjection(
                                     siteId = target.siteId,
@@ -176,6 +178,15 @@ fun SiteChannelScreen(
                                     groupKey = target.group.groupKey,
                                     model = target.model,
                                     disabled = !target.model.disabled,
+                                )
+                            },
+                            onSetGroupModelsDisabled = { target, disabled ->
+                                viewModel.setGroupModelsDisabled(
+                                    siteId = target.siteId,
+                                    accountId = target.account.accountId,
+                                    groupKey = target.group.groupKey,
+                                    models = target.group.models,
+                                    disabled = disabled,
                                 )
                             },
                             onDeleteManualModel = { target ->
@@ -271,6 +282,30 @@ fun SiteChannelScreen(
         },
     )
 
+    BulkModelRouteDialog(
+        target = bulkRouteTarget,
+        submitting = uiState.submitting,
+        operationError = uiState.operationError,
+        onConfirm = { target, routeType ->
+            viewModel.updateGroupModelRoutes(
+                siteId = target.siteId,
+                accountId = target.account.accountId,
+                groupKey = target.group.groupKey,
+                models = target.group.models,
+                routeType = routeType,
+            ) {
+                bulkRouteTarget = null
+                viewModel.clearOperationFeedback()
+            }
+        },
+        onDismiss = {
+            if (!uiState.submitting) {
+                bulkRouteTarget = null
+                viewModel.clearOperationFeedback()
+            }
+        },
+    )
+
     ProjectedSettingsDialog(
         target = projectedSettingsTarget,
         submitting = uiState.submitting,
@@ -334,9 +369,11 @@ private fun SiteChannelCardView(
     onAddManualModels: (SiteChannelGroupTarget) -> Unit,
     onEditProjectedSettings: (SiteChannelGroupTarget) -> Unit,
     onEditRoute: (SiteChannelModelTarget) -> Unit,
+    onBulkRoute: (SiteChannelGroupTarget) -> Unit,
     onToggleProjection: (SiteChannelGroupTarget) -> Unit,
     onResetRoutes: (Int, SiteChannelAccount) -> Unit,
     onToggleModelDisabled: (SiteChannelModelTarget) -> Unit,
+    onSetGroupModelsDisabled: (SiteChannelGroupTarget, Boolean) -> Unit,
     onDeleteManualModel: (SiteChannelModelTarget) -> Unit,
 ) {
     val groups = card.accounts.flatMap { it.groups }
@@ -396,9 +433,11 @@ private fun SiteChannelCardView(
                     onAddManualModels = onAddManualModels,
                     onEditProjectedSettings = onEditProjectedSettings,
                     onEditRoute = onEditRoute,
+                    onBulkRoute = onBulkRoute,
                     onToggleProjection = onToggleProjection,
                     onResetRoutes = onResetRoutes,
                     onToggleModelDisabled = onToggleModelDisabled,
+                    onSetGroupModelsDisabled = onSetGroupModelsDisabled,
                     onDeleteManualModel = onDeleteManualModel,
                 )
             }
@@ -423,9 +462,11 @@ private fun SiteChannelAccountBlock(
     onAddManualModels: (SiteChannelGroupTarget) -> Unit,
     onEditProjectedSettings: (SiteChannelGroupTarget) -> Unit,
     onEditRoute: (SiteChannelModelTarget) -> Unit,
+    onBulkRoute: (SiteChannelGroupTarget) -> Unit,
     onToggleProjection: (SiteChannelGroupTarget) -> Unit,
     onResetRoutes: (Int, SiteChannelAccount) -> Unit,
     onToggleModelDisabled: (SiteChannelModelTarget) -> Unit,
+    onSetGroupModelsDisabled: (SiteChannelGroupTarget, Boolean) -> Unit,
     onDeleteManualModel: (SiteChannelModelTarget) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -472,8 +513,10 @@ private fun SiteChannelAccountBlock(
                 onAddManualModels = onAddManualModels,
                 onEditProjectedSettings = onEditProjectedSettings,
                 onEditRoute = onEditRoute,
+                onBulkRoute = onBulkRoute,
                 onToggleProjection = onToggleProjection,
                 onToggleModelDisabled = onToggleModelDisabled,
+                onSetGroupModelsDisabled = onSetGroupModelsDisabled,
                 onDeleteManualModel = onDeleteManualModel,
             )
         }
@@ -496,11 +539,15 @@ private fun SiteChannelGroupBlock(
     onAddManualModels: (SiteChannelGroupTarget) -> Unit,
     onEditProjectedSettings: (SiteChannelGroupTarget) -> Unit,
     onEditRoute: (SiteChannelModelTarget) -> Unit,
+    onBulkRoute: (SiteChannelGroupTarget) -> Unit,
     onToggleProjection: (SiteChannelGroupTarget) -> Unit,
     onToggleModelDisabled: (SiteChannelModelTarget) -> Unit,
+    onSetGroupModelsDisabled: (SiteChannelGroupTarget, Boolean) -> Unit,
     onDeleteManualModel: (SiteChannelModelTarget) -> Unit,
 ) {
     val group = target.group
+    val enabledModels = group.models.filter { it.modelName.isNotBlank() && !it.disabled }
+    val disabledModels = group.models.filter { it.modelName.isNotBlank() && it.disabled }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
             text = group.groupName.ifBlank { group.groupKey.ifBlank { stringResource(R.string.common_unknown) } },
@@ -530,6 +577,18 @@ private fun SiteChannelGroupBlock(
             ToolbarChip(
                 text = stringResource(R.string.site_channel_action_projected_settings),
                 onClick = if (submitting || group.projectedChannels.isEmpty()) null else { { onEditProjectedSettings(target) } },
+            )
+            ToolbarChip(
+                text = stringResource(R.string.site_channel_action_bulk_route),
+                onClick = if (submitting || enabledModels.isEmpty()) null else { { onBulkRoute(target) } },
+            )
+            ToolbarChip(
+                text = stringResource(R.string.site_channel_action_enable_models),
+                onClick = if (submitting || disabledModels.isEmpty()) null else { { onSetGroupModelsDisabled(target, false) } },
+            )
+            ToolbarChip(
+                text = stringResource(R.string.site_channel_action_disable_models),
+                onClick = if (submitting || enabledModels.isEmpty()) null else { { onSetGroupModelsDisabled(target, true) } },
             )
             ToolbarChip(text = stringResource(R.string.site_channel_action_add_manual_model), onClick = if (submitting) null else { { onAddManualModels(target) } })
         }
@@ -858,6 +917,48 @@ private fun ModelRouteDialog(
             DialogButtons(
                 submitting = submitting,
                 confirmEnabled = routeType != target.model.routeType,
+                onDismiss = onDismiss,
+                onConfirm = { onConfirm(target, routeType) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun BulkModelRouteDialog(
+    target: SiteChannelGroupTarget?,
+    submitting: Boolean,
+    operationError: String?,
+    onConfirm: (SiteChannelGroupTarget, String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    if (target == null) return
+    var routeType by remember(target.group.groupKey) { mutableStateOf(SiteModelRouteType.OpenAiChat) }
+    val affectedCount = remember(target.group, routeType) {
+        buildBulkModelRouteRequests(
+            groupKey = target.group.groupKey,
+            models = target.group.models,
+            routeType = routeType,
+        ).size
+    }
+
+    OverlayDialog(
+        show = true,
+        title = stringResource(R.string.site_channel_bulk_route_title),
+        summary = stringResource(R.string.site_channel_bulk_route_summary, target.group.groupTitle(), affectedCount),
+        onDismissRequest = { if (!submitting) onDismiss() },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            operationError?.takeIf { it.isNotBlank() }?.let { OperationErrorCard(message = it) }
+            OptionChipGroup(
+                options = routeTypeOptions(),
+                selectedValue = routeType,
+                onSelect = { if (!submitting) routeType = it },
+                columns = 2,
+            )
+            DialogButtons(
+                submitting = submitting,
+                confirmEnabled = affectedCount > 0,
                 onDismiss = onDismiss,
                 onConfirm = { onConfirm(target, routeType) },
             )

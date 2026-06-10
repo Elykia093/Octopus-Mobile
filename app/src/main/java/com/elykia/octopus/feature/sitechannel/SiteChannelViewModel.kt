@@ -147,6 +147,31 @@ class SiteChannelViewModel @Inject constructor(
         )
     }
 
+    fun updateGroupModelRoutes(
+        siteId: Int,
+        accountId: Int,
+        groupKey: String,
+        models: List<SiteChannelModel>,
+        routeType: String,
+        onSuccess: () -> Unit = {},
+    ) {
+        val request = buildBulkModelRouteRequests(groupKey = groupKey, models = models, routeType = routeType)
+        launchAccountMutation(
+            siteId = siteId,
+            successMessage = "模型端点格式已批量更新。",
+            invalidMessage = "没有可更新的模型端点格式。",
+            isValid = { request.isNotEmpty() },
+            block = {
+                repository.updateModelRoutes(
+                    siteId = siteId,
+                    accountId = accountId,
+                    request = request,
+                )
+            },
+            onSuccess = onSuccess,
+        )
+    }
+
     fun setModelDisabled(
         siteId: Int,
         accountId: Int,
@@ -170,6 +195,29 @@ class SiteChannelViewModel @Inject constructor(
                             disabled = disabled,
                         ),
                     ),
+                )
+            },
+        )
+    }
+
+    fun setGroupModelsDisabled(
+        siteId: Int,
+        accountId: Int,
+        groupKey: String,
+        models: List<SiteChannelModel>,
+        disabled: Boolean,
+    ) {
+        val request = buildBulkModelDisabledRequests(groupKey = groupKey, models = models, disabled = disabled)
+        launchAccountMutation(
+            siteId = siteId,
+            successMessage = if (disabled) "模型已批量禁用。" else "模型已批量启用。",
+            invalidMessage = if (disabled) "没有可禁用的模型。" else "没有可启用的模型。",
+            isValid = { request.isNotEmpty() },
+            block = {
+                repository.updateModelDisabled(
+                    siteId = siteId,
+                    accountId = accountId,
+                    request = request,
                 )
             },
         )

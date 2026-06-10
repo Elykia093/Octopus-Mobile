@@ -24,6 +24,7 @@ Bring Octopus-Mobile to functional parity with the active Web management console
 - Projection bulk operations: batch route switching, batch enable/disable, and clearer pending-operation feedback.
 - Projection account panels: account-level search, group scoping, route summaries, and advanced projected-channel settings polish.
 - Site workflows: Web parity audit for site sync, check-in, import, archived sites, proxy mode, and account editing.
+- Current 0.6.0 start: group-level Projection batch route and batch enable/disable actions.
 
 ### 0.7.x
 

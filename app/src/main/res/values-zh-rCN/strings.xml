@@ -271,6 +271,9 @@
     <string name="site_channel_action_source_keys">站点 Key</string>
     <string name="site_channel_action_create_projection_key">创建投影 Key</string>
     <string name="site_channel_action_projected_settings">渠道设置</string>
+    <string name="site_channel_action_bulk_route">批量路由</string>
+    <string name="site_channel_action_enable_models">批量启用</string>
+    <string name="site_channel_action_disable_models">批量禁用</string>
     <string name="site_channel_action_add_manual_model">添加模型</string>
     <string name="site_channel_action_enable_projection">启用投影</string>
     <string name="site_channel_action_disable_projection">停用投影</string>
@@ -294,6 +297,8 @@
     <string name="site_channel_manual_models_label">模型名称</string>
     <string name="site_channel_route_type_label">端点格式</string>
     <string name="site_channel_model_route_title">模型路由</string>
+    <string name="site_channel_bulk_route_title">批量模型路由</string>
+    <string name="site_channel_bulk_route_summary">%1$s · 将更新 %2$d 个模型</string>
     <string name="site_channel_projected_settings_title">投影渠道设置</string>
     <string name="site_channel_auto_group_label">自动分组</string>
     <string name="site_channel_param_override_label">参数覆盖 JSON</string>
