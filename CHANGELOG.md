@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.4.0] - Unreleased
+## [0.4.0] - 2026-06-10
 
 ### Added
 
@@ -11,6 +11,14 @@
 
 - Updated release artifact upload to collect the generated release APK whether the build is signed or unsigned.
 - Documented local and CI release signing inputs for formal distribution builds.
+
+### Verification
+
+- `git diff --check`
+- GitHub Actions workflow YAML parse check
+- `.\gradlew.bat testReleaseUnitTest`
+- `.\gradlew.bat assembleRelease`
+- Partial release signing configuration fails with a clear Gradle error.
 
 ## [0.3.0] - 2026-06-09
 
