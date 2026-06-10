@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.0] - Unreleased
+
+### Added
+
+- Added a PowerShell release helper that extracts version notes from `CHANGELOG.md`, creates a GitHub Release through GitHub CLI, and uploads the generated APK.
+- Added the 0.5.0 roadmap focused on release automation and safer version iteration.
+
+### Verification
+
+- `scripts/create-github-release.ps1 -Version 0.4.0 -DryRun`
+
 ## [0.4.0] - 2026-06-10
 
 ### Added

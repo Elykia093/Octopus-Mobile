@@ -99,6 +99,19 @@ OCTOPUS_RELEASE_KEY_PASSWORD
 
 `OCTOPUS_RELEASE_KEYSTORE_BASE64` 是 keystore 文件的 base64 内容，CI 会在临时目录恢复 keystore 并注入 `OCTOPUS_RELEASE_STORE_FILE`。签名参数必须全部提供；只提供一部分时构建会失败，避免误产出不可分发包。
 
+创建 GitHub Release 可使用辅助脚本。脚本会从 `CHANGELOG.md` 读取对应版本说明，并上传当前 release APK：
+
+```powershell
+$env:GH_CLI_PATH = "D:\GitHub CLI\gh.exe" # gh 不在 PATH 时设置
+.\scripts\create-github-release.ps1 -Version 0.4.0
+```
+
+发布前可先干跑检查 release notes 和附件路径：
+
+```powershell
+.\scripts\create-github-release.ps1 -Version 0.4.0 -DryRun
+```
+
 ## 开发说明
 
 - 业务页面放在各自的 `feature/*` 包中，`feature/app` 只保留应用壳和导航。
