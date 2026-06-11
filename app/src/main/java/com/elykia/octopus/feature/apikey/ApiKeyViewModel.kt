@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.data.model.ApiKeyMutationRequest
+import com.elykia.octopus.core.data.model.Group
 import com.elykia.octopus.core.data.repository.ApiKeyRepository
+import com.elykia.octopus.core.data.repository.GroupRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +17,7 @@ import javax.inject.Inject
 data class ApiKeyUiState(
     val loading: Boolean = true,
     val apiKeys: List<ApiKeyItem> = emptyList(),
+    val supportedModelCandidates: List<String> = emptyList(),
     val createdApiKey: ApiKeyItem? = null,
     val apiKeyListError: String? = null,
     val apiKeySubmitting: Boolean = false,
@@ -46,6 +49,7 @@ internal fun ApiKeyUiState.apiKeyOperationFailed(message: String): ApiKeyUiState
 @HiltViewModel
 class ApiKeyViewModel @Inject constructor(
     private val repository: ApiKeyRepository,
+    private val groupRepository: GroupRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ApiKeyUiState())
     val uiState: StateFlow<ApiKeyUiState> = _uiState
@@ -61,6 +65,7 @@ class ApiKeyViewModel @Inject constructor(
             _uiState.value = buildApiKeyRefreshState(
                 previous = previous,
                 apiKeysResult = repository.apiKeys(),
+                groupsResult = groupRepository.groups(),
             )
         }
     }
@@ -259,9 +264,14 @@ class ApiKeyViewModel @Inject constructor(
 internal fun buildApiKeyRefreshState(
     previous: ApiKeyUiState,
     apiKeysResult: AppResult<List<ApiKeyItem>>,
+    groupsResult: AppResult<List<Group>> = AppResult.Success(emptyList()),
 ): ApiKeyUiState = previous.copy(
     loading = false,
     apiKeys = apiKeysResult.dataOrPrevious(previous.apiKeys),
+    supportedModelCandidates = when (groupsResult) {
+        is AppResult.Success -> apiKeyModelRestrictionCandidates(groupsResult.data)
+        is AppResult.Error -> previous.supportedModelCandidates
+    },
     apiKeyListError = apiKeysResult.errorMessageOrNull(),
 )
 

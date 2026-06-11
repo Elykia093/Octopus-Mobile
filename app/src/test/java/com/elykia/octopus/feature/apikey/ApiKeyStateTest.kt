@@ -2,6 +2,7 @@ package com.elykia.octopus.feature.apikey
 
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.data.model.ApiKeyItem
+import com.elykia.octopus.core.data.model.Group
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -41,6 +42,33 @@ class ApiKeyStateTest {
         assertThat(state.loading).isFalse()
         assertThat(state.apiKeys).isEqualTo(previousKeys)
         assertThat(state.apiKeyListError).isEqualTo("keys failed")
+    }
+
+    @Test
+    fun apiKeyRefreshSuccessUpdatesSupportedModelCandidatesFromGroups() {
+        val state = buildApiKeyRefreshState(
+            previous = ApiKeyUiState(supportedModelCandidates = listOf("old")),
+            apiKeysResult = AppResult.Success(emptyList()),
+            groupsResult = AppResult.Success(
+                listOf(
+                    Group(id = 1, name = "vip", mode = 1),
+                    Group(id = 2, name = "default", mode = 1),
+                )
+            ),
+        )
+
+        assertThat(state.supportedModelCandidates).containsExactly("default", "vip").inOrder()
+    }
+
+    @Test
+    fun apiKeyRefreshFailureKeepsCachedSupportedModelCandidatesWhenGroupsFail() {
+        val state = buildApiKeyRefreshState(
+            previous = ApiKeyUiState(supportedModelCandidates = listOf("cached")),
+            apiKeysResult = AppResult.Success(emptyList()),
+            groupsResult = AppResult.Error("groups failed"),
+        )
+
+        assertThat(state.supportedModelCandidates).containsExactly("cached")
     }
 
     @Test

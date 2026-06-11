@@ -179,6 +179,7 @@ fun ApiKeyScreen(
         initialItem = null,
         submitting = uiState.apiKeySubmitting,
         operationError = uiState.apiKeyOperationError,
+        supportedModelCandidates = uiState.supportedModelCandidates,
         onConfirm = { name, expireAt, maxCost, supportedModels, enabled ->
             viewModel.createApiKey(name, expireAt, maxCost, supportedModels, enabled) {
                 showCreateDialog = false
@@ -199,6 +200,7 @@ fun ApiKeyScreen(
         initialItem = editingItem,
         submitting = uiState.apiKeySubmitting,
         operationError = uiState.apiKeyOperationError,
+        supportedModelCandidates = uiState.supportedModelCandidates,
         onConfirm = { name, expireAt, maxCost, supportedModels, enabled ->
             editingItem?.let { current ->
                 viewModel.updateApiKey(

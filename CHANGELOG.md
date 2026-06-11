@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0] - Unreleased
+
+### Added
+
+- Added API Key supported model restriction candidates from Group names, matching the Web admin selectable model chips while preserving manual comma-separated editing.
+- Added unit coverage for API Key supported model restriction parsing, toggling, and Group-derived candidates.
+
 ## [0.7.0] - 2026-06-10
 
 ### Added

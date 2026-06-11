@@ -3,6 +3,7 @@ package com.elykia.octopus.feature.apikey
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
@@ -14,12 +15,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.elykia.octopus.R
 import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.designsystem.DialogScrollableColumn
 import com.elykia.octopus.core.designsystem.OperationErrorCard
+import com.elykia.octopus.core.designsystem.OctopusTokens
+import com.elykia.octopus.core.designsystem.ToolbarChip
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
@@ -35,6 +39,7 @@ internal fun ApiKeyEditorDialog(
     initialItem: ApiKeyItem?,
     submitting: Boolean,
     operationError: String?,
+    supportedModelCandidates: List<String>,
     onConfirm: (String, Long, Double, String, Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -131,6 +136,12 @@ internal fun ApiKeyEditorDialog(
                     enabled = !submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                ApiKeySupportedModelSelector(
+                    supportedModels = supportedModels,
+                    candidates = supportedModelCandidates,
+                    submitting = submitting,
+                    onChange = { supportedModels = it },
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -179,6 +190,51 @@ internal fun ApiKeyEditorDialog(
             }
         }
     }
+}
+
+@Composable
+private fun ApiKeySupportedModelSelector(
+    supportedModels: String,
+    candidates: List<String>,
+    submitting: Boolean,
+    onChange: (String) -> Unit,
+) {
+    Text(
+        text = stringResource(R.string.apikey_supported_models_label),
+        style = MiuixTheme.textStyles.main,
+        fontWeight = FontWeight.SemiBold,
+    )
+    if (candidates.isEmpty()) {
+        Text(
+            text = stringResource(R.string.apikey_supported_models_candidates_empty),
+            style = MiuixTheme.textStyles.body2,
+            color = OctopusTokens.TextSecondary,
+        )
+        return
+    }
+
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        val selectedModels = parseApiKeyModelRestrictions(supportedModels).toSet()
+        candidates.forEach { candidate ->
+            ToolbarChip(
+                text = candidate,
+                selected = candidate in selectedModels,
+                onClick = {
+                    if (!submitting) {
+                        onChange(toggleApiKeyModelRestriction(supportedModels, candidate))
+                    }
+                },
+            )
+        }
+    }
+    Text(
+        text = stringResource(R.string.apikey_supported_models_selector_hint),
+        style = MiuixTheme.textStyles.body2,
+        color = OctopusTokens.TextSecondary,
+    )
 }
 
 @Composable
