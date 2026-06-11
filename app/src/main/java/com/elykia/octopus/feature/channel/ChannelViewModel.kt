@@ -200,7 +200,11 @@ class ChannelViewModel @Inject constructor(
 
             selectedIds.forEachIndexed { index, id ->
                 _uiState.value = _uiState.value.copy(
-                    batchOperationProgress = "删除中 ${index + 1}/${selectedIds.size}..."
+                    batchOperationProgress = channelBatchProgressMessage(
+                        action = ChannelBatchProgressAction.Delete,
+                        current = index + 1,
+                        total = selectedIds.size,
+                    )
                 )
                 when (repository.deleteChannel(id)) {
                     is AppResult.Success -> successCount++
@@ -214,7 +218,7 @@ class ChannelViewModel @Inject constructor(
                 selectionMode = false,
                 selectedIds = emptySet(),
                 operationError = if (failCount > 0) {
-                    "批量删除完成：成功 $successCount 个，失败 $failCount 个"
+                    channelBatchResultMessage(successCount = successCount, failCount = failCount)
                 } else null
             )
             refresh()
@@ -234,7 +238,15 @@ class ChannelViewModel @Inject constructor(
 
             selectedIds.forEachIndexed { index, id ->
                 _uiState.value = _uiState.value.copy(
-                    batchOperationProgress = "${if (enabled) "启用" else "禁用"}中 ${index + 1}/${selectedIds.size}..."
+                    batchOperationProgress = channelBatchProgressMessage(
+                        action = if (enabled) {
+                            ChannelBatchProgressAction.Enable
+                        } else {
+                            ChannelBatchProgressAction.Disable
+                        },
+                        current = index + 1,
+                        total = selectedIds.size,
+                    )
                 )
                 when (repository.setChannelEnabled(id, enabled)) {
                     is AppResult.Success -> successCount++
@@ -248,7 +260,7 @@ class ChannelViewModel @Inject constructor(
                 selectionMode = false,
                 selectedIds = emptySet(),
                 operationError = if (failCount > 0) {
-                    "批量操作完成：成功 $successCount 个，失败 $failCount 个"
+                    channelBatchResultMessage(successCount = successCount, failCount = failCount)
                 } else null
             )
             refresh()

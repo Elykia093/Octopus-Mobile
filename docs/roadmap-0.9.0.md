@@ -9,10 +9,11 @@
 ## Current Slice
 
 - Normalize API Key batch selection, confirmation, progress, and partial-failure copy.
+- Normalize Channel and Group batch progress and partial-failure copy.
 - Add unit coverage for API Key batch progress and result messages.
+- Add unit coverage for Channel and Group batch progress and result messages.
 
 ## Candidate Follow-ups
 
-- Apply the same batch-copy cleanup to Channel and Group batch workflows.
 - Review SiteChannel, Site, Log, Proxy, and Setting operation messages for consistency.
 - Add release hardening notes for signed build rehearsal and rollback verification.

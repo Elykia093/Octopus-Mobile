@@ -5,10 +5,12 @@
 ### Changed
 
 - Normalized API Key batch selection, confirmation, progress, and partial-failure copy to shared English UI text.
+- Normalized Channel and Group batch progress and partial-failure copy to the same shared English wording.
 
 ### Verification
 
 - Added API Key batch message unit coverage.
+- Added Channel and Group batch message unit coverage.
 
 ## [0.8.0] - 2026-06-11
 
