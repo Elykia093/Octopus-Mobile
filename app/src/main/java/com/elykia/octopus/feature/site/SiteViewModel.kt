@@ -4,8 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.common.map
-import com.elykia.octopus.core.data.model.AllApiHubImportResult
-import com.elykia.octopus.core.data.model.MetApiImportResult
 import com.elykia.octopus.core.data.model.ProxyConfiguration
 import com.elykia.octopus.core.data.model.Site
 import com.elykia.octopus.core.data.model.SiteAccount
@@ -214,7 +212,7 @@ class SiteViewModel @Inject constructor(
         launchMutation(
             invalidMessage = "请选择要批量操作的站点。",
             isValid = { ids.isNotEmpty() && action in SiteBatchAction.entries },
-            block = { repository.batchAction(ids, action).map { it.toOperationMessage(actionLabel) } },
+            block = { repository.batchAction(ids, action).map { it.toSiteBatchOperationMessage(actionLabel) } },
             onSuccess = { message ->
                 _uiState.value = _uiState.value.copy(operationMessage = message)
                 onSuccess()
@@ -305,8 +303,8 @@ class SiteViewModel @Inject constructor(
             isValid = { payload.isNotBlank() },
             block = {
                 when (source) {
-                    SiteImportSource.AllApiHub -> repository.importAllApiHub(payload).map { it.toOperationMessage() }
-                    SiteImportSource.MetApi -> repository.importMetApi(payload).map { it.toOperationMessage() }
+                    SiteImportSource.AllApiHub -> repository.importAllApiHub(payload).map { it.toAllApiHubImportOperationMessage() }
+                    SiteImportSource.MetApi -> repository.importMetApi(payload).map { it.toMetApiImportOperationMessage() }
                 }
             },
             onSuccess = { message ->
@@ -341,29 +339,4 @@ class SiteViewModel @Inject constructor(
             }
         }
     }
-}
-
-private fun AllApiHubImportResult.toOperationMessage(): String =
-    "All API Hub 导入完成：创建站点 $createdSites，复用站点 $reusedSites，创建账号 $createdAccounts，更新账号 $updatedAccounts，跳过 $skippedAccounts，计划同步 $scheduledSyncAccounts。"
-
-private fun MetApiImportResult.toOperationMessage(): String =
-    "MetAPI 导入完成：创建站点 $createdSites，复用站点 $reusedSites，创建账号 $createdAccounts，更新账号 $updatedAccounts，跳过 $skippedAccounts，导入 token $importedTokens，分组 $importedGroups，模型 $importedModels。"
-
-private fun siteBatchActionLabel(action: String): String = when (action) {
-    SiteBatchAction.Enable -> "启用"
-    SiteBatchAction.Disable -> "禁用"
-    SiteBatchAction.Delete -> "删除"
-    else -> "操作"
-}
-
-private fun SiteBatchActionResult.toOperationMessage(actionLabel: String): String {
-    val failedCount = failedItems.size
-    if (failedCount == 0) {
-        return "批量${actionLabel}完成：成功 ${successIds.size} 个。"
-    }
-    val failedSummary = failedItems.take(3).joinToString("；") { item ->
-        "#${item.id} ${item.message.ifBlank { "未知错误" }}"
-    }
-    val suffix = if (failedCount > 3) "；另有 ${failedCount - 3} 个失败" else ""
-    return "批量${actionLabel}完成：成功 ${successIds.size} 个，失败 $failedCount 个：$failedSummary$suffix。"
 }

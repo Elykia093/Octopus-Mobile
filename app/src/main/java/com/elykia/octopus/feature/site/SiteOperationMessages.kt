@@ -1,5 +1,9 @@
 package com.elykia.octopus.feature.site
 
+import com.elykia.octopus.core.data.model.AllApiHubImportResult
+import com.elykia.octopus.core.data.model.MetApiImportResult
+import com.elykia.octopus.core.data.model.SiteBatchAction
+import com.elykia.octopus.core.data.model.SiteBatchActionResult
 import com.elykia.octopus.core.data.model.SiteCheckinResult
 import com.elykia.octopus.core.data.model.SiteSyncResult
 
@@ -18,6 +22,35 @@ internal fun SiteCheckinResult.toSiteCheckinOperationMessage(): String {
 
 internal fun String.isFailedSiteOperationStatus(): Boolean =
     equals("failed", ignoreCase = true)
+
+internal fun AllApiHubImportResult.toAllApiHubImportOperationMessage(): String =
+    "All API Hub import completed: created sites $createdSites, reused sites $reusedSites, " +
+        "created accounts $createdAccounts, updated accounts $updatedAccounts, skipped accounts $skippedAccounts, " +
+        "scheduled sync $scheduledSyncAccounts."
+
+internal fun MetApiImportResult.toMetApiImportOperationMessage(): String =
+    "MetAPI import completed: created sites $createdSites, reused sites $reusedSites, " +
+        "created accounts $createdAccounts, updated accounts $updatedAccounts, skipped accounts $skippedAccounts, " +
+        "imported tokens $importedTokens, groups $importedGroups, models $importedModels."
+
+internal fun siteBatchActionLabel(action: String): String = when (action) {
+    SiteBatchAction.Enable -> "enable"
+    SiteBatchAction.Disable -> "disable"
+    SiteBatchAction.Delete -> "delete"
+    else -> "operation"
+}
+
+internal fun SiteBatchActionResult.toSiteBatchOperationMessage(actionLabel: String): String {
+    val failedCount = failedItems.size
+    if (failedCount == 0) {
+        return "Batch $actionLabel completed: ${successIds.size} succeeded."
+    }
+    val failedSummary = failedItems.take(3).joinToString("; ") { item ->
+        "#${item.id} ${item.message.ifBlank { "Unknown error" }}"
+    }
+    val suffix = if (failedCount > 3) "; ${failedCount - 3} more failed" else ""
+    return "Batch $actionLabel completed: ${successIds.size} succeeded, $failedCount failed: $failedSummary$suffix."
+}
 
 private fun siteOperationStatusLabel(status: String): String = when (status) {
     "success" -> "成功"

@@ -10,8 +10,10 @@
 
 - Normalize API Key batch selection, confirmation, progress, and partial-failure copy.
 - Normalize Channel and Group batch progress and partial-failure copy.
+- Normalize Site batch action and import result summaries.
 - Add unit coverage for API Key batch progress and result messages.
 - Add unit coverage for Channel and Group batch progress and result messages.
+- Add unit coverage for Site batch and import operation messages.
 
 ## Candidate Follow-ups
 
