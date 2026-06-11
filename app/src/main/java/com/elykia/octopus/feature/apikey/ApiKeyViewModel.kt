@@ -210,7 +210,11 @@ class ApiKeyViewModel @Inject constructor(
 
             selectedIds.forEachIndexed { index, id ->
                 _uiState.value = _uiState.value.copy(
-                    batchApiKeyOperationProgress = "删除中 ${index + 1}/${selectedIds.size}..."
+                    batchApiKeyOperationProgress = apiKeyBatchProgressMessage(
+                        action = ApiKeyBatchProgressAction.Delete,
+                        current = index + 1,
+                        total = selectedIds.size,
+                    )
                 )
                 when (repository.deleteApiKey(id)) {
                     is AppResult.Success -> successCount++
@@ -224,7 +228,7 @@ class ApiKeyViewModel @Inject constructor(
                 apiKeySelectionMode = false,
                 selectedApiKeyIds = emptySet(),
                 apiKeyOperationError = if (failCount > 0) {
-                    "批量删除完成：成功 $successCount 个，失败 $failCount 个"
+                    apiKeyBatchResultMessage(successCount = successCount, failCount = failCount)
                 } else null
             )
             refresh()
@@ -245,7 +249,15 @@ class ApiKeyViewModel @Inject constructor(
             val apiKeysMap = _uiState.value.apiKeys.associateBy { it.id }
             selectedIds.forEachIndexed { index, id ->
                 _uiState.value = _uiState.value.copy(
-                    batchApiKeyOperationProgress = "${if (enabled) "启用" else "禁用"}中 ${index + 1}/${selectedIds.size}..."
+                    batchApiKeyOperationProgress = apiKeyBatchProgressMessage(
+                        action = if (enabled) {
+                            ApiKeyBatchProgressAction.Enable
+                        } else {
+                            ApiKeyBatchProgressAction.Disable
+                        },
+                        current = index + 1,
+                        total = selectedIds.size,
+                    )
                 )
                 val apiKey = apiKeysMap[id]
                 if (apiKey != null) {
@@ -262,7 +274,7 @@ class ApiKeyViewModel @Inject constructor(
                 apiKeySelectionMode = false,
                 selectedApiKeyIds = emptySet(),
                 apiKeyOperationError = if (failCount > 0) {
-                    "批量操作完成：成功 $successCount 个，失败 $failCount 个"
+                    apiKeyBatchResultMessage(successCount = successCount, failCount = failCount)
                 } else null
             )
             refresh()

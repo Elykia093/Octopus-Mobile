@@ -53,7 +53,7 @@ fun ApiKeyScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         AppLazyPageScaffold(
             title = if (uiState.apiKeySelectionMode) {
-                "已选 ${uiState.selectedApiKeyIds.size} 项"
+                stringResource(R.string.batch_selected_count, uiState.selectedApiKeyIds.size)
             } else {
                 stringResource(R.string.apikey_title)
             },
@@ -61,20 +61,20 @@ fun ApiKeyScreen(
                 if (uiState.apiKeySelectionMode) {
                     PageActionButton(
                         icon = AppMiuixIcons.Close,
-                        contentDescription = "退出选择",
+                        contentDescription = stringResource(R.string.batch_exit_selection),
                         enabled = !uiState.apiKeySubmitting,
                         onClick = { viewModel.exitApiKeySelectionMode() },
                     )
                     PageActionButton(
                         icon = AppMiuixIcons.Check,
-                        contentDescription = "全选",
+                        contentDescription = stringResource(R.string.batch_select_all),
                         enabled = !uiState.apiKeySubmitting,
                         onClick = { viewModel.selectAllApiKeys() },
                     )
                 } else {
                     PageActionButton(
                         icon = AppMiuixIcons.More,
-                        contentDescription = "批量操作",
+                        contentDescription = stringResource(R.string.batch_operations),
                         enabled = !uiState.loading && !uiState.shouldShowApiKeyPageError() && uiState.apiKeys.isNotEmpty(),
                         onClick = { viewModel.enterApiKeySelectionMode() },
                     )

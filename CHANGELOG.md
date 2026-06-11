@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.0] - Unreleased
+
+### Changed
+
+- Normalized API Key batch selection, confirmation, progress, and partial-failure copy to shared English UI text.
+
+### Verification
+
+- Added API Key batch message unit coverage.
+
 ## [0.8.0] - 2026-06-11
 
 ### Added

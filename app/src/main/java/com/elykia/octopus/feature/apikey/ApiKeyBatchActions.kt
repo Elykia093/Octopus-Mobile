@@ -14,7 +14,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.elykia.octopus.R
 import com.elykia.octopus.core.designsystem.DangerConfirmDialog
 import com.elykia.octopus.core.designsystem.OctopusTokens
 import top.yukonga.miuix.kmp.basic.Text
@@ -52,17 +54,17 @@ internal fun ApiKeyBatchActionBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TextButton(
-                text = "启用",
+                text = stringResource(R.string.batch_enable),
                 enabled = !submitting,
                 onClick = onEnable,
             )
             TextButton(
-                text = "禁用",
+                text = stringResource(R.string.batch_disable),
                 enabled = !submitting,
                 onClick = onDisable,
             )
             TextButton(
-                text = "删除",
+                text = stringResource(R.string.batch_delete),
                 enabled = !submitting,
                 onClick = onDelete,
             )
@@ -79,8 +81,8 @@ internal fun ApiKeyBatchDeleteConfirmDialog(
 ) {
     DangerConfirmDialog(
         visible = visible,
-        title = "批量删除 API Key",
-        summary = "确定要删除选中的 $selectedCount 个 API Key 吗？此操作不可撤销。",
+        title = stringResource(R.string.batch_delete_apikeys_title),
+        summary = stringResource(R.string.batch_delete_apikeys_summary, selectedCount),
         onConfirm = onConfirm,
         onDismiss = onDismiss,
     )
@@ -103,8 +105,11 @@ internal fun ApiKeyBatchEnabledDialog(
 
     OverlayDialog(
         show = true,
-        title = if (isEnable) "批量启用" else "批量禁用",
-        summary = "确定要${if (isEnable) "启用" else "禁用"}选中的 $selectedCount 个 API Key 吗？",
+        title = stringResource(if (isEnable) R.string.batch_enable_title else R.string.batch_disable_title),
+        summary = stringResource(
+            if (isEnable) R.string.batch_enable_summary else R.string.batch_disable_summary,
+            selectedCount,
+        ),
         onDismissRequest = { if (!submitting) onDismiss() },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -120,12 +125,16 @@ internal fun ApiKeyBatchEnabledDialog(
                 horizontalArrangement = Arrangement.End,
             ) {
                 TextButton(
-                    text = "取消",
+                    text = stringResource(R.string.common_cancel),
                     enabled = !submitting,
                     onClick = onDismiss,
                 )
                 TextButton(
-                    text = if (submitting) "处理中..." else "确定",
+                    text = if (submitting) {
+                        stringResource(R.string.common_saving)
+                    } else {
+                        stringResource(R.string.common_confirm)
+                    },
                     enabled = !submitting,
                     onClick = { onConfirm(isEnable) },
                 )
