@@ -6,9 +6,12 @@ import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.data.model.ApiKeyMutationRequest
 import com.elykia.octopus.core.data.model.Group
+import com.elykia.octopus.core.data.model.StatsApiKeyEntry
 import com.elykia.octopus.core.data.repository.ApiKeyRepository
+import com.elykia.octopus.core.data.repository.DashboardRepository
 import com.elykia.octopus.core.data.repository.GroupRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -17,9 +20,11 @@ import javax.inject.Inject
 data class ApiKeyUiState(
     val loading: Boolean = true,
     val apiKeys: List<ApiKeyItem> = emptyList(),
+    val apiKeyStats: List<StatsApiKeyEntry> = emptyList(),
     val supportedModelCandidates: List<String> = emptyList(),
     val createdApiKey: ApiKeyItem? = null,
     val apiKeyListError: String? = null,
+    val apiKeyStatsError: String? = null,
     val apiKeySubmitting: Boolean = false,
     val apiKeyOperationError: String? = null,
     val apiKeySelectionMode: Boolean = false,
@@ -50,6 +55,7 @@ internal fun ApiKeyUiState.apiKeyOperationFailed(message: String): ApiKeyUiState
 class ApiKeyViewModel @Inject constructor(
     private val repository: ApiKeyRepository,
     private val groupRepository: GroupRepository,
+    private val dashboardRepository: DashboardRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ApiKeyUiState())
     val uiState: StateFlow<ApiKeyUiState> = _uiState
@@ -61,11 +67,15 @@ class ApiKeyViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             val previous = _uiState.value
-            _uiState.value = previous.copy(loading = true, apiKeyListError = null)
+            _uiState.value = previous.copy(loading = true, apiKeyListError = null, apiKeyStatsError = null)
+            val apiKeysDeferred = async { repository.apiKeys() }
+            val groupsDeferred = async { groupRepository.groups() }
+            val apiKeyStatsDeferred = async { dashboardRepository.apiKeyStats() }
             _uiState.value = buildApiKeyRefreshState(
                 previous = previous,
-                apiKeysResult = repository.apiKeys(),
-                groupsResult = groupRepository.groups(),
+                apiKeysResult = apiKeysDeferred.await(),
+                groupsResult = groupsDeferred.await(),
+                apiKeyStatsResult = apiKeyStatsDeferred.await(),
             )
         }
     }
@@ -265,14 +275,17 @@ internal fun buildApiKeyRefreshState(
     previous: ApiKeyUiState,
     apiKeysResult: AppResult<List<ApiKeyItem>>,
     groupsResult: AppResult<List<Group>> = AppResult.Success(emptyList()),
+    apiKeyStatsResult: AppResult<List<StatsApiKeyEntry>> = AppResult.Success(emptyList()),
 ): ApiKeyUiState = previous.copy(
     loading = false,
     apiKeys = apiKeysResult.dataOrPrevious(previous.apiKeys),
+    apiKeyStats = apiKeyStatsResult.dataOrPrevious(previous.apiKeyStats),
     supportedModelCandidates = when (groupsResult) {
         is AppResult.Success -> apiKeyModelRestrictionCandidates(groupsResult.data)
         is AppResult.Error -> previous.supportedModelCandidates
     },
     apiKeyListError = apiKeysResult.errorMessageOrNull(),
+    apiKeyStatsError = apiKeyStatsResult.errorMessageOrNull(),
 )
 
 private fun <T> AppResult<T>.dataOrPrevious(previous: T): T = when (this) {

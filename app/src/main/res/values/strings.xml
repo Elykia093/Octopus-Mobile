@@ -717,6 +717,8 @@
     <string name="apikey_supported_models_hint">Separate multiple models with commas</string>
     <string name="apikey_supported_models_candidates_empty">No group model candidates available.</string>
     <string name="apikey_supported_models_selector_hint">Choose group names below or edit the comma-separated list manually.</string>
+    <string name="apikey_stats_title">Usage stats</string>
+    <string name="apikey_stats_empty">No usage stats for this API key.</string>
     <string name="apikey_enabled_label">Enabled</string>
     <string name="apikey_created_title">API key created</string>
     <string name="apikey_created_summary">This key is shown only once. Copy and keep it safe.</string>

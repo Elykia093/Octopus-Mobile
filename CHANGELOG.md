@@ -5,7 +5,9 @@
 ### Added
 
 - Added API Key supported model restriction candidates from Group names, matching the Web admin selectable model chips while preserving manual comma-separated editing.
+- Added API Key usage stats viewing from the management list, reusing server-side API Key stats.
 - Added unit coverage for API Key supported model restriction parsing, toggling, and Group-derived candidates.
+- Added unit coverage for API Key stats refresh fallback and success-rate formatting.
 
 ## [0.7.0] - 2026-06-10
 

@@ -39,6 +39,7 @@ fun ApiKeyScreen(
     var showBatchDeleteConfirm by remember { mutableStateOf(false) }
     var batchAction by remember { mutableStateOf<ApiKeyBatchAction?>(null) }
     var editingItem by remember { mutableStateOf<ApiKeyItem?>(null) }
+    var viewingStatsItem by remember { mutableStateOf<ApiKeyItem?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
 
     val keys = uiState.apiKeys
@@ -126,6 +127,9 @@ fun ApiKeyScreen(
                         uiState.apiKeyOperationError?.takeIf { it.isNotBlank() }?.let { error ->
                             item { OperationErrorCard(message = error) }
                         }
+                        uiState.apiKeyStatsError?.takeIf { it.isNotBlank() }?.let { error ->
+                            item { OperationErrorCard(message = error) }
+                        }
                     }
                     when {
                         uiState.apiKeys.isEmpty() -> item {
@@ -147,6 +151,7 @@ fun ApiKeyScreen(
                                 selectionMode = uiState.apiKeySelectionMode,
                                 isSelected = item.id in uiState.selectedApiKeyIds,
                                 onToggle = { viewModel.setApiKeyEnabled(item, it) },
+                                onViewStats = { viewingStatsItem = item },
                                 onEdit = {
                                     viewModel.clearApiKeyOperationError()
                                     editingItem = item
@@ -224,6 +229,15 @@ fun ApiKeyScreen(
             }
         },
     )
+
+    viewingStatsItem?.let { item ->
+        ApiKeyStatsDialog(
+            visible = true,
+            item = item,
+            stats = uiState.apiKeyStats.firstOrNull { it.apiKeyId == item.id },
+            onDismiss = { viewingStatsItem = null },
+        )
+    }
 
     uiState.createdApiKey?.let { created ->
         CreatedApiKeyDialog(

@@ -3,6 +3,7 @@ package com.elykia.octopus.feature.apikey
 import com.elykia.octopus.core.common.AppResult
 import com.elykia.octopus.core.data.model.ApiKeyItem
 import com.elykia.octopus.core.data.model.Group
+import com.elykia.octopus.core.data.model.StatsApiKeyEntry
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -69,6 +70,32 @@ class ApiKeyStateTest {
         )
 
         assertThat(state.supportedModelCandidates).containsExactly("cached")
+    }
+
+    @Test
+    fun apiKeyRefreshSuccessUpdatesApiKeyStats() {
+        val stats = listOf(StatsApiKeyEntry(apiKeyId = 7, requestSuccess = 3, requestFailed = 1))
+        val state = buildApiKeyRefreshState(
+            previous = ApiKeyUiState(apiKeyStats = listOf(StatsApiKeyEntry(apiKeyId = 1))),
+            apiKeysResult = AppResult.Success(emptyList()),
+            apiKeyStatsResult = AppResult.Success(stats),
+        )
+
+        assertThat(state.apiKeyStats).isEqualTo(stats)
+        assertThat(state.apiKeyStatsError).isNull()
+    }
+
+    @Test
+    fun apiKeyRefreshFailureKeepsCachedStatsAndExposesStatsError() {
+        val cachedStats = listOf(StatsApiKeyEntry(apiKeyId = 7, requestSuccess = 3))
+        val state = buildApiKeyRefreshState(
+            previous = ApiKeyUiState(apiKeyStats = cachedStats),
+            apiKeysResult = AppResult.Success(emptyList()),
+            apiKeyStatsResult = AppResult.Error("stats failed"),
+        )
+
+        assertThat(state.apiKeyStats).isEqualTo(cachedStats)
+        assertThat(state.apiKeyStatsError).isEqualTo("stats failed")
     }
 
     @Test

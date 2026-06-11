@@ -42,6 +42,7 @@ internal fun ApiKeyRow(
     selectionMode: Boolean,
     isSelected: Boolean,
     onToggle: (Boolean) -> Unit,
+    onViewStats: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onSelect: () -> Unit,
@@ -106,6 +107,14 @@ internal fun ApiKeyRow(
                 )
                 if (!selectionMode) {
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        IconButton(onClick = onViewStats, enabled = !submitting) {
+                            Icon(
+                                imageVector = AppMiuixIcons.Info,
+                                contentDescription = stringResource(R.string.apikey_stats_title),
+                                tint = OctopusTokens.TextSecondary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
                         IconButton(onClick = onEdit, enabled = !submitting) {
                             Icon(
                                 imageVector = AppMiuixIcons.Create,
