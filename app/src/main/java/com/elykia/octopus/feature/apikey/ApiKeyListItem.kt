@@ -139,10 +139,8 @@ internal fun ApiKeyRow(
                 AppMetricRow(
                     icon = AppMiuixIcons.Time,
                     label = stringResource(R.string.apikey_expire_at_label),
-                    value = item.expireAt
-                        ?.takeIf { it > 0L }
-                        ?.toString()
-                        ?: stringResource(R.string.apikey_expire_never),
+                    value = formatApiKeyExpireAtRaw(item.expireAt)
+                        .ifBlank { stringResource(R.string.apikey_expire_never) },
                 )
                 AppMetricRow(
                     icon = AppMiuixIcons.Cost,

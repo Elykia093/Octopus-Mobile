@@ -55,7 +55,8 @@ internal fun CreatedApiKeyDialog(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AppInfoChip(
-                    text = item.expireAt?.takeIf { it > 0 }?.toString() ?: stringResource(R.string.common_never_expires),
+                    text = formatApiKeyExpireAtRaw(item.expireAt)
+                        .ifBlank { stringResource(R.string.common_never_expires) },
                     icon = AppMiuixIcons.Time,
                 )
                 AppInfoChip(

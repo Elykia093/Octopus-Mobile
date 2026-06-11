@@ -4,6 +4,7 @@
 
 - Align API Key management with the Web admin form, starting with supported model restrictions derived from Group names.
 - Add API Key usage stats access from the management list, matching the Web setting panel stats affordance.
+- Normalize API Key expiration display so list and detail surfaces no longer expose raw Unix seconds.
 - Keep create and edit flows compatible with the existing comma-separated `supported_models` API contract.
 - Preserve manual editing for custom restrictions that are not present in the current Group list.
 
@@ -16,4 +17,5 @@
 
 - API Key model restriction parsing and candidate derivation unit coverage.
 - API Key stats refresh fallback and success-rate formatting unit coverage.
+- API Key expiration display formatting unit coverage.
 - Release unit test gate before every commit in the 0.8.x line.

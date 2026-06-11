@@ -43,8 +43,6 @@ import com.elykia.octopus.core.designsystem.formatCount
 import com.elykia.octopus.core.designsystem.formatDurationMs
 import com.elykia.octopus.core.designsystem.formatMoney
 import com.elykia.octopus.core.designsystem.icons.AppMiuixIcons
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -367,13 +365,6 @@ private fun ApiKeySupportedModelsCard(supportedModels: String?) {
             }
         }
     }
-}
-
-private fun formatApiKeyExpireAtRaw(expireAt: Long?): String {
-    if (expireAt == null || expireAt <= 0L) {
-        return ""
-    }
-    return SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(expireAt * 1000))
 }
 
 @Composable
