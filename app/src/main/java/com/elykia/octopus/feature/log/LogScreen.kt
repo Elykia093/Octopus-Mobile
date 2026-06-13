@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elykia.octopus.R
+import com.elykia.octopus.core.data.model.ChannelAttempt
 import com.elykia.octopus.core.data.model.Channel
 import com.elykia.octopus.core.data.model.LogKeywordMode
 import com.elykia.octopus.core.data.model.LogKeywordScope
@@ -520,6 +521,8 @@ private fun LogDetailDialog(
                                 error = true,
                             )
                         }
+                        LogTokenBreakdownBlock(log = detail)
+                        LogAttemptsBlock(attempts = detail.attempts)
                     }
                 }
             }
@@ -587,6 +590,7 @@ private fun LogRow(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 LogRouteHeader(log = log)
+                LogDiagnosticChips(log = log)
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -612,7 +616,7 @@ private fun LogRow(
                     LogMetricLine(
                         icon = AppMiuixIcons.ArrowDown,
                         label = stringResource(R.string.log_metric_input),
-                        value = formatCount(log.inputTokens.toLong()),
+                        value = formatCount(log.headlineInputTokens().toLong()),
                         color = OctopusTokens.TextSecondary,
                     )
                     LogMetricLine(
@@ -655,6 +659,38 @@ private fun LogRow(
 }
 
 @Composable
+private fun LogDiagnosticChips(log: RelayLog) {
+    val apiKeyName = log.requestApiKeyName?.trim().orEmpty()
+    val attemptCount = log.displayAttemptCount()
+    val wsLabels = logWsLabels(log)
+
+    if (apiKeyName.isBlank() && attemptCount <= 0 && wsLabels.isEmpty()) return
+
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (apiKeyName.isNotBlank()) {
+            AppInfoChip(
+                text = stringResource(R.string.log_request_api_key, apiKeyName),
+                icon = AppMiuixIcons.ApiKey,
+            )
+        }
+        if (attemptCount > 0) {
+            AppInfoChip(
+                text = stringResource(R.string.log_attempt_count, attemptCount),
+                icon = AppMiuixIcons.Sync,
+                tint = if (log.error.isBlank()) OctopusTokens.Accent else MiuixTheme.colorScheme.error,
+            )
+        }
+        wsLabels.forEach { label ->
+            AppInfoChip(
+                text = label,
+                icon = AppMiuixIcons.Sync,
+                tint = OctopusTones.Orange,
+            )
+        }
+    }
+}
+
+@Composable
 private fun LogProviderMark(
     label: String,
     hasError: Boolean,
@@ -681,6 +717,127 @@ private fun LogProviderMark(
                 style = MiuixTheme.textStyles.title3,
                 fontWeight = FontWeight.Bold,
                 color = color,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LogTokenBreakdownBlock(log: RelayLog) {
+    if (!log.hasInputTokenDetails()) return
+
+    AppListCard(padding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = stringResource(R.string.log_token_breakdown_title),
+                style = MiuixTheme.textStyles.main,
+                fontWeight = FontWeight.SemiBold,
+                color = OctopusTokens.TextPrimary,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                AppInfoChip(
+                    text = stringResource(R.string.log_token_transport_input, formatOptionalCount(log.transportInputTokens)),
+                    icon = AppMiuixIcons.ArrowDown,
+                )
+                AppInfoChip(
+                    text = stringResource(R.string.log_token_bill_input, formatOptionalCount(log.billInputTokens)),
+                    icon = AppMiuixIcons.Cost,
+                )
+                AppInfoChip(
+                    text = stringResource(R.string.log_token_cache_read, formatOptionalCount(log.cacheReadTokens)),
+                    icon = AppMiuixIcons.Token,
+                )
+                AppInfoChip(
+                    text = stringResource(R.string.log_token_cache_write, formatOptionalCount(log.cacheWriteTokens)),
+                    icon = AppMiuixIcons.Token,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LogAttemptsBlock(attempts: List<ChannelAttempt>) {
+    if (attempts.isEmpty()) return
+    val summaries = remember(attempts) { mergeAdjacentAttempts(attempts) }
+
+    AppListCard(padding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                text = stringResource(R.string.log_attempts_title),
+                style = MiuixTheme.textStyles.main,
+                fontWeight = FontWeight.SemiBold,
+                color = OctopusTokens.TextPrimary,
+            )
+            summaries.forEach { summary ->
+                LogAttemptRow(summary = summary)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LogAttemptRow(summary: LogAttemptSummary) {
+    val statusColor = logAttemptStatusColor(summary.status)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(statusColor.copy(alpha = 0.08f))
+            .border(1.dp, statusColor.copy(alpha = 0.18f), RoundedCornerShape(14.dp))
+            .padding(horizontal = 10.dp, vertical = 9.dp),
+        verticalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            AppInfoChip(
+                text = logAttemptStatusLabel(summary.status),
+                icon = if (summary.status == "success") AppMiuixIcons.Check else AppMiuixIcons.Close,
+                tint = statusColor,
+            )
+            Text(
+                text = "${summary.channelName} / ${summary.modelName}",
+                style = MiuixTheme.textStyles.body2,
+                fontWeight = FontWeight.Medium,
+                color = OctopusTokens.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            AppInfoChip(
+                text = stringResource(
+                    R.string.log_attempt_duration,
+                    logAttemptNumber(summary),
+                    formatDurationMs(summary.durationMs.toLong()),
+                ),
+                icon = AppMiuixIcons.Time,
+            )
+            if (summary.repeat > 1) {
+                AppInfoChip(
+                    text = stringResource(R.string.log_attempt_repeat, summary.repeat),
+                    icon = AppMiuixIcons.Sync,
+                )
+            }
+            if (summary.sticky) {
+                AppInfoChip(
+                    text = stringResource(R.string.log_attempt_sticky),
+                    icon = AppMiuixIcons.Info,
+                    tint = OctopusTones.Orange,
+                )
+            }
+        }
+        summary.message?.takeIf { it.isNotBlank() }?.let { message ->
+            Text(
+                text = message,
+                style = MiuixTheme.textStyles.body2,
+                color = if (summary.status == "failed") MiuixTheme.colorScheme.error else OctopusTokens.TextSecondary,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -827,6 +984,52 @@ private fun logFilterSummary(filter: LogListFilter): String {
     }
     return parts.joinToString(" · ").ifBlank { stringResource(R.string.log_filter_active) }
 }
+
+@Composable
+private fun logWsLabels(log: RelayLog): List<String> = buildList {
+    when (log.wsMode) {
+        "continuation" -> add(stringResource(R.string.log_stream_ws_continuation))
+        "replay" -> add(stringResource(R.string.log_stream_ws_replay))
+        "fresh" -> add(stringResource(R.string.log_stream_ws))
+        null -> if (log.usedWs) add(stringResource(R.string.log_stream_ws))
+    }
+    when (log.wsExecMode) {
+        "passthrough" -> add(stringResource(R.string.log_stream_ws_passthrough))
+        "transform" -> add(stringResource(R.string.log_stream_ws_transform))
+    }
+    when (log.wsRecovery) {
+        "reconnect" -> add(stringResource(R.string.log_stream_ws_reconnect))
+        "replay" -> add(stringResource(R.string.log_stream_ws_replay))
+        "downgrade" -> add(stringResource(R.string.log_stream_ws_downgrade))
+    }
+}
+
+@Composable
+private fun logAttemptStatusLabel(status: String): String = when (status) {
+    "success" -> stringResource(R.string.log_attempt_success)
+    "circuit_break" -> stringResource(R.string.log_attempt_circuit_break)
+    "skipped" -> stringResource(R.string.log_attempt_skipped)
+    else -> stringResource(R.string.log_attempt_failed)
+}
+
+@Composable
+private fun logAttemptStatusColor(status: String): Color = when (status) {
+    "success" -> OctopusTokens.Accent
+    "circuit_break" -> OctopusTones.Orange
+    "skipped" -> OctopusTokens.TextSecondary
+    else -> MiuixTheme.colorScheme.error
+}
+
+@Composable
+private fun logAttemptNumber(summary: LogAttemptSummary): String =
+    if (summary.firstAttemptNum != summary.lastAttemptNum) {
+        stringResource(R.string.log_attempt_range, summary.firstAttemptNum, summary.lastAttemptNum)
+    } else {
+        stringResource(R.string.log_attempt_number, summary.firstAttemptNum)
+    }
+
+private fun formatOptionalCount(value: Int?): String =
+    value?.let { formatCount(it.toLong()) } ?: "-"
 
 private fun RelayLog.disableTargets(siteTargets: LogSiteActionTargets?): List<LogSiteActionTarget> {
     if (siteTargets == null) return emptyList()

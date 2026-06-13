@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.0] - Unreleased
+
+### Added
+
+- Added Mobile Log support for Web parity diagnostic fields including WebSocket mode, execution mode, recovery state, cache token details, and server-reported attempt counts.
+- Added Log row diagnostics for API key name, WebSocket state, and channel attempt count.
+- Added Log detail sections for input token breakdown and merged channel attempt history.
+- Added unit coverage for Log diagnostic display helpers and repository parsing of the expanded Web Log payload.
+
+### Changed
+
+- Log input token headlines now follow the Web display behavior by including cache-write tokens when cache token details are present.
+
 ## [0.9.0] - 2026-06-12
 
 ### Changed

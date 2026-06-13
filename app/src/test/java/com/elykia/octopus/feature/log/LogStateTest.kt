@@ -1,5 +1,6 @@
 package com.elykia.octopus.feature.log
 
+import com.elykia.octopus.core.data.model.ChannelAttempt
 import com.elykia.octopus.core.data.model.LogKeywordMode
 import com.elykia.octopus.core.data.model.LogKeywordScope
 import com.elykia.octopus.core.data.model.LogListFilter
@@ -110,6 +111,43 @@ class LogStateTest {
         assertThat(LogListFilter(keyword = "gpt").hasActiveFilters()).isTrue()
         assertThat(LogListFilter(keywordMode = LogKeywordMode.Exact).hasActiveFilters()).isTrue()
     }
+
+    @Test
+    fun logDisplayUsesServerAttemptAndTokenDetails() {
+        val log = sampleLog(id = 1).copy(
+            inputTokens = 10,
+            totalAttempts = 3,
+            transportInputTokens = 8,
+            billInputTokens = 7,
+            cacheReadTokens = 20,
+            cacheWriteTokens = 2,
+        )
+
+        assertThat(log.displayAttemptCount()).isEqualTo(3)
+        assertThat(log.hasInputTokenDetails()).isTrue()
+        assertThat(log.headlineInputTokens()).isEqualTo(12)
+    }
+
+    @Test
+    fun mergeAdjacentAttemptsKeepsDistinctChannelKeys() {
+        val attempts = listOf(
+            sampleAttempt(channelKeyId = 1, attemptNum = 1, duration = 10, msg = "timeout"),
+            sampleAttempt(channelKeyId = 1, attemptNum = 2, duration = 20, msg = "timeout", sticky = true),
+            sampleAttempt(channelKeyId = 2, attemptNum = 3, duration = 30, msg = "timeout"),
+            sampleAttempt(channelKeyId = 2, attemptNum = 4, status = "success", duration = 40, msg = null),
+        )
+
+        val merged = mergeAdjacentAttempts(attempts)
+
+        assertThat(merged).hasSize(3)
+        assertThat(merged[0].repeat).isEqualTo(2)
+        assertThat(merged[0].durationMs).isEqualTo(30)
+        assertThat(merged[0].firstAttemptNum).isEqualTo(1)
+        assertThat(merged[0].lastAttemptNum).isEqualTo(2)
+        assertThat(merged[0].sticky).isTrue()
+        assertThat(merged[1].channelKeyId).isEqualTo(2)
+        assertThat(merged[2].status).isEqualTo("success")
+    }
 }
 
 private fun sampleLog(
@@ -135,4 +173,23 @@ private fun sampleLog(
     requestContent = requestContent,
     responseContent = "",
     error = error,
+)
+
+private fun sampleAttempt(
+    channelKeyId: Int?,
+    attemptNum: Int,
+    status: String = "failed",
+    duration: Int,
+    msg: String?,
+    sticky: Boolean = false,
+) = ChannelAttempt(
+    channelId = 1,
+    channelKeyId = channelKeyId,
+    channelName = "OpenAI",
+    modelName = "gpt-test",
+    attemptNum = attemptNum,
+    status = status,
+    duration = duration,
+    msg = msg,
+    sticky = sticky,
 )

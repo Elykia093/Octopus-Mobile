@@ -20,13 +20,25 @@ Mobile currently covers every Web API path found in the active Web reference. Ex
 
 ## 1.0 Parity Track
 
-The remaining work is not primarily API coverage. It is user-facing behavior parity:
+The remaining work after the API comparison is user-facing behavior parity:
 
 - Setting semantics: Web exposes named controls for site automation, Responses WebSocket mode, SSE heartbeat, projected-channel auto-group, and outlier retirement. Mobile must avoid fallback raw keys and validate server-supported values.
 - Operation feedback: Web shows focused toast/status feedback for save, sync, check-in, import/export, and destructive operations. Mobile should keep tightening loading, success, and failure states across modules.
 - View options: Web has richer toolbar/search/view-option state in several modules. Mobile has search/filter coverage in many places but still needs a full per-module behavior audit.
 - Projection behavior: Web SiteChannel loads request history by default and offers quick filters for attention, request history, and disabled models. Mobile now mirrors these list-level flows and keeps the remaining gap focused on bulk model operations and deeper account-panel preferences.
 - Release flow: 0.4.0 added signed release support; 0.5.0 starts GitHub Release automation.
+
+## 1.0 Final Audit
+
+The final 1.0 audit rechecked the active Web Log module against Mobile:
+
+- Web `log.ts` exposes `request_api_key_name`, `attempts`, `total_attempts`, cache token details, and WebSocket diagnostic fields on `RelayLog`.
+- Mobile now parses those fields in `RelayLog` instead of ignoring them.
+- Mobile Log rows now surface API key name, WebSocket state, and total attempt count.
+- Mobile Log detail now surfaces input token breakdown and merged channel attempt history.
+- Existing Mobile Log actions already cover server-side filters, live stream connection/reconnect, detail loading, log clear, site-action target lookup, and disable-site-model confirmation.
+
+With this slice, there are no known Web-only API paths or critical Web-only management workflows remaining in the active local reference.
 
 ## 0.5.0 Slice
 

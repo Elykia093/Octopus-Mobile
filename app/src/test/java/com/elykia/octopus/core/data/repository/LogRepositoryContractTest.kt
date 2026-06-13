@@ -174,6 +174,10 @@ class LogRepositoryContractTest {
                             "channel_name": "OpenAI",
                             "actual_model_name": "gpt-test",
                             "input_tokens": 10,
+                            "transport_input_tokens": 8,
+                            "bill_input_tokens": 7,
+                            "cache_read_tokens": 20,
+                            "cache_write_tokens": 2,
                             "output_tokens": 20,
                             "ftut": 30,
                             "use_time": 40,
@@ -181,6 +185,11 @@ class LogRepositoryContractTest {
                             "request_content": "Authorization: Bearer sk-request-secret",
                             "response_content": "token=sk-response-secret",
                             "error": "Bearer sk-error-secret",
+                            "used_ws": true,
+                            "ws_mode": "continuation",
+                            "ws_exec_mode": "transform",
+                            "ws_recovery": "reconnect",
+                            "total_attempts": 2,
                             "attempts": [
                               {
                                 "channel_id": 1,
@@ -210,6 +219,15 @@ class LogRepositoryContractTest {
             assertThat(detail.requestContent).doesNotContain("sk-request-secret")
             assertThat(detail.responseContent).doesNotContain("sk-response-secret")
             assertThat(detail.error).doesNotContain("sk-error-secret")
+            assertThat(detail.transportInputTokens).isEqualTo(8)
+            assertThat(detail.billInputTokens).isEqualTo(7)
+            assertThat(detail.cacheReadTokens).isEqualTo(20)
+            assertThat(detail.cacheWriteTokens).isEqualTo(2)
+            assertThat(detail.usedWs).isTrue()
+            assertThat(detail.wsMode).isEqualTo("continuation")
+            assertThat(detail.wsExecMode).isEqualTo("transform")
+            assertThat(detail.wsRecovery).isEqualTo("reconnect")
+            assertThat(detail.totalAttempts).isEqualTo(2)
             assertThat(detail.attempts.single().msg).doesNotContain("sk-attempt-secret")
             assertThat(server.takeRequest().path).isEqualTo("/api/v1/log/9")
         } finally {

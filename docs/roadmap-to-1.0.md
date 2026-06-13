@@ -48,6 +48,7 @@ Bring Octopus-Mobile to functional parity with the active Web management console
 ### 1.0.0
 
 - Full Web/Mobile parity audit with current reference source.
+- Log diagnostic parity for API key names, WebSocket state, cache token details, and channel attempt history.
 - No known Web-only API or critical user-facing workflow gaps.
 - Verified release build, changelog, tag, GitHub Release, and published APK artifacts.
 
